@@ -1,0 +1,5 @@
+print("start")
+valid_identifier
+another_valid_id123
+_test_identifier
+print("end")

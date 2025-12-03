@@ -1,0 +1,9 @@
+print("testing edge cases")
+a
+A
+_
+a1
+_1
+a_b_c
+A1_B2_C3
+print("done")

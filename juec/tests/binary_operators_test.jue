@@ -1,0 +1,23 @@
+// Test basic arithmetic operators
+1 + 2
+3 - 4
+5 * 6
+7 / 8
+
+// Test comparison operators
+9 == 10
+11 != 12
+13 < 14
+15 > 16
+17 <= 18
+19 >= 20
+
+// Test operator precedence
+2 + 3 * 4       // Should be 2 + (3 * 4) = 14
+(2 + 3) * 4     // Should be (2 + 3) * 4 = 20
+5 + 6 - 7 * 8   // Should be 5 + 6 - (7 * 8) = -45
+
+// Test complex expressions
+(1 + 2) * (3 + 4)
+10 / 2 + 3
+10 / (2 + 3)

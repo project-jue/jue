@@ -1,0 +1,27 @@
+[package]
+name = "jue-c"
+version = "0.1.0"
+edition = "2021"
+[lib]
+name = "juec"
+build = "build.rs"
+
+
+[dependencies]
+pest = "2.7"
+pest_derive = "2.7"
+anyhow = "1.0"        # convenient error handling
+# JIT backend support
+cranelift = "0.126.1"
+cranelift-module = "0.126.1"
+cranelift-jit = "0.126.1"
+
+jue_common = { path = "../jue_common" }
+
+
+[build-dependencies]
+pest_generator = "2.7"
+
+[features]
+default = ["jit"]
+jit = []

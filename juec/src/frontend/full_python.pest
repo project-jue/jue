@@ -1,0 +1,147 @@
+//////////////////////////////////////
+// Full Python Grammar
+// This is a fully expanded grammar.pest for Python in a Pest-compatible PEG style,
+// while keeping in mind that indentation and context-sensitive stuff will be
+// handled in Rust lexer/post-processing.
+//
+//This version will cover:
+//
+//Nested for / if / elif / else / while / try / except / finally / with
+//
+//Function (def) and class (class) definitions, including decorators
+//
+//Comprehensions and generator expressions
+//
+//Assignment and augmented assignment
+//
+//Basic literals: numbers, strings, booleans, None
+//
+//Operators and precedence hierarchy
+//
+//We will keep INDENT / DEDENT tokens as placeholders for Rust lexer to handle.
+//////////////////////////////////////
+
+WHITESPACE = _{ " " | "\t" }
+NEWLINE    = _{ "\r\n" | "\n" }
+INDENT     = { "<INDENT>" }
+DEDENT     = { "<DEDENT>" }
+
+NAME       = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+NUMBER     = @{ ASCII_DIGIT+ ~ ( "." ~ ASCII_DIGIT+ )? }
+STRING     = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" | "'" ~ (!"'" ~ ANY)* ~ "'" }
+TRUE       = { "True" }
+FALSE      = { "False" }
+NONE       = { "None" }
+literal    = { NUMBER | STRING | TRUE | FALSE | NONE }
+
+COMMENT    = _{ "#" ~ (!NEWLINE ~ ANY)* }
+
+symbol     = { "=" | "==" | "!=" | "<=" | ">=" | "<" | ">" | "+" | "-" | "*" | "/" | "//" | "%" | "**" }
+augassign  = { "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**=" | "<<=" | ">>=" | "&=" | "|=" | "^=" }
+
+////////////////////////////////////
+// Expressions
+////////////////////////////////////
+expr        = { or_test }
+or_test     = { and_test ~ ( WHITESPACE* ~ "or" ~ WHITESPACE* ~ and_test )* }
+and_test    = { not_test ~ ( WHITESPACE* ~ "and" ~ WHITESPACE* ~ not_test )* }
+not_test    = { "not" ~ WHITESPACE+ ~ not_test | comparison }
+comparison  = { bitwise_or ~ ( WHITESPACE* ~ compare_op ~ WHITESPACE* ~ bitwise_or )* }
+compare_op  = { "<" | ">" | "==" | ">=" | "<=" | "!=" | "in" | "is" ~ (" " ~ "not")? }
+bitwise_or  = { bitwise_xor ~ ( WHITESPACE* ~ "|" ~ WHITESPACE* ~ bitwise_xor )* }
+bitwise_xor = { bitwise_and ~ ( WHITESPACE* ~ "^" ~ WHITESPACE* ~ bitwise_and )* }
+bitwise_and = { shift_expr ~ ( WHITESPACE* ~ "&" ~ WHITESPACE* ~ shift_expr )* }
+shift_expr  = { arith_expr ~ ( WHITESPACE* ~ ( "<<" | ">>" ) ~ WHITESPACE* ~ arith_expr )* }
+arith_expr  = { term ~ ( WHITESPACE* ~ ( "+" | "-" ) ~ WHITESPACE* ~ term )* }
+term        = { factor ~ ( WHITESPACE* ~ ( "*" | "/" | "//" | "%" ) ~ WHITESPACE* ~ factor )* }
+factor      = { ( "+" | "-" | "~" ) ~ factor | power }
+power       = { atom ~ ( WHITESPACE* ~ "**" ~ WHITESPACE* ~ factor )? }
+
+atom = _{
+      literal
+    | NAME
+    | "(" ~ exprlist? ~ ")"
+    | "[" ~ exprlist? ~ "]"
+    | "{" ~ dictorsetmaker? ~ "}"
+    | lambda_expr
+}
+
+exprlist = { expr ~ ( WHITESPACE* ~ "," ~ WHITESPACE* ~ expr )* ~ ("," )? }
+
+lambda_expr = { "lambda" ~ WHITESPACE* ~ NAME ~ (WHITESPACE* ~ "," ~ WHITESPACE* ~ NAME)* ~ WHITESPACE* ~ ":" ~ expr }
+
+
+dictorsetmaker = {
+      (expr ~ ":" ~ expr) ~ ( WHITESPACE* ~ "," ~ WHITESPACE* ~ (expr ~ ":" ~ expr) )* ~ ("," )?
+    | (expr) ~ comp_for ~ (comp_if)*
+}
+
+comp_for = { ("async" ~ WHITESPACE+)? ~ "for" ~ WHITESPACE+ ~ exprlist ~ WHITESPACE+ ~ "in" ~ WHITESPACE+ ~ or_test ~ (comp_for | comp_if)* }
+comp_if  = { WHITESPACE+ ~ "if" ~ WHITESPACE+ ~ or_test }
+
+////////////////////////////////////
+// Statements
+////////////////////////////////////
+simple_stmt = { small_stmt ~ ( ";" ~ small_stmt )* ~ NEWLINE }
+
+small_stmt = {
+      (exprlist ~ "=" ~ exprlist)
+    | (expr ~ NEWLINE)
+    | pass_stmt
+    | del_stmt
+    | return_stmt
+    | yield_stmt
+    | raise_stmt
+    | import_stmt
+    | global_stmt
+    | nonlocal_stmt
+    | assert_stmt
+    | break_stmt
+    | continue_stmt
+}
+
+pass_stmt     = { "pass" ~ NEWLINE }
+del_stmt      = { "del" ~ WHITESPACE+ ~ exprlist ~ NEWLINE }
+return_stmt   = { "return" ~ (WHITESPACE+ ~ exprlist)? ~ NEWLINE }
+yield_stmt    = { "yield" ~ (WHITESPACE+ ~ exprlist)? ~ NEWLINE }
+raise_stmt    = { "raise" ~ (WHITESPACE+ ~ expr)? ~ NEWLINE }
+import_stmt   = { "import" ~ WHITESPACE+ ~ NAME ~ ( "." ~ NAME )* ~ ("," ~ NAME ~ ( "." ~ NAME )* )* ~ NEWLINE }
+global_stmt   = { "global" ~ WHITESPACE+ ~ NAME ~ ("," ~ NAME)* ~ NEWLINE }
+nonlocal_stmt = { "nonlocal" ~ WHITESPACE+ ~ NAME ~ ("," ~ NAME)* ~ NEWLINE }
+assert_stmt   = { "assert" ~ WHITESPACE+ ~ expr ~ ("," ~ expr)? ~ NEWLINE }
+break_stmt    = { "break" ~ NEWLINE }
+continue_stmt = { "continue" ~ NEWLINE }
+
+////////////////////////////////////
+// Compound statements
+////////////////////////////////////
+compound_stmt = { if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef }
+
+if_stmt    = { "if" ~ WHITESPACE+ ~ expr ~ suite ~ ( "elif" ~ WHITESPACE+ ~ expr ~ suite )* ~ ( "else" ~ suite )? }
+while_stmt = { "while" ~ WHITESPACE+ ~ expr ~ suite ~ ( "else" ~ suite )? }
+for_stmt   = { ("async" ~ WHITESPACE+)? ~ "for" ~ WHITESPACE+ ~ exprlist ~ WHITESPACE+ ~ "in" ~ WHITESPACE+ ~ exprlist ~ suite ~ ( "else" ~ suite )? }
+with_stmt  = { ("async" ~ WHITESPACE+)? ~ "with" ~ WHITESPACE+ ~ with_item ~ ("," ~ with_item)* ~ suite }
+with_item  = { expr ~ ("as" ~ expr)? }
+try_stmt   = {
+      "try" ~ suite
+    ~ ( "except" ~ (exprlist)? ~ suite )+
+    ~ ("else" ~ suite)?
+    ~ ("finally" ~ suite)?
+}
+
+funcdef   = { ("async" ~ WHITESPACE+)? ~ "def" ~ WHITESPACE+ ~ NAME ~ parameters ~ ("->" ~ expr)? ~ suite }
+parameters = { "(" ~ typedargslist? ~ ")" }
+typedargslist = {
+      tfpdef ~ ("=" ~ expr)? ~ ("," ~ tfpdef ~ ("=" ~ expr)? )* ~ (",")?
+    | "*" ~ (tfpdef)? ~ ("," ~ tfpdef ~ ("=" ~ expr)? )* ~ (",")?
+    | "**" ~ tfpdef
+}
+
+tfpdef    = { NAME ~ (":" ~ expr)? }
+
+classdef = { "class" ~ WHITESPACE+ ~ NAME ~ ("(" ~ exprlist? ~ ")")? ~ suite }
+
+suite    = { ":" ~ (simple_stmt | NEWLINE ~ INDENT ~ statement+ ~ DEDENT) }
+statement = _{ simple_stmt | compound_stmt }
+
+program = { (NEWLINE | statement)* }

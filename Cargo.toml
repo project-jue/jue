@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "jue_common",
+    "juec",
+    "juerun",
+    "jue_std",
+]
+
+resolver = "2"

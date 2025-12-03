@@ -1,0 +1,16 @@
+[package]
+name = "juerun"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jue_common = { path = "../jue_common" }
+
+# JIT backend support
+cranelift = "0.126.1"
+cranelift-module = "0.126.1"
+cranelift-jit = "0.126.1"
+
+[features]
+default = []
+jit = []

@@ -1,0 +1,1 @@
+This project contains code that is common to other projects in the Jue language.

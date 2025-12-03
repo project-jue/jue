@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Awesome Presentations with Reveal.js</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4/dist/reveal.css">
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4/dist/theme/black.css" id="theme">
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section data-markdown="file:///./Slides.md"
+                     data-separator="^\n---\n$"
+                     data-separator-vertical="^\n--\n$"
+                     data-separator-notes="^Note:">
+            </section>
+            </div>
+    </div>
+
+    <script src="https://unpkg.com/reveal.js@4/dist/reveal.js"></script>
+    <script src="https://unpkg.com/reveal.js@4/plugin/markdown/markdown.js"></script>
+    <script>
+        // We initialize Reveal.js with the Markdown plugin
+        Reveal.initialize({
+            hash: true, // Creates a history entry for each slide in the browser history
+            plugins: [ RevealMarkdown ]
+        });
+    </script>
+</body>
+</html>
