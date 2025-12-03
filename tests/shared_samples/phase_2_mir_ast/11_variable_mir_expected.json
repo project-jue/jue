@@ -1,0 +1,452 @@
+{
+    "description": "Expected MIR AST for variable declarations and assignments",
+    "source_file": "02_variable_declarations.jue",
+    "expected_mir_structure": {
+        "nodes": [
+            {
+                "id": 0,
+                "kind": "Module",
+                "body": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13
+                ]
+            },
+            {
+                "id": 1,
+                "kind": "Assign",
+                "targets": [
+                    14
+                ],
+                "value": 15
+            },
+            {
+                "id": 2,
+                "kind": "Assign",
+                "targets": [
+                    16
+                ],
+                "value": 17
+            },
+            {
+                "id": 3,
+                "kind": "Assign",
+                "targets": [
+                    18
+                ],
+                "value": 19
+            },
+            {
+                "id": 4,
+                "kind": "Assign",
+                "targets": [
+                    20
+                ],
+                "value": 21
+            },
+            {
+                "id": 5,
+                "kind": "Assign",
+                "targets": [
+                    22,
+                    23
+                ],
+                "value": 24
+            },
+            {
+                "id": 6,
+                "kind": "Assign",
+                "targets": [
+                    25,
+                    26
+                ],
+                "value": 27
+            },
+            {
+                "id": 7,
+                "kind": "Assign",
+                "targets": [
+                    28
+                ],
+                "value": 29
+            },
+            {
+                "id": 8,
+                "kind": "Assign",
+                "targets": [
+                    30
+                ],
+                "value": 31
+            },
+            {
+                "id": 9,
+                "kind": "Assign",
+                "targets": [
+                    32
+                ],
+                "value": 33
+            },
+            {
+                "id": 10,
+                "kind": "Assign",
+                "targets": [
+                    34
+                ],
+                "value": 35
+            },
+            {
+                "id": 11,
+                "kind": "Assign",
+                "targets": [
+                    36
+                ],
+                "value": 37
+            },
+            {
+                "id": 12,
+                "kind": "Assign",
+                "targets": [
+                    38
+                ],
+                "value": 39
+            },
+            {
+                "id": 13,
+                "kind": "Assign",
+                "targets": [
+                    40
+                ],
+                "value": 41
+            },
+            {
+                "id": 14,
+                "kind": "Identifier",
+                "symbol": 0
+            },
+            {
+                "id": 15,
+                "kind": "Literal",
+                "value": 1
+            },
+            {
+                "id": 16,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 17,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 18,
+                "kind": "Identifier",
+                "symbol": 2
+            },
+            {
+                "id": 19,
+                "kind": "Literal",
+                "value": "hello"
+            },
+            {
+                "id": 20,
+                "kind": "Identifier",
+                "symbol": 3
+            },
+            {
+                "id": 21,
+                "kind": "Literal",
+                "value": true
+            },
+            {
+                "id": 22,
+                "kind": "Identifier",
+                "symbol": 4
+            },
+            {
+                "id": 23,
+                "kind": "Identifier",
+                "symbol": 5
+            },
+            {
+                "id": 24,
+                "kind": "Literal",
+                "value": 10
+            },
+            {
+                "id": 25,
+                "kind": "Identifier",
+                "symbol": 6
+            },
+            {
+                "id": 26,
+                "kind": "Identifier",
+                "symbol": 7
+            },
+            {
+                "id": 27,
+                "kind": "TupleLiteral",
+                "elts": [
+                    42,
+                    43
+                ]
+            },
+            {
+                "id": 28,
+                "kind": "Identifier",
+                "symbol": 8
+            },
+            {
+                "id": 29,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 44,
+                "rhs": 45
+            },
+            {
+                "id": 30,
+                "kind": "Identifier",
+                "symbol": 9
+            },
+            {
+                "id": 31,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 46,
+                "rhs": 47
+            },
+            {
+                "id": 32,
+                "kind": "Identifier",
+                "symbol": 10
+            },
+            {
+                "id": 33,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 48,
+                "rhs": 49
+            },
+            {
+                "id": 34,
+                "kind": "Identifier",
+                "symbol": 11
+            },
+            {
+                "id": 35,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 50,
+                "rhs": 51
+            },
+            {
+                "id": 36,
+                "kind": "Identifier",
+                "symbol": 12
+            },
+            {
+                "id": 37,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 52,
+                "rhs": 53
+            },
+            {
+                "id": 38,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 39,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 54,
+                "rhs": 55
+            },
+            {
+                "id": 40,
+                "kind": "Identifier",
+                "symbol": 14
+            },
+            {
+                "id": 41,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 56,
+                "rhs": 57
+            },
+            {
+                "id": 42,
+                "kind": "Literal",
+                "value": 1
+            },
+            {
+                "id": 43,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 44,
+                "kind": "Identifier",
+                "symbol": 6
+            },
+            {
+                "id": 45,
+                "kind": "Identifier",
+                "symbol": 7
+            },
+            {
+                "id": 46,
+                "kind": "Literal",
+                "value": "Value: "
+            },
+            {
+                "id": 47,
+                "kind": "Identifier",
+                "symbol": 8
+            },
+            {
+                "id": 48,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 58,
+                "rhs": 59
+            },
+            {
+                "id": 49,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 60,
+                "rhs": 61
+            },
+            {
+                "id": 50,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 62,
+                "rhs": 63
+            },
+            {
+                "id": 51,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 64,
+                "rhs": 65
+            },
+            {
+                "id": 52,
+                "kind": "BinaryOp",
+                "op": "-",
+                "lhs": 66,
+                "rhs": 67
+            },
+            {
+                "id": 53,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 54,
+                "kind": "Identifier",
+                "symbol": 12
+            },
+            {
+                "id": 55,
+                "kind": "Literal",
+                "value": 1
+            },
+            {
+                "id": 56,
+                "kind": "Identifier",
+                "symbol": 12
+            },
+            {
+                "id": 57,
+                "kind": "Literal",
+                "value": 1
+            },
+            {
+                "id": 58,
+                "kind": "Identifier",
+                "symbol": 4
+            },
+            {
+                "id": 59,
+                "kind": "Identifier",
+                "symbol": 5
+            },
+            {
+                "id": 60,
+                "kind": "Identifier",
+                "symbol": 6
+            },
+            {
+                "id": 61,
+                "kind": "Identifier",
+                "symbol": 7
+            },
+            {
+                "id": 62,
+                "kind": "Identifier",
+                "symbol": 0
+            },
+            {
+                "id": 63,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 64,
+                "kind": "Identifier",
+                "symbol": 2
+            },
+            {
+                "id": 65,
+                "kind": "Identifier",
+                "symbol": 3
+            },
+            {
+                "id": 66,
+                "kind": "Identifier",
+                "symbol": 12
+            },
+            {
+                "id": 67,
+                "kind": "Literal",
+                "value": 1
+            }
+        ],
+        "symbol_table": [
+            "x",
+            "y",
+            "name",
+            "active",
+            "a",
+            "b",
+            "result",
+            "message",
+            "total",
+            "x",
+            "y",
+            "a",
+            "b",
+            "temp"
+        ],
+        "validation_rules": [
+            "All variable assignments should create proper Identifier nodes",
+            "Multiple assignments should create tuple unpacking where appropriate",
+            "Variable references should use correct symbol IDs",
+            "Complex expressions should be properly structured in the MIR"
+        ]
+    }
+}

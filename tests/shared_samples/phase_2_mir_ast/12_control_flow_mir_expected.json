@@ -1,0 +1,559 @@
+{
+    "description": "Expected MIR AST for control flow constructs",
+    "source_file": "03_control_flow.jue",
+    "expected_mir_structure": {
+        "nodes": [
+            {
+                "id": 0,
+                "kind": "Module",
+                "body": [
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            },
+            {
+                "id": 1,
+                "kind": "If",
+                "test": 5,
+                "body": 6,
+                "orelse": null
+            },
+            {
+                "id": 2,
+                "kind": "If",
+                "test": 7,
+                "body": 8,
+                "orelse": 9
+            },
+            {
+                "id": 3,
+                "kind": "If",
+                "test": 10,
+                "body": 11,
+                "orelse": 12
+            },
+            {
+                "id": 4,
+                "kind": "If",
+                "test": 13,
+                "body": 14,
+                "orelse": 15
+            },
+            {
+                "id": 5,
+                "kind": "BinaryOp",
+                "op": ">",
+                "lhs": 16,
+                "rhs": 17
+            },
+            {
+                "id": 6,
+                "kind": "Block",
+                "stmts": [
+                    18
+                ]
+            },
+            {
+                "id": 7,
+                "kind": "BinaryOp",
+                "op": ">",
+                "lhs": 19,
+                "rhs": 20
+            },
+            {
+                "id": 8,
+                "kind": "Block",
+                "stmts": [
+                    21
+                ]
+            },
+            {
+                "id": 9,
+                "kind": "Block",
+                "stmts": [
+                    22
+                ]
+            },
+            {
+                "id": 10,
+                "kind": "BinaryOp",
+                "op": ">=",
+                "lhs": 23,
+                "rhs": 24
+            },
+            {
+                "id": 11,
+                "kind": "Block",
+                "stmts": [
+                    25
+                ]
+            },
+            {
+                "id": 12,
+                "kind": "If",
+                "test": 26,
+                "body": 27,
+                "orelse": 28
+            },
+            {
+                "id": 13,
+                "kind": "BinaryOp",
+                "op": ">",
+                "lhs": 29,
+                "rhs": 30
+            },
+            {
+                "id": 14,
+                "kind": "Block",
+                "stmts": [
+                    31
+                ]
+            },
+            {
+                "id": 15,
+                "kind": "If",
+                "test": 32,
+                "body": 33,
+                "orelse": 34
+            },
+            {
+                "id": 16,
+                "kind": "Identifier",
+                "symbol": 0
+            },
+            {
+                "id": 17,
+                "kind": "Literal",
+                "value": 0
+            },
+            {
+                "id": 18,
+                "kind": "Assign",
+                "targets": [
+                    35
+                ],
+                "value": 36
+            },
+            {
+                "id": 19,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 20,
+                "kind": "Literal",
+                "value": 30
+            },
+            {
+                "id": 21,
+                "kind": "Assign",
+                "targets": [
+                    37
+                ],
+                "value": 38
+            },
+            {
+                "id": 22,
+                "kind": "Assign",
+                "targets": [
+                    39
+                ],
+                "value": 40
+            },
+            {
+                "id": 23,
+                "kind": "Identifier",
+                "symbol": 2
+            },
+            {
+                "id": 24,
+                "kind": "Literal",
+                "value": 90
+            },
+            {
+                "id": 25,
+                "kind": "Assign",
+                "targets": [
+                    41
+                ],
+                "value": 42
+            },
+            {
+                "id": 26,
+                "kind": "BinaryOp",
+                "op": ">=",
+                "lhs": 43,
+                "rhs": 44
+            },
+            {
+                "id": 27,
+                "kind": "Block",
+                "stmts": [
+                    45
+                ]
+            },
+            {
+                "id": 28,
+                "kind": "If",
+                "test": 46,
+                "body": 47,
+                "orelse": 48
+            },
+            {
+                "id": 29,
+                "kind": "Identifier",
+                "symbol": 3
+            },
+            {
+                "id": 30,
+                "kind": "Literal",
+                "value": 0
+            },
+            {
+                "id": 31,
+                "kind": "Assign",
+                "targets": [
+                    49
+                ],
+                "value": 50
+            },
+            {
+                "id": 32,
+                "kind": "BinaryOp",
+                "op": ">",
+                "lhs": 51,
+                "rhs": 52
+            },
+            {
+                "id": 33,
+                "kind": "Block",
+                "stmts": [
+                    53
+                ]
+            },
+            {
+                "id": 34,
+                "kind": "Block",
+                "stmts": [
+                    54
+                ]
+            },
+            {
+                "id": 35,
+                "kind": "Identifier",
+                "symbol": 4
+            },
+            {
+                "id": 36,
+                "kind": "Literal",
+                "value": "positive"
+            },
+            {
+                "id": 37,
+                "kind": "Identifier",
+                "symbol": 5
+            },
+            {
+                "id": 38,
+                "kind": "Literal",
+                "value": "hot"
+            },
+            {
+                "id": 39,
+                "kind": "Identifier",
+                "symbol": 5
+            },
+            {
+                "id": 40,
+                "kind": "Literal",
+                "value": "moderate"
+            },
+            {
+                "id": 41,
+                "kind": "Identifier",
+                "symbol": 6
+            },
+            {
+                "id": 42,
+                "kind": "Literal",
+                "value": "A"
+            },
+            {
+                "id": 43,
+                "kind": "Identifier",
+                "symbol": 2
+            },
+            {
+                "id": 44,
+                "kind": "Literal",
+                "value": 80
+            },
+            {
+                "id": 45,
+                "kind": "Assign",
+                "targets": [
+                    55
+                ],
+                "value": 56
+            },
+            {
+                "id": 46,
+                "kind": "BinaryOp",
+                "op": ">=",
+                "lhs": 57,
+                "rhs": 58
+            },
+            {
+                "id": 47,
+                "kind": "Block",
+                "stmts": [
+                    59
+                ]
+            },
+            {
+                "id": 48,
+                "kind": "Block",
+                "stmts": [
+                    60
+                ]
+            },
+            {
+                "id": 49,
+                "kind": "Identifier",
+                "symbol": 6
+            },
+            {
+                "id": 50,
+                "kind": "Literal",
+                "value": "B"
+            },
+            {
+                "id": 51,
+                "kind": "Identifier",
+                "symbol": 2
+            },
+            {
+                "id": 52,
+                "kind": "Literal",
+                "value": 70
+            },
+            {
+                "id": 53,
+                "kind": "Assign",
+                "targets": [
+                    61
+                ],
+                "value": 62
+            },
+            {
+                "id": 54,
+                "kind": "Assign",
+                "targets": [
+                    63
+                ],
+                "value": 64
+            },
+            {
+                "id": 55,
+                "kind": "Identifier",
+                "symbol": 6
+            },
+            {
+                "id": 56,
+                "kind": "Literal",
+                "value": "C"
+            },
+            {
+                "id": 57,
+                "kind": "Identifier",
+                "symbol": 2
+            },
+            {
+                "id": 58,
+                "kind": "Literal",
+                "value": 70
+            },
+            {
+                "id": 59,
+                "kind": "Assign",
+                "targets": [
+                    65
+                ],
+                "value": 66
+            },
+            {
+                "id": 60,
+                "kind": "If",
+                "test": 67,
+                "body": 68,
+                "orelse": 69
+            },
+            {
+                "id": 61,
+                "kind": "Identifier",
+                "symbol": 6
+            },
+            {
+                "id": 62,
+                "kind": "Literal",
+                "value": "B"
+            },
+            {
+                "id": 63,
+                "kind": "Identifier",
+                "symbol": 6
+            },
+            {
+                "id": 64,
+                "kind": "Literal",
+                "value": "F"
+            },
+            {
+                "id": 65,
+                "kind": "Identifier",
+                "symbol": 7
+            },
+            {
+                "id": 66,
+                "kind": "Literal",
+                "value": "I"
+            },
+            {
+                "id": 67,
+                "kind": "BinaryOp",
+                "op": ">",
+                "lhs": 70,
+                "rhs": 71
+            },
+            {
+                "id": 68,
+                "kind": "Block",
+                "stmts": [
+                    72
+                ]
+            },
+            {
+                "id": 69,
+                "kind": "If",
+                "test": 73,
+                "body": 74,
+                "orelse": 75
+            },
+            {
+                "id": 70,
+                "kind": "Identifier",
+                "symbol": 8
+            },
+            {
+                "id": 71,
+                "kind": "Literal",
+                "value": 0
+            },
+            {
+                "id": 72,
+                "kind": "Assign",
+                "targets": [
+                    76
+                ],
+                "value": 77
+            },
+            {
+                "id": 73,
+                "kind": "BinaryOp",
+                "op": "<=",
+                "lhs": 78,
+                "rhs": 79
+            },
+            {
+                "id": 74,
+                "kind": "Block",
+                "stmts": [
+                    80
+                ]
+            },
+            {
+                "id": 75,
+                "kind": "Block",
+                "stmts": [
+                    81
+                ]
+            },
+            {
+                "id": 76,
+                "kind": "Identifier",
+                "symbol": 7
+            },
+            {
+                "id": 77,
+                "kind": "Literal",
+                "value": "IV"
+            },
+            {
+                "id": 78,
+                "kind": "Identifier",
+                "symbol": 9
+            },
+            {
+                "id": 79,
+                "kind": "Literal",
+                "value": 0
+            },
+            {
+                "id": 80,
+                "kind": "Assign",
+                "targets": [
+                    82
+                ],
+                "value": 83
+            },
+            {
+                "id": 81,
+                "kind": "Assign",
+                "targets": [
+                    84
+                ],
+                "value": 85
+            },
+            {
+                "id": 82,
+                "kind": "Identifier",
+                "symbol": 7
+            },
+            {
+                "id": 83,
+                "kind": "Literal",
+                "value": "II"
+            },
+            {
+                "id": 84,
+                "kind": "Identifier",
+                "symbol": 7
+            },
+            {
+                "id": 85,
+                "kind": "Literal",
+                "value": "III"
+            }
+        ],
+        "symbol_table": [
+            "x",
+            "temperature",
+            "score",
+            "y",
+            "result",
+            "status",
+            "grade",
+            "quadrant",
+            "x",
+            "y"
+        ],
+        "validation_rules": [
+            "If statements should create proper If nodes with test, body, and orelse fields",
+            "Nested if statements should create nested If nodes",
+            "All conditions should be properly parsed as binary operations",
+            "Blocks should contain the correct sequence of statements"
+        ]
+    }
+}

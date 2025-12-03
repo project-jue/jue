@@ -5,11 +5,13 @@ edition = "2021"
 
 [dependencies]
 jue_common = { path = "../jue_common" }
+juec = { path = "../juec" }
 
 # JIT backend support
 cranelift = "0.126.1"
 cranelift-module = "0.126.1"
 cranelift-jit = "0.126.1"
+anyhow = "1.0"
 
 [features]
 default = []

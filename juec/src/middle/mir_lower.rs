@@ -1,8 +1,8 @@
 // src/mir_lower.rs
+use super::mir::{LiteralValue, Meta, Mir, NodeId, NodeKind};
 use crate::frontend::ast::{
     Expr as FrontExpr, Module as FrontModule, Param as FrontParam, Stmt as FrontStmt,
 };
-use crate::mir::{LiteralValue, Meta, Mir, NodeId, NodeKind};
 
 /// Lower a frontend Module into a MIR arena. Returns the root NodeId (module).
 pub fn lower_frontend_module(front: &FrontModule) -> Mir {

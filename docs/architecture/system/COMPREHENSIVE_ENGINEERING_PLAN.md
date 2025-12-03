@@ -38,7 +38,7 @@ This comprehensive engineering plan builds upon the existing ENGINEERING_PLAN.md
 
 ### Phase 1: Minimal Viable Compiler (MVC) - Basic Parsing and Execution (7-9 weeks)
 
-**Goal**: Extend interpreter to compiler handling basic expressions, assignments, and function definitions.
+**Goal**: Extend the current interpreter to a compiler that can handle basic expressions, assignments, and function definitions, compiling to a simple bytecode or direct execution.
 
 #### Milestone 1: Extend Grammar and Parser
 - **Tasks**:
@@ -71,7 +71,7 @@ This comprehensive engineering plan builds upon the existing ENGINEERING_PLAN.md
 
 ### Phase 2: Core Language Features (9-11 weeks)
 
-**Goal**: Add classes, advanced expressions, and metacognition primitives.
+**Goal**: Add support for classes, advanced expressions, and metacognition primitives.
 
 #### Milestone 4: Advanced Parsing and AST
 - **Tasks**:

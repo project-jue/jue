@@ -1,0 +1,753 @@
+{
+    "description": "Expected MIR AST for function definitions and calls",
+    "source_file": "04_function_definitions.jue",
+    "expected_mir_structure": {
+        "nodes": [
+            {
+                "id": 0,
+                "kind": "Module",
+                "body": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14
+                ]
+            },
+            {
+                "id": 1,
+                "kind": "FunctionDef",
+                "name": 0,
+                "params": [],
+                "body": 15,
+                "decorators": []
+            },
+            {
+                "id": 2,
+                "kind": "FunctionDef",
+                "name": 1,
+                "params": [
+                    2,
+                    3
+                ],
+                "body": 16,
+                "decorators": []
+            },
+            {
+                "id": 3,
+                "kind": "FunctionDef",
+                "name": 4,
+                "params": [
+                    5,
+                    6,
+                    7
+                ],
+                "body": 17,
+                "decorators": []
+            },
+            {
+                "id": 4,
+                "kind": "FunctionDef",
+                "name": 8,
+                "params": [
+                    9,
+                    10
+                ],
+                "body": 18,
+                "decorators": []
+            },
+            {
+                "id": 5,
+                "kind": "Assign",
+                "targets": [
+                    19
+                ],
+                "value": 20
+            },
+            {
+                "id": 6,
+                "kind": "Assign",
+                "targets": [
+                    21
+                ],
+                "value": 22
+            },
+            {
+                "id": 7,
+                "kind": "Assign",
+                "targets": [
+                    23
+                ],
+                "value": 24
+            },
+            {
+                "id": 8,
+                "kind": "Assign",
+                "targets": [
+                    25
+                ],
+                "value": 26
+            },
+            {
+                "id": 9,
+                "kind": "Assign",
+                "targets": [
+                    27
+                ],
+                "value": 28
+            },
+            {
+                "id": 10,
+                "kind": "Assign",
+                "targets": [
+                    29
+                ],
+                "value": 30
+            },
+            {
+                "id": 11,
+                "kind": "Assign",
+                "targets": [
+                    31
+                ],
+                "value": 32
+            },
+            {
+                "id": 12,
+                "kind": "Assign",
+                "targets": [
+                    33
+                ],
+                "value": 34
+            },
+            {
+                "id": 13,
+                "kind": "Assign",
+                "targets": [
+                    35
+                ],
+                "value": 36
+            },
+            {
+                "id": 14,
+                "kind": "Assign",
+                "targets": [
+                    37
+                ],
+                "value": 38
+            },
+            {
+                "id": 15,
+                "kind": "Block",
+                "stmts": [
+                    39
+                ]
+            },
+            {
+                "id": 16,
+                "kind": "Block",
+                "stmts": [
+                    40
+                ]
+            },
+            {
+                "id": 17,
+                "kind": "Block",
+                "stmts": [
+                    41,
+                    42,
+                    43
+                ]
+            },
+            {
+                "id": 18,
+                "kind": "Block",
+                "stmts": [
+                    44,
+                    45,
+                    46
+                ]
+            },
+            {
+                "id": 19,
+                "kind": "Identifier",
+                "symbol": 11
+            },
+            {
+                "id": 20,
+                "kind": "Call",
+                "func": 47,
+                "args": []
+            },
+            {
+                "id": 21,
+                "kind": "Identifier",
+                "symbol": 12
+            },
+            {
+                "id": 22,
+                "kind": "Call",
+                "func": 48,
+                "args": [
+                    49,
+                    50
+                ]
+            },
+            {
+                "id": 23,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 24,
+                "kind": "Call",
+                "func": 51,
+                "args": [
+                    52,
+                    53,
+                    54
+                ]
+            },
+            {
+                "id": 25,
+                "kind": "Identifier",
+                "symbol": 14
+            },
+            {
+                "id": 26,
+                "kind": "Call",
+                "func": 55,
+                "args": [
+                    56,
+                    57
+                ]
+            },
+            {
+                "id": 27,
+                "kind": "Identifier",
+                "symbol": 15
+            },
+            {
+                "id": 28,
+                "kind": "Call",
+                "func": 58,
+                "args": [
+                    59,
+                    60
+                ]
+            },
+            {
+                "id": 29,
+                "kind": "Identifier",
+                "symbol": 16
+            },
+            {
+                "id": 30,
+                "kind": "Call",
+                "func": 61,
+                "args": [
+                    62,
+                    63
+                ]
+            },
+            {
+                "id": 31,
+                "kind": "Identifier",
+                "symbol": 17
+            },
+            {
+                "id": 32,
+                "kind": "Call",
+                "func": 64,
+                "args": [
+                    65,
+                    66
+                ]
+            },
+            {
+                "id": 33,
+                "kind": "Identifier",
+                "symbol": 18
+            },
+            {
+                "id": 34,
+                "kind": "Call",
+                "func": 67,
+                "args": [
+                    68,
+                    69
+                ]
+            },
+            {
+                "id": 35,
+                "kind": "Identifier",
+                "symbol": 19
+            },
+            {
+                "id": 36,
+                "kind": "Call",
+                "func": 70,
+                "args": [
+                    71,
+                    72
+                ]
+            },
+            {
+                "id": 37,
+                "kind": "Identifier",
+                "symbol": 20
+            },
+            {
+                "id": 38,
+                "kind": "Call",
+                "func": 73,
+                "args": [
+                    74,
+                    75
+                ]
+            },
+            {
+                "id": 39,
+                "kind": "Return",
+                "value": 76
+            },
+            {
+                "id": 40,
+                "kind": "Return",
+                "value": 77
+            },
+            {
+                "id": 41,
+                "kind": "Assign",
+                "targets": [
+                    78
+                ],
+                "value": 79
+            },
+            {
+                "id": 42,
+                "kind": "Assign",
+                "targets": [
+                    80
+                ],
+                "value": 81
+            },
+            {
+                "id": 43,
+                "kind": "Return",
+                "value": 82
+            },
+            {
+                "id": 44,
+                "kind": "Assign",
+                "targets": [
+                    83
+                ],
+                "value": 84
+            },
+            {
+                "id": 45,
+                "kind": "Assign",
+                "targets": [
+                    85
+                ],
+                "value": 86
+            },
+            {
+                "id": 46,
+                "kind": "Return",
+                "value": 87
+            },
+            {
+                "id": 47,
+                "kind": "Identifier",
+                "symbol": 0
+            },
+            {
+                "id": 48,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 49,
+                "kind": "Literal",
+                "value": 5
+            },
+            {
+                "id": 50,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 51,
+                "kind": "Identifier",
+                "symbol": 4
+            },
+            {
+                "id": 52,
+                "kind": "Literal",
+                "value": 1
+            },
+            {
+                "id": 53,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 54,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 55,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 56,
+                "kind": "Identifier",
+                "symbol": 12
+            },
+            {
+                "id": 57,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 58,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 59,
+                "kind": "Call",
+                "func": 88,
+                "args": [
+                    89,
+                    90
+                ]
+            },
+            {
+                "id": 60,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 61,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 62,
+                "kind": "Identifier",
+                "symbol": 12
+            },
+            {
+                "id": 63,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 64,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 65,
+                "kind": "Call",
+                "func": 91,
+                "args": [
+                    92,
+                    93,
+                    94
+                ]
+            },
+            {
+                "id": 66,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 67,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 68,
+                "kind": "Identifier",
+                "symbol": 12
+            },
+            {
+                "id": 69,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 70,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 71,
+                "kind": "Call",
+                "func": 95,
+                "args": [
+                    96,
+                    97
+                ]
+            },
+            {
+                "id": 72,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 73,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 74,
+                "kind": "Identifier",
+                "symbol": 12
+            },
+            {
+                "id": 75,
+                "kind": "Identifier",
+                "symbol": 13
+            },
+            {
+                "id": 76,
+                "kind": "Literal",
+                "value": "Hello, World!"
+            },
+            {
+                "id": 77,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 97,
+                "rhs": 98
+            },
+            {
+                "id": 78,
+                "kind": "Identifier",
+                "symbol": 21
+            },
+            {
+                "id": 79,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 99,
+                "rhs": 100
+            },
+            {
+                "id": 80,
+                "kind": "Identifier",
+                "symbol": 22
+            },
+            {
+                "id": 81,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 101,
+                "rhs": 102
+            },
+            {
+                "id": 82,
+                "kind": "Identifier",
+                "symbol": 22
+            },
+            {
+                "id": 83,
+                "kind": "Identifier",
+                "symbol": 23
+            },
+            {
+                "id": 84,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 103,
+                "rhs": 104
+            },
+            {
+                "id": 85,
+                "kind": "Identifier",
+                "symbol": 24
+            },
+            {
+                "id": 86,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 105,
+                "rhs": 106
+            },
+            {
+                "id": 87,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 107,
+                "rhs": 108
+            },
+            {
+                "id": 88,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 89,
+                "kind": "Literal",
+                "value": 5
+            },
+            {
+                "id": 90,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 91,
+                "kind": "Identifier",
+                "symbol": 4
+            },
+            {
+                "id": 92,
+                "kind": "Literal",
+                "value": 1
+            },
+            {
+                "id": 93,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 94,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 95,
+                "kind": "Identifier",
+                "symbol": 1
+            },
+            {
+                "id": 96,
+                "kind": "Identifier",
+                "value": 12
+            },
+            {
+                "id": 97,
+                "kind": "Identifier",
+                "value": 13
+            },
+            {
+                "id": 98,
+                "kind": "Identifier",
+                "symbol": 9
+            },
+            {
+                "id": 99,
+                "kind": "Identifier",
+                "symbol": 9
+            },
+            {
+                "id": 100,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 101,
+                "kind": "Identifier",
+                "symbol": 10
+            },
+            {
+                "id": 102,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 109,
+                "rhs": 110
+            },
+            {
+                "id": 103,
+                "kind": "Identifier",
+                "symbol": 9
+            },
+            {
+                "id": 104,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 105,
+                "kind": "Identifier",
+                "symbol": 10
+            },
+            {
+                "id": 106,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 107,
+                "kind": "Identifier",
+                "symbol": 21
+            },
+            {
+                "id": 108,
+                "kind": "Identifier",
+                "symbol": 22
+            },
+            {
+                "id": 109,
+                "kind": "Identifier",
+                "symbol": 10
+            },
+            {
+                "id": 110,
+                "kind": "Literal",
+                "value": 3
+            }
+        ],
+        "symbol_table": [
+            "greet",
+            "add",
+            "calculate",
+            "complex_operation",
+            "a",
+            "b",
+            "c",
+            "x",
+            "y",
+            "z",
+            "temp",
+            "result",
+            "result1",
+            "result2",
+            "result3",
+            "final",
+            "nested_result",
+            "result",
+            "message",
+            "total",
+            "temp",
+            "result",
+            "x",
+            "y",
+            "z"
+        ],
+        "validation_rules": [
+            "Function definitions should create FunctionDef nodes with proper parameters and body",
+            "Function calls should create Call nodes with correct function reference and arguments",
+            "Nested function calls should be properly structured",
+            "Return statements should be properly placed in function bodies",
+            "Parameter symbols should be correctly interned in the symbol table"
+        ]
+    }
+}

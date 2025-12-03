@@ -7,12 +7,12 @@ This document provides a comprehensive summary of the Jue compiler engineering p
 ## Document Structure
 
 ### Core Documents
-1. **Comprehensive Engineering Plan**: [`docs/COMPREHENSIVE_ENGINEERING_PLAN.md`](docs/COMPREHENSIVE_ENGINEERING_PLAN.md)
+1. **Comprehensive Engineering Plan**: [`docs/architecture/system/COMPREHENSIVE_ENGINEERING_PLAN.md`](docs/architecture/system/COMPREHENSIVE_ENGINEERING_PLAN.md)
    - Master document containing the complete engineering plan
    - Synthesizes existing ENGINEERING_PLAN.md and PitchDeck.md
    - Provides strategic overview and detailed roadmap
 
-2. **Test-Driven Development Guidelines**: [`docs/TEST_DRIVEN_DEVELOPMENT_GUIDELINES.md`](docs/TEST_DRIVEN_DEVELOPMENT_GUIDELINES.md)
+2. **Test-Driven Development Guidelines**: [`docs/development/TEST_DRIVEN_DEVELOPMENT_GUIDELINES.md`](docs/development/TEST_DRIVEN_DEVELOPMENT_GUIDELINES.md)
    - Comprehensive TDD and testing guidelines
    - Applies to all development phases
    - Includes coverage requirements and best practices

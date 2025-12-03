@@ -1,5 +1,6 @@
 use crate::frontend::ast::*;
 use anyhow::{anyhow, Result};
+use pest::Parser;
 use pest::iterators::{Pair, Pairs};
 use pest_derive::Parser; // required for #[derive(Parser)]
 
@@ -324,4 +325,11 @@ fn parse_expr(pair: Pair<Rule>) -> Result<Expr> {
             pair.as_rule()
         )),
     }
+}
+
+/// Convenience function to parse Jue source code directly
+pub fn parse_jue(source: &str) -> Result<Module> {
+    let pairs =
+        JueParser::parse(Rule::program, source).map_err(|e| anyhow!("Parse error: {}", e))?;
+    parse_program(pairs)
 }

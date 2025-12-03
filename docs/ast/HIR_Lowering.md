@@ -156,6 +156,7 @@ Current AST is missing many Python constructs:
 * Attribute assignment (`obj.prop = value`)
 * Index (`obj[key]`)
 * Dicts, lists, tuples
+* Macro and meta nodes
 
 These are common enough that you will want them eventually.
 
@@ -285,7 +286,6 @@ It's the cleanest design.
 
 # 💬 If you want…
 
-
 * Define a **new unified AST**
 * Design a **lowering pass** from your current AST to NodeId-IR
 * Restore quoting/splicing/macro semantics
@@ -304,11 +304,7 @@ Paths:
 
 Which direction feels right for Jue?
 
-
-
 Your recommendation of the MIR (Internal AST) sound nice, but what are the drawbacks? If an agent performs code generation/code manipulation, I kind of expected to be able to "see" the code it made in some way, though it might be hard to understand. If we do homoiconicity operations at the MIR AST level, then lifting the code back up to Jue syntax would be hard, right? Or would it be better to just observe the MIR changes?
-
-
 
 ---
 
@@ -533,7 +529,7 @@ This is the model used by:
 Downside:
 
 * MIR nodes become heavier
-* But in 2025 hardware? Totally fine.
+* But in 2027 hardware? Totally fine.
 
 ---
 
@@ -590,9 +586,9 @@ Either by:
 * keeping token spans as metadata
 * rendering MIR in structural form
 
-### **No — this does not make AGI self-editing harder.
+### **No — this does not make AGI self-editing harder.**
 
-It actually makes it much safer and more powerful.**
+It actually makes it much safer and more powerful.
 
 If anything, using MIR is what allows **real code evolution**, not syntax trees.
 
@@ -618,4 +614,3 @@ Possible Directions:
 ### C) A symbolic graph for AGI introspection (like RefPerSys / Prolog)
 
 ### D) A hybrid (syntax + MIR + meta)
-

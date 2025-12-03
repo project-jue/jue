@@ -1,0 +1,404 @@
+{
+    "description": "Expected MIR AST for basic arithmetic expressions",
+    "source_file": "01_arithmetic_expressions.jue",
+    "expected_mir_structure": {
+        "nodes": [
+            {
+                "id": 0,
+                "kind": "Module",
+                "body": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12
+                ]
+            },
+            {
+                "id": 1,
+                "kind": "ExprStmt",
+                "expr": 13
+            },
+            {
+                "id": 2,
+                "kind": "ExprStmt",
+                "expr": 14
+            },
+            {
+                "id": 3,
+                "kind": "ExprStmt",
+                "expr": 15
+            },
+            {
+                "id": 4,
+                "kind": "ExprStmt",
+                "expr": 16
+            },
+            {
+                "id": 5,
+                "kind": "ExprStmt",
+                "expr": 17
+            },
+            {
+                "id": 6,
+                "kind": "ExprStmt",
+                "expr": 18
+            },
+            {
+                "id": 7,
+                "kind": "ExprStmt",
+                "expr": 19
+            },
+            {
+                "id": 8,
+                "kind": "ExprStmt",
+                "expr": 20
+            },
+            {
+                "id": 9,
+                "kind": "ExprStmt",
+                "expr": 21
+            },
+            {
+                "id": 10,
+                "kind": "ExprStmt",
+                "expr": 22
+            },
+            {
+                "id": 11,
+                "kind": "ExprStmt",
+                "expr": 23
+            },
+            {
+                "id": 12,
+                "kind": "ExprStmt",
+                "expr": 24
+            },
+            {
+                "id": 13,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 25,
+                "rhs": 26
+            },
+            {
+                "id": 14,
+                "kind": "BinaryOp",
+                "op": "-",
+                "lhs": 27,
+                "rhs": 28
+            },
+            {
+                "id": 15,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 29,
+                "rhs": 30
+            },
+            {
+                "id": 16,
+                "kind": "BinaryOp",
+                "op": "/",
+                "lhs": 31,
+                "rhs": 32
+            },
+            {
+                "id": 17,
+                "kind": "BinaryOp",
+                "op": "%",
+                "lhs": 33,
+                "rhs": 34
+            },
+            {
+                "id": 18,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 35,
+                "rhs": 36
+            },
+            {
+                "id": 19,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 37,
+                "rhs": 38
+            },
+            {
+                "id": 20,
+                "kind": "BinaryOp",
+                "op": "-",
+                "lhs": 39,
+                "rhs": 40
+            },
+            {
+                "id": 21,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 41,
+                "rhs": 42
+            },
+            {
+                "id": 22,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 43,
+                "rhs": 44
+            },
+            {
+                "id": 23,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 45,
+                "rhs": 46
+            },
+            {
+                "id": 24,
+                "kind": "BinaryOp",
+                "op": "/",
+                "lhs": 47,
+                "rhs": 48
+            },
+            {
+                "id": 25,
+                "kind": "Literal",
+                "value": 1
+            },
+            {
+                "id": 26,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 27,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 28,
+                "kind": "Literal",
+                "value": 4
+            },
+            {
+                "id": 29,
+                "kind": "Literal",
+                "value": 5
+            },
+            {
+                "id": 30,
+                "kind": "Literal",
+                "value": 6
+            },
+            {
+                "id": 31,
+                "kind": "Literal",
+                "value": 7
+            },
+            {
+                "id": 32,
+                "kind": "Literal",
+                "value": 8
+            },
+            {
+                "id": 33,
+                "kind": "Literal",
+                "value": 10
+            },
+            {
+                "id": 34,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 35,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 36,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 49,
+                "rhs": 50
+            },
+            {
+                "id": 37,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 51,
+                "rhs": 52
+            },
+            {
+                "id": 38,
+                "kind": "Literal",
+                "value": 4
+            },
+            {
+                "id": 39,
+                "kind": "Literal",
+                "value": 10
+            },
+            {
+                "id": 40,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 53,
+                "rhs": 54
+            },
+            {
+                "id": 41,
+                "kind": "BinaryOp",
+                "op": "/",
+                "lhs": 55,
+                "rhs": 56
+            },
+            {
+                "id": 42,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 43,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 57,
+                "rhs": 58
+            },
+            {
+                "id": 44,
+                "kind": "BinaryOp",
+                "op": "*",
+                "lhs": 59,
+                "rhs": 60
+            },
+            {
+                "id": 45,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 61,
+                "rhs": 62
+            },
+            {
+                "id": 46,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 47,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 63,
+                "rhs": 64
+            },
+            {
+                "id": 48,
+                "kind": "BinaryOp",
+                "op": "+",
+                "lhs": 65,
+                "rhs": 66
+            },
+            {
+                "id": 49,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 50,
+                "kind": "Literal",
+                "value": 4
+            },
+            {
+                "id": 51,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 52,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 53,
+                "kind": "Literal",
+                "value": 5
+            },
+            {
+                "id": 54,
+                "kind": "Literal",
+                "value": 6
+            },
+            {
+                "id": 55,
+                "kind": "Literal",
+                "value": 8
+            },
+            {
+                "id": 56,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 57,
+                "kind": "Literal",
+                "value": 1
+            },
+            {
+                "id": 58,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 59,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 60,
+                "kind": "Literal",
+                "value": 4
+            },
+            {
+                "id": 61,
+                "kind": "Literal",
+                "value": 10
+            },
+            {
+                "id": 62,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 63,
+                "kind": "Literal",
+                "value": 10
+            },
+            {
+                "id": 64,
+                "kind": "Literal",
+                "value": 2
+            },
+            {
+                "id": 65,
+                "kind": "Literal",
+                "value": 3
+            },
+            {
+                "id": 66,
+                "kind": "Literal",
+                "value": 3
+            }
+        ],
+        "symbol_table": [],
+        "validation_rules": [
+            "All binary operations should have correct operator precedence",
+            "Parentheses should create proper sub-expression grouping",
+            "Literal values should be correctly parsed and stored"
+        ]
+    }
+}

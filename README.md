@@ -7,7 +7,7 @@
 
 These are the workspaces:
 
-juec
-juerun
-jue_common
-jue_std
+* juec
+* juerun
+* jue_common
+* jue_std

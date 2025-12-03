@@ -1,0 +1,25 @@
+/**
+ * Phase 1 Parsing Test: Basic Arithmetic Expressions
+ * Tests basic arithmetic operations and operator precedence
+ * @phase 1
+ * @complexity basic
+ * @component parsing
+ */
+
+// Basic arithmetic operations
+1 + 2
+3 - 4
+5 * 6
+7 / 8
+10 % 3
+
+// Operator precedence tests
+2 + 3 * 4       // Should parse as 2 + (3 * 4)
+(2 + 3) * 4     // Should parse as (2 + 3) * 4
+10 - 5 + 2      // Should parse as (10 - 5) + 2
+8 / 2 * 2       // Should parse as (8 / 2) * 2
+
+// Mixed operations
+(1 + 2) * (3 + 4)
+10 / (2 + 3)
+5 * 4 + 3 * 2
