@@ -1,9 +1,13 @@
-We're writing a new language called "Jue".  
-The source code for the files have the extension `.jue`
-The language will initially look very much like Python.
+**Jue** is an experimental **AI-first, homoiconic programming language and runtime** designed for **self-modifying, introspective, and distributed agent-driven software**.
 
-This project will use Rust with the library "pest" to do parsing and lexing.
+* Enable AI agents and humans to **co-develop systems that evolve safely and audibly** over time.
+* Provide a **persistent cognitive substrate** with **runtime introspection** and **distributed identity-aware object graphs**.
+* Focus on **research-grade experimentation**, not general-purpose programming.
+* 
 
-The [TODO.md] will contain things that need to be done.
-The [DONE.md] will contain things that have been done.
+These are the workspaces:
 
+juec
+juerun
+jue_common
+jue_std

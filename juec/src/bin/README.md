@@ -1,0 +1,1 @@
+In Rust, any .rs file under src/bin/ automatically becomes a binary you can run

@@ -187,10 +187,9 @@ pub fn print_stmt(stmt: &Stmt, indent: usize) {
                     print_stmt(s, indent + 1);
                 }
             }
-        }
-        _ => {
-            println!("{}<Unrecognized Stmt>", padding);
-        }
+        } //_ => {
+          //    println!("{}<Unrecognized Stmt>", padding);
+          //}
     }
 }
 

@@ -1,9 +1,8 @@
-use crate::frontend::internal_ast::{JueAST, NodeKind, Stmt};
+// frontend/semantic_analyzer.rs
+// Works with current frontend::ast and can traverse full modules. Later you can extend it for type inference, decorator validation, scope nesting, etc.
 
-// Extensibility:
-// - Add new built-in functions
-// - Type inference and checking
-// - Scope tracking (variables, classes, modules)
+use crate::frontend::ast::{Expr, Module, Stmt};
+use anyhow::Result;
 
 #[derive(Debug)]
 pub enum SemanticError {
@@ -16,92 +15,62 @@ pub type SemanticResult<T> = Result<T, SemanticError>;
 pub struct SemanticAnalyzer;
 
 impl SemanticAnalyzer {
-    //TODO, don't use the common ast anymore, use the frontend ast
-    pub fn analyze(ast: &JueAST) -> SemanticResult<()> {
-        match ast {
-            JueAST::Module { body, .. } => {
-                for stmt in body {
-                    Self::analyze(stmt)?; // recursively analyze each statement
-                }
-            }
-            JueAST::FunctionDef {
-                name, args, body, ..
-            } => {
-                // analyze arguments and body
-                for stmt in args {
-                    Self::analyze(stmt)?;
-                }
-                Self::analyze(body)?;
-            }
-            JueAST::Call { func, args } => {
-                // check function call, etc.
-            }
-            JueAST::Block(stmts) => {
-                for stmt in stmts {
-                    Self::analyze(stmt)?;
-                }
-            }
-            JueAST::Assignment { target, value } => {
-                Self::analyze(target)?;
-                Self::analyze(value)?;
-            }
-            JueAST::Return { value } => {
-                Self::analyze(value)?;
-            }
-            JueAST::Literal(_) | JueAST::Identifier(_) => {}
-            _ => {
-                // other nodes
-            }
+    /// Analyze a full frontend AST Module
+    pub fn analyze_module(module: &Module) -> SemanticResult<()> {
+        let mut env = Environment::new();
+        for stmt in &module.body {
+            Self::analyze_stmt(stmt, &mut env)?;
         }
         Ok(())
     }
 
-    pub fn analyze_stmt(stmt: &Stmt) -> SemanticResult<()> {
+    fn analyze_stmt(stmt: &Stmt, env: &mut Environment) -> SemanticResult<()> {
         match stmt {
-            Stmt::Expr(expr) => Self::analyze_expr(expr)?,
+            Stmt::Expr(e) => Self::analyze_expr(e, env),
             Stmt::Assign { targets, value } => {
-                for target in targets {
-                    Self::analyze_expr(target)?;
+                for t in targets {
+                    Self::analyze_expr(t, env)?;
                 }
-                Self::analyze_expr(value)?;
-            }
-            Stmt::AugAssign {
-                target,
-                op: _,
-                value,
-            } => {
-                Self::analyze_expr(target)?;
-                Self::analyze_expr(value)?;
-            }
-            Stmt::Return(expr_opt) => {
-                if let Some(expr) = expr_opt {
-                    Self::analyze_expr(expr)?;
-                }
-            }
-            Stmt::Pass | Stmt::Break | Stmt::Continue => {}
-            Stmt::Raise(expr_opt) => {
-                if let Some(expr) = expr_opt {
-                    Self::analyze_expr(expr)?;
-                }
+                Self::analyze_expr(value, env)
             }
             Stmt::FuncDef {
-                name: _,
+                name,
                 params: _,
                 body,
                 decorators: _,
             } => {
-                for s in body {
-                    Self::analyze_stmt(s)?;
+                env.define_function(name.clone());
+                for stmt in body {
+                    Self::analyze_stmt(stmt, env)?;
                 }
+                Ok(())
             }
             Stmt::ClassDef {
-                name: _,
+                name,
                 body,
                 decorators: _,
             } => {
-                for s in body {
-                    Self::analyze_stmt(s)?;
+                env.define_class(name.clone());
+                for stmt in body {
+                    Self::analyze_stmt(stmt, env)?;
                 }
+                Ok(())
+            }
+            Stmt::Return(opt) => {
+                if let Some(e) = opt {
+                    Self::analyze_expr(e, env)?;
+                }
+                Ok(())
+            }
+            Stmt::If { test, body, orelse } => {
+                Self::analyze_expr(test, env)?;
+                for s in body {
+                    Self::analyze_stmt(s, env)?;
+                }
+                for s in orelse {
+                    Self::analyze_stmt(s, env)?;
+                }
+                Ok(())
             }
             Stmt::For {
                 target,
@@ -109,40 +78,34 @@ impl SemanticAnalyzer {
                 body,
                 orelse,
             } => {
-                Self::analyze_expr(target)?;
-                Self::analyze_expr(iter)?;
+                Self::analyze_expr(target, env)?;
+                Self::analyze_expr(iter, env)?;
                 for s in body {
-                    Self::analyze_stmt(s)?;
+                    Self::analyze_stmt(s, env)?;
                 }
                 for s in orelse {
-                    Self::analyze_stmt(s)?;
+                    Self::analyze_stmt(s, env)?;
                 }
+                Ok(())
             }
             Stmt::While { test, body, orelse } => {
-                Self::analyze_expr(test)?;
+                Self::analyze_expr(test, env)?;
                 for s in body {
-                    Self::analyze_stmt(s)?;
+                    Self::analyze_stmt(s, env)?;
                 }
                 for s in orelse {
-                    Self::analyze_stmt(s)?;
+                    Self::analyze_stmt(s, env)?;
                 }
-            }
-            Stmt::If { test, body, orelse } => {
-                Self::analyze_expr(test)?;
-                for s in body {
-                    Self::analyze_stmt(s)?;
-                }
-                for s in orelse {
-                    Self::analyze_stmt(s)?;
-                }
+                Ok(())
             }
             Stmt::With { items, body } => {
-                for (expr, _alias) in items {
-                    Self::analyze_expr(expr)?;
+                for (ctx, _alias) in items {
+                    Self::analyze_expr(ctx, env)?;
                 }
                 for s in body {
-                    Self::analyze_stmt(s)?;
+                    Self::analyze_stmt(s, env)?;
                 }
+                Ok(())
             }
             Stmt::Try {
                 body,
@@ -151,48 +114,102 @@ impl SemanticAnalyzer {
                 finalbody,
             } => {
                 for s in body {
-                    Self::analyze_stmt(s)?;
+                    Self::analyze_stmt(s, env)?;
                 }
-                for (exc_type, handler_body) in handlers {
-                    if let Some(t) = exc_type {
-                        Self::analyze_expr(t)?;
-                    }
-                    for s in handler_body {
-                        Self::analyze_stmt(s)?;
+                for (_exc, hbody) in handlers {
+                    for s in hbody {
+                        Self::analyze_stmt(s, env)?;
                     }
                 }
                 for s in orelse {
-                    Self::analyze_stmt(s)?;
+                    Self::analyze_stmt(s, env)?;
                 }
                 for s in finalbody {
-                    Self::analyze_stmt(s)?;
+                    Self::analyze_stmt(s, env)?;
                 }
+                Ok(())
+            }
+            Stmt::Pass | Stmt::Break | Stmt::Continue => Ok(()),
+            Stmt::Raise(opt) => {
+                if let Some(e) = opt {
+                    Self::analyze_expr(e, env)?;
+                }
+                Ok(())
+            }
+            Stmt::AugAssign {
+                target,
+                op: _,
+                value,
+            } => {
+                Self::analyze_expr(target, env)?;
+                Self::analyze_expr(value, env)
             }
         }
-        Ok(())
     }
 
-    pub fn analyze_expr(expr: &NodeKind) -> SemanticResult<()> {
+    fn analyze_expr(expr: &Expr, env: &mut Environment) -> SemanticResult<()> {
         match expr {
-            Expr::Name(_) | Expr::Number(_) | Expr::String(_) | Expr::Bool(_) | Expr::None => {}
-            Expr::BinOp { left, right, op: _ } => {
-                Self::analyze_expr(left)?;
-                Self::analyze_expr(right)?;
+            Expr::Name(n) => {
+                if !env.is_defined(n) {
+                    Err(SemanticError::UndefinedFunction(n.clone()))
+                } else {
+                    Ok(())
+                }
             }
-            Expr::UnaryOp { expr, op: _ } => Self::analyze_expr(expr)?,
             Expr::Call { func, args } => {
-                // MVP: only allow built-in "print"
-                if let Expr::Name(name) = &**func {
-                    if name != "print" {
-                        return Err(SemanticError::UndefinedFunction(name.clone()));
-                    }
+                Self::analyze_expr(func, env)?;
+                for a in args {
+                    Self::analyze_expr(a, env)?;
                 }
-                for arg in args {
-                    Self::analyze_expr(arg)?;
-                }
+                Ok(())
             }
-            Expr::Lambda { params: _, body } => Self::analyze_expr(body)?,
+            Expr::BinOp { left, right, op: _ } => {
+                Self::analyze_expr(left, env)?;
+                Self::analyze_expr(right, env)
+            }
+            Expr::UnaryOp { op: _, expr } => Self::analyze_expr(expr, env),
+            Expr::Lambda { params, body } => {
+                for p in params {
+                    env.define_variable(p.clone());
+                }
+                Self::analyze_expr(body, env)
+            }
+            Expr::Number(_) | Expr::String(_) | Expr::Bool(_) | Expr::None => Ok(()),
         }
-        Ok(())
+    }
+}
+
+/// Very simple environment tracking
+struct Environment {
+    variables: Vec<String>,
+    functions: Vec<String>,
+    classes: Vec<String>,
+}
+
+impl Environment {
+    fn new() -> Self {
+        Self {
+            variables: vec![],
+            functions: vec![],
+            classes: vec![],
+        }
+    }
+
+    fn define_variable(&mut self, name: String) {
+        self.variables.push(name);
+    }
+
+    fn define_function(&mut self, name: String) {
+        self.functions.push(name);
+    }
+
+    fn define_class(&mut self, name: String) {
+        self.classes.push(name);
+    }
+
+    fn is_defined(&self, name: &str) -> bool {
+        self.variables.contains(&name.to_string())
+            || self.functions.contains(&name.to_string())
+            || self.classes.contains(&name.to_string())
     }
 }
