@@ -1,8 +1,8 @@
 //////////////////////////////////////
-// Full Python Grammar
-// This is a fully expanded grammar.pest for Python in a Pest-compatible PEG style,
-// while keeping in mind that indentation and context-sensitive stuff will be
-// handled in Rust lexer/post-processing.
+//Full Python Grammar
+//This is a fully expanded grammar.pest for Python in a Pest-compatible PEG style,
+//while keeping in mind that indentation and context-sensitive stuff will be
+//handled in Rust lexer/post-processing.
 //
 //This version will cover:
 //
@@ -34,7 +34,15 @@ FALSE      = { "False" }
 NONE       = { "None" }
 literal    = { NUMBER | STRING | TRUE | FALSE | NONE }
 
-COMMENT    = _{ "#" ~ (!NEWLINE ~ ANY)* }
+////////////////////////////////////
+// Example comment rules (keep these in your grammar)
+////////////////////////////////////
+line_comment  = _{ "//"  ~ (!NEWLINE ~ ANY)* }
+hash_comment  = _{ "#"   ~ (!NEWLINE ~ ANY)* }
+block_comment = _{ "/*"  ~ ( (!"*/" ~ ANY) )*  ~ "*/" }
+COMMENT = _{ line_comment | hash_comment | block_comment }
+
+
 decorator = { "@" ~ dotted_name ~ ("(" ~ (arglist)? ~ ")")? ~ NEWLINE }
 dotted_name = { NAME ~ ("." ~ NAME)* }
 arglist = { expr ~ ("," ~ expr)* ~ (",")? }
@@ -62,16 +70,14 @@ bitwise_and = { shift_expr ~ ( WHITESPACE* ~ "&" ~ WHITESPACE* ~ shift_expr )* }
 shift_expr  = { arith_expr ~ ( WHITESPACE* ~ ( "<<" | ">>" ) ~ WHITESPACE* ~ arith_expr )* }
 arith_expr  = { term ~ ( WHITESPACE* ~ ( "+" | "-" ) ~ WHITESPACE* ~ term )* }
 term        = { factor ~ ( WHITESPACE* ~ ( "*" | "/" | "//" | "%" ) ~ WHITESPACE* ~ factor )* }
-binary_expr = _{ 
-      expr ~ (WHITESPACE* ~ ( "+" | "-" | "*" | "/" | "//" | "%" | "**" | "<<" | ">>" | "&" | "|" | "^" ) ~ WHITESPACE* ~ expr)+ 
+binary_expr = _{
+      expr ~ (WHITESPACE* ~ ( "+" | "-" | "*" | "/" | "//" | "%" | "**" | "<<" | ">>" | "&" | "|" | "^" ) ~ WHITESPACE* ~ expr)+
 }
 
-unary_expr = _{ ( "+" | "-" | "~" ) ~ expr }
+factor = { unary_expr* ~ power }
+unary_expr = { "+" | "-" | "~" }
 
-//factor      = { ( "+" | "-" | "~" ) ~ factor | power }
-//power       = { atom ~ ( WHITESPACE* ~ "**" ~ WHITESPACE* ~ factor )? }
-factor = { unary_expr | power }
-power  = { atom ~ ( WHITESPACE* ~ "**" ~ WHITESPACE* ~ factor )? }
+power = { atom ~ ( WHITESPACE* ~ "**" ~ WHITESPACE* ~ factor )? }
 
 atom = _{
       literal
@@ -82,10 +88,10 @@ atom = _{
     | lambda_expr
 }
 
+
 exprlist = { expr ~ ( WHITESPACE* ~ "," ~ WHITESPACE* ~ expr )* ~ ("," )? }
 
 lambda_expr = { "lambda" ~ WHITESPACE* ~ NAME ~ (WHITESPACE* ~ "," ~ WHITESPACE* ~ NAME)* ~ WHITESPACE* ~ ":" ~ expr }
-
 
 dictorsetmaker = {
       (expr ~ ":" ~ expr) ~ ( WHITESPACE* ~ "," ~ WHITESPACE* ~ (expr ~ ":" ~ expr) )* ~ ("," )?
@@ -98,11 +104,16 @@ comp_if  = { WHITESPACE+ ~ "if" ~ WHITESPACE+ ~ or_test }
 ////////////////////////////////////
 // Statements
 ////////////////////////////////////
-simple_stmt = { small_stmt ~ ( ";" ~ small_stmt )* ~ NEWLINE }
 
+
+////////////////////////////////////
+// Statements and top-level file input
+////////////////////////////////////
+
+// Small statements — do not consume the terminating NEWLINE
 small_stmt = {
-      (exprlist ~ "=" ~ exprlist)
-    | (expr ~ NEWLINE)
+      exprlist ~ ("=" ~ exprlist)+
+    | expr
     | pass_stmt
     | del_stmt
     | return_stmt
@@ -115,6 +126,8 @@ small_stmt = {
     | break_stmt
     | continue_stmt
 }
+// Simple statements — optionally multiple on the same line separated by ';'
+simple_stmt = { small_stmt ~ ( ";" ~ small_stmt )* }
 
 pass_stmt     = { "pass" ~ NEWLINE }
 del_stmt      = { "del" ~ WHITESPACE+ ~ exprlist ~ NEWLINE }
@@ -131,12 +144,9 @@ continue_stmt = { "continue" ~ NEWLINE }
 ////////////////////////////////////
 // Compound statements
 ////////////////////////////////////
+
+// Compound statements
 compound_stmt = { if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef }
-
-elif_clause = { "elif" ~ WHITESPACE+ ~ expr ~ suite }
-else_clause = { "else" ~ suite }
-if_stmt = { "if" ~ WHITESPACE+ ~ expr ~ suite ~ (elif_clause)* ~ (else_clause)? }
-
 
 
 
@@ -163,13 +173,20 @@ typedargslist = {
     | double_star_param
 }
 
-
 tfpdef    = { NAME ~ (":" ~ expr)? }
 
-//classdef = { "class" ~ WHITESPACE+ ~ NAME ~ ("(" ~ exprlist? ~ ")")? ~ suite }
 classdef = { decorators? ~ "class" ~ WHITESPACE+ ~ NAME ~ ("(" ~ exprlist? ~ ")")? ~ suite }
-suite    = { ":" ~ (simple_stmt | NEWLINE ~ INDENT ~ statement+ ~ DEDENT) }
-statement = _{ simple_stmt | compound_stmt }
+//suite    = { ":" ~ (simple_stmt | NEWLINE ~ INDENT ~ statement+ ~ DEDENT) }
+//suite = { ":" ~ ( WHITESPACE* ~ simple_stmt | NEWLINE ~ INDENT ~ statement+ ~ DEDENT ) }
+//suite = { ":" ~ (WHITESPACE* ~ simple_stmt | NEWLINE+ ~ INDENT ~ statement+ ~ DEDENT) }
+suite = { ":" ~ (WHITESPACE* ~ simple_stmt | (NEWLINE | COMMENT)+ ~ INDENT ~ statement+ ~ DEDENT) }
 
-file_input = { (NEWLINE | statement)* }
+// All statements (simple or compound)
+statement = _{ simple_stmt | compound_stmt }
+if_stmt = { "if" ~ WHITESPACE+ ~ expr ~ suite ~ (elif_clause)* ~ (else_clause)? }
+elif_clause = { "elif" ~ WHITESPACE+ ~ expr ~ suite }
+else_clause = { "else" ~ suite }
+
+// Top-level file input
+file_input = { (COMMENT | NEWLINE | statement)+ }
 program = { file_input ~ EOI }

@@ -1,7 +1,7 @@
 use juec::backend::cranelift_gen::CraneliftCodeGen;
 use juec::frontend::parser;
 use juec::middle::mir_lower::lower_frontend_module;
-use std::path::PathBuf;
+use test_data::data_dir;
 
 /// Phase 4 Execution Integration Tests
 /// These tests validate the integration between compilation and runtime execution preparation
@@ -9,9 +9,7 @@ use std::path::PathBuf;
 
 #[test]
 fn test_arithmetic_integration() {
-    let test_file = PathBuf::from(
-        "../../../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue",
-    );
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
     let source = std::fs::read_to_string(test_file)
         .expect("Failed to read arithmetic expressions test file");
 
@@ -39,8 +37,7 @@ fn test_arithmetic_integration() {
 
 #[test]
 fn test_variable_integration() {
-    let test_file =
-        PathBuf::from("../../../tests/shared_samples/phase_1_parsing/02_variable_declarations.jue");
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/02_variable_declarations.jue");
     let source =
         std::fs::read_to_string(test_file).expect("Failed to read variable declarations test file");
 
@@ -68,8 +65,7 @@ fn test_variable_integration() {
 
 #[test]
 fn test_control_flow_integration() {
-    let test_file =
-        PathBuf::from("../../../tests/shared_samples/phase_1_parsing/03_control_flow.jue");
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/03_control_flow.jue");
     let source = std::fs::read_to_string(test_file).expect("Failed to read control flow test file");
 
     // Full pipeline: Parse → MIR → Cranelift IR generation for runtime
@@ -96,8 +92,7 @@ fn test_control_flow_integration() {
 
 #[test]
 fn test_function_integration() {
-    let test_file =
-        PathBuf::from("../../../tests/shared_samples/phase_1_parsing/04_function_definitions.jue");
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/04_function_definitions.jue");
     let source =
         std::fs::read_to_string(test_file).expect("Failed to read function definitions test file");
 
@@ -126,9 +121,7 @@ fn test_function_integration() {
 #[test]
 fn test_pipeline_consistency() {
     // Test that the same code produces consistent results across multiple runtime preparations
-    let test_file = PathBuf::from(
-        "../../../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue",
-    );
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
     let source = std::fs::read_to_string(test_file)
         .expect("Failed to read arithmetic expressions test file");
 
@@ -202,9 +195,7 @@ fn test_cross_component_integration() {
 #[test]
 fn test_runtime_readiness_validation() {
     // Test that generated code is actually ready for runtime execution
-    let test_file = PathBuf::from(
-        "../../../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue",
-    );
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
     let source = std::fs::read_to_string(test_file)
         .expect("Failed to read arithmetic expressions test file");
 

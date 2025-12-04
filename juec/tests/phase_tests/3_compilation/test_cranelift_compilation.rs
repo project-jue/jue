@@ -5,12 +5,11 @@ use juec::backend::cranelift_gen::CraneliftCodeGen;
 /// using shared sample files and follow the test patterns established in the architecture.
 use juec::frontend::parser;
 use juec::middle::mir_lower::lower_frontend_module;
-use std::path::PathBuf;
+use test_data::data_dir;
 
 #[test]
 fn test_arithmetic_expressions_compilation() {
-    let test_file =
-        PathBuf::from("../../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
     let source = std::fs::read_to_string(test_file)
         .expect("Failed to read arithmetic expressions test file");
 
@@ -43,8 +42,7 @@ fn test_arithmetic_expressions_compilation() {
 
 #[test]
 fn test_variable_declarations_compilation() {
-    let test_file =
-        PathBuf::from("../../tests/shared_samples/phase_1_parsing/02_variable_declarations.jue");
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/02_variable_declarations.jue");
     let source =
         std::fs::read_to_string(test_file).expect("Failed to read variable declarations test file");
 
@@ -77,7 +75,7 @@ fn test_variable_declarations_compilation() {
 
 #[test]
 fn test_control_flow_compilation() {
-    let test_file = PathBuf::from("../../tests/shared_samples/phase_1_parsing/03_control_flow.jue");
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/03_control_flow.jue");
     let source = std::fs::read_to_string(test_file).expect("Failed to read control flow test file");
 
     // Parse the source code
@@ -109,8 +107,7 @@ fn test_control_flow_compilation() {
 
 #[test]
 fn test_function_definitions_compilation() {
-    let test_file =
-        PathBuf::from("../../tests/shared_samples/phase_1_parsing/04_function_definitions.jue");
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/04_function_definitions.jue");
     let source =
         std::fs::read_to_string(test_file).expect("Failed to read function definitions test file");
 
@@ -145,32 +142,36 @@ fn test_function_definitions_compilation() {
 fn test_full_compilation_pipeline_integration() {
     // Test that all shared sample files can be compiled successfully through the full pipeline
     let sample_files = vec![
-        "../../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue",
-        "../../tests/shared_samples/phase_1_parsing/02_variable_declarations.jue",
-        "../../tests/shared_samples/phase_1_parsing/03_control_flow.jue",
-        "../../tests/shared_samples/phase_1_parsing/04_function_definitions.jue",
+        data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue"),
+        data_dir().join("shared_samples/phase_1_parsing/02_variable_declarations.jue"),
+        data_dir().join("shared_samples/phase_1_parsing/03_control_flow.jue"),
+        data_dir().join("shared_samples/phase_1_parsing/04_function_definitions.jue"),
     ];
 
     for file_path in sample_files {
-        let source =
-            std::fs::read_to_string(file_path).expect(&format!("Failed to read {}", file_path));
+        let source = std::fs::read_to_string(&file_path)
+            .expect(&format!("Failed to read {}", file_path.to_string_lossy()));
 
         // Parse the source code
-        let ast = parser::parse_jue(&source).expect(&format!("Failed to parse {}", file_path));
+        let ast = parser::parse_jue(&source)
+            .expect(&format!("Failed to parse {}", file_path.to_string_lossy()));
 
         // Lower to MIR
         let mir = lower_frontend_module(&ast);
 
         // Generate Cranelift IR
-        let mut codegen = CraneliftCodeGen::new(&format!("test_{}", file_path.replace('/', "_")))
-            .expect("Failed to create Cranelift code generator");
+        let mut codegen = CraneliftCodeGen::new(&format!(
+            "test_{}",
+            file_path.to_string_lossy().replace('/', "_")
+        ))
+        .expect("Failed to create Cranelift code generator");
 
         let result = codegen.generate(&mir);
 
         assert!(
             result.is_ok(),
             "Should successfully compile {} through full pipeline: {:?}",
-            file_path,
+            file_path.to_string_lossy(),
             result.err()
         );
 
@@ -178,7 +179,7 @@ fn test_full_compilation_pipeline_integration() {
         assert!(
             !codegen.function_ids.is_empty(),
             "Should have generated at least one function for {}",
-            file_path
+            file_path.to_string_lossy()
         );
     }
 
@@ -210,8 +211,7 @@ fn test_compilation_error_handling() {
 #[test]
 fn test_cranelift_ir_structure_validation() {
     // Test that the generated Cranelift IR has the expected structure
-    let test_file =
-        PathBuf::from("../../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
     let source = std::fs::read_to_string(test_file)
         .expect("Failed to read arithmetic expressions test file");
 

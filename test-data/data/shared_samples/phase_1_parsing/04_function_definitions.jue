@@ -1,0 +1,39 @@
+"""
+* Phase 1 Parsing Test: Function Definitions
+* Tests function declarations and basic function calls
+* @phase 1
+* @complexity intermediate
+* @component parsing
+"""
+
+
+# Simple function without parameters
+def greet():
+    return "Hello, World!"
+
+
+# Function with parameters
+def add(a, b):
+    return a + b
+
+
+# Function with multiple parameters
+def calculate(x, y, z):
+    return (x + y) * z
+
+
+# Function with nested expressions
+def complex_operation(a, b):
+    temp = a * 2
+    result = temp + b * 3
+    return result
+
+
+# Function calls
+result1 = greet()
+result2 = add(5, 3)
+result3 = calculate(1, 2, 3)
+final = add(result2, result3)
+
+# Nested function calls
+nested_result = add(calculate(1, 2, 3), add(4, 5))

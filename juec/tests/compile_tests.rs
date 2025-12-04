@@ -34,20 +34,19 @@ fn test_compiler_full_suite() {
 #[test]
 fn test_shared_samples_integration() {
     // This test demonstrates how shared samples are used across the test suite
-    use juec::frontend::ast;
     use juec::frontend::parser;
-    use std::path::PathBuf;
 
     let sample_files = vec![
-        "tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue",
-        "tests/shared_samples/phase_1_parsing/02_variable_declarations.jue",
-        "tests/shared_samples/phase_1_parsing/03_control_flow.jue",
-        "tests/shared_samples/phase_1_parsing/04_function_definitions.jue",
+        "shared_samples/phase_1_parsing/01_arithmetic_expressions.jue",
+        "shared_samples/phase_1_parsing/02_variable_declarations.jue",
+        "shared_samples/phase_1_parsing/03_control_flow.jue",
+        "shared_samples/phase_1_parsing/04_function_definitions.jue",
     ];
 
     for file_path in sample_files {
+        let full_path = test_data::data_dir().join(file_path);
         let source =
-            std::fs::read_to_string(file_path).expect(&format!("Failed to read {}", file_path));
+            std::fs::read_to_string(full_path).expect(&format!("Failed to read {}", file_path));
         let result = parser::parse_jue(&source);
 
         assert!(
@@ -97,12 +96,10 @@ fn test_parser_performance() {
 
 /// Test arithmetic expressions parsing
 fn test_arithmetic_expressions_parsing() {
-    use juec::frontend::ast;
     use juec::frontend::parser;
-    use std::path::PathBuf;
 
     let test_file =
-        PathBuf::from("tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
+        test_data::data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
     let source = std::fs::read_to_string(test_file)
         .expect("Failed to read arithmetic expressions test file");
 
@@ -117,12 +114,10 @@ fn test_arithmetic_expressions_parsing() {
 
 /// Test variable declarations parsing
 fn test_variable_declarations_parsing() {
-    use juec::frontend::ast;
     use juec::frontend::parser;
-    use std::path::PathBuf;
 
     let test_file =
-        PathBuf::from("tests/shared_samples/phase_1_parsing/02_variable_declarations.jue");
+        test_data::data_dir().join("shared_samples/phase_1_parsing/02_variable_declarations.jue");
     let source =
         std::fs::read_to_string(test_file).expect("Failed to read variable declarations test file");
 
@@ -137,11 +132,10 @@ fn test_variable_declarations_parsing() {
 
 /// Test control flow parsing
 fn test_control_flow_parsing() {
-    use juec::frontend::ast;
     use juec::frontend::parser;
-    use std::path::PathBuf;
 
-    let test_file = PathBuf::from("tests/shared_samples/phase_1_parsing/03_control_flow.jue");
+    let test_file =
+        test_data::data_dir().join("shared_samples/phase_1_parsing/03_control_flow.jue");
     let source = std::fs::read_to_string(test_file).expect("Failed to read control flow test file");
 
     // Parse the source code
@@ -155,12 +149,10 @@ fn test_control_flow_parsing() {
 
 /// Test function definitions parsing
 fn test_function_definitions_parsing() {
-    use juec::frontend::ast;
     use juec::frontend::parser;
-    use std::path::PathBuf;
 
     let test_file =
-        PathBuf::from("tests/shared_samples/phase_1_parsing/04_function_definitions.jue");
+        test_data::data_dir().join("shared_samples/phase_1_parsing/04_function_definitions.jue");
     let source =
         std::fs::read_to_string(test_file).expect("Failed to read function definitions test file");
 

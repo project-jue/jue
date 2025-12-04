@@ -8,7 +8,7 @@ use std::path::PathBuf;
 #[test]
 fn test_arithmetic_parsing() {
     let test_file =
-        PathBuf::from("tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
+        test_data::data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
     let source = std::fs::read_to_string(test_file).expect("Failed to read test file");
 
     // Parse the source code
@@ -33,7 +33,7 @@ fn test_arithmetic_parsing() {
 #[test]
 fn test_variable_declarations_parsing() {
     let test_file =
-        PathBuf::from("tests/shared_samples/phase_1_parsing/02_variable_declarations.jue");
+        test_data::data_dir().join("shared_samples/phase_1_parsing/02_variable_declarations.jue");
     let source = std::fs::read_to_string(test_file).expect("Failed to read test file");
 
     // Parse the source code
@@ -54,7 +54,8 @@ fn test_variable_declarations_parsing() {
 
 #[test]
 fn test_control_flow_parsing() {
-    let test_file = PathBuf::from("tests/shared_samples/phase_1_parsing/03_control_flow.jue");
+    let test_file =
+        test_data::data_dir().join("shared_samples/phase_1_parsing/03_control_flow.jue");
     let source = std::fs::read_to_string(test_file).expect("Failed to read test file");
 
     // Parse the source code
@@ -76,7 +77,7 @@ fn test_control_flow_parsing() {
 #[test]
 fn test_function_definitions_parsing() {
     let test_file =
-        PathBuf::from("tests/shared_samples/phase_1_parsing/04_function_definitions.jue");
+        test_data::data_dir().join("shared_samples/phase_1_parsing/04_function_definitions.jue");
     let source = std::fs::read_to_string(test_file).expect("Failed to read test file");
 
     // Parse the source code
@@ -99,7 +100,7 @@ fn test_function_definitions_parsing() {
 #[test]
 fn test_arithmetic_mir_generation() {
     let test_file =
-        PathBuf::from("tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
+        test_data::data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
     let source = std::fs::read_to_string(test_file).expect("Failed to read test file");
 
     // Parse the source code
@@ -130,8 +131,8 @@ fn test_mir_structure_validation() {
     // against the expected JSON files in phase_2_mir_ast/
 
     // For now, we just demonstrate the concept
-    let mir_file =
-        PathBuf::from("tests/shared_samples/phase_2_mir_ast/10_arithmetic_mir_expected.json");
+    let mir_file = test_data::data_dir()
+        .join("shared_samples/phase_2_mir_ast/10_arithmetic_mir_expected.json");
     let mir_content =
         std::fs::read_to_string(mir_file).expect("Failed to read MIR expectation file");
 

@@ -1,75 +1,166 @@
 use crate::frontend::ast::*;
 use anyhow::{anyhow, Result};
-use pest::Parser;
 use pest::iterators::{Pair, Pairs};
+use pest::Parser;
 use pest_derive::Parser; // required for #[derive(Parser)]
 
 #[derive(Parser)]
 #[grammar = "frontend/jue.pest"]
 pub struct JueParser;
 
-// No import needed for Rule — it’s generated automatically by Pest
-
-// Use Rule from Pest-generated module
-//use crate::frontend::jue::Rule;
-
-/// Entry point: parse the file/module
+/// Entry point: parse a full program/module
 pub fn parse_program(pairs: Pairs<Rule>) -> Result<Module> {
     let mut body = Vec::new();
 
     for pair in pairs {
         match pair.as_rule() {
             Rule::program => {
-                for stmt_pair in pair.into_inner() {
-                    if let Some(stmt) = parse_statement(stmt_pair)? {
-                        body.push(stmt);
+                // program -> file_input ~ EOI (or similar). Be permissive:
+                for child in pair.into_inner() {
+                    match child.as_rule() {
+                        Rule::file_input => {
+                            // file_input may contain: NEWLINE | COMMENT | statement | simple_stmt | compound_stmt
+                            for item in child.into_inner() {
+                                let items = flatten_top_level_item(item)?;
+                                body.extend(items);
+                            }
+                        }
+                        // Some grammars might emit simple_stmt/compound_stmt directly under program,
+                        // so handle them defensively.
+                        Rule::simple_stmt | Rule::compound_stmt | Rule::statement => {
+                            let items = flatten_top_level_item(child)?;
+                            body.extend(items);
+                        }
+                        Rule::COMMENT | Rule::NEWLINE | Rule::EOI => {
+                            // ignore
+                        }
+                        other => {
+                            return Err(anyhow!("Unexpected top-level token: {:?}", other));
+                        }
                     }
                 }
             }
             Rule::EOI => {}
-            _ => return Err(anyhow!("Unexpected top-level token: {:?}", pair.as_rule())),
+            other => return Err(anyhow!("Unexpected top-level token: {:?}", other)),
         }
     }
 
     Ok(Module { body })
 }
 
-/// Parse a single statement
-fn parse_statement(pair: Pair<Rule>) -> Result<Option<Stmt>> {
+/// Normalize a top-level item (whatever the grammar emitted) into Vec<Stmt>.
+/// Accepts: statement, simple_stmt, compound_stmt, COMMENT, NEWLINE
+fn flatten_top_level_item(pair: Pair<Rule>) -> Result<Vec<Stmt>> {
+    let mut out = Vec::new();
+
     match pair.as_rule() {
-        Rule::simple_stmt => {
+        Rule::file_input => {
             for inner in pair.into_inner() {
-                if let Some(stmt) = parse_simple_stmt(inner)? {
-                    return Ok(Some(stmt));
+                let mut items = flatten_top_level_item(inner)?;
+                out.append(&mut items);
+            }
+        }
+
+        Rule::statement => {
+            // statement may contain simple_stmt or compound_stmt
+            for inner in pair.into_inner() {
+                match inner.as_rule() {
+                    Rule::simple_stmt => {
+                        for small in inner.into_inner() {
+                            if let Some(stmt) = parse_small_stmt(small)? {
+                                out.push(stmt);
+                            }
+                        }
+                    }
+                    Rule::compound_stmt => {
+                        if let Some(stmt) = parse_compound_stmt(inner)? {
+                            out.push(stmt);
+                        }
+                    }
+                    Rule::COMMENT | Rule::NEWLINE => {
+                        // skip
+                    }
+                    other => {
+                        return Err(anyhow!("Unexpected token inside statement: {:?}", other));
+                    }
                 }
             }
-            Ok(None)
         }
-        Rule::compound_stmt => parse_compound_stmt(pair).map(Some),
-        Rule::NEWLINE => Ok(None),
-        _ => Err(anyhow!("Unexpected statement rule: {:?}", pair.as_rule())),
+
+        Rule::simple_stmt => {
+            // simple_stmt may be sequence of small_stmt separated by ';' (or grammar variant)
+            for small in pair.into_inner() {
+                if let Some(stmt) = parse_small_stmt(small)? {
+                    out.push(stmt);
+                }
+            }
+        }
+
+        Rule::compound_stmt => {
+            if let Some(stmt) = parse_compound_stmt(pair)? {
+                out.push(stmt);
+            }
+        }
+
+        Rule::COMMENT | Rule::NEWLINE => {
+            // nothing to do
+        }
+
+        // Defensive: sometimes file_input may directly contain small_stmt (depending on grammar)
+        Rule::exprlist
+        | Rule::augassign_stmt
+        | Rule::pass_stmt
+        | Rule::return_stmt
+        | Rule::break_stmt
+        | Rule::continue_stmt
+        | Rule::raise_stmt => {
+            // treat these as small_stmt-like items (wrap via parse_small_stmt)
+            if let Some(stmt) = parse_small_stmt(pair)? {
+                out.push(stmt);
+            }
+        }
+
+        other => {
+            return Err(anyhow!(
+                "Unexpected top-level token inside file_input: {:?}",
+                other
+            ));
+        }
     }
+
+    Ok(out)
 }
 
-/// Parse simple statements
-fn parse_simple_stmt(pair: Pair<Rule>) -> Result<Option<Stmt>> {
-    let inner = pair.into_inner().next().unwrap();
+/// Parse a small statement (expr, assignment, return, pass, etc.)
+fn parse_small_stmt(pair: Pair<Rule>) -> Result<Option<Stmt>> {
+    // Some grammars wrap small_stmt in another node, so be flexible:
+    let rule = pair.as_rule();
+    let inner_pair = match rule {
+        Rule::simple_stmt => {
+            // if someone passed a simple_stmt accidentally, unwrap its contents
+            pair.into_inner().next()
+        }
+        Rule::statement => pair.into_inner().next(),
+        _ => Some(pair),
+    };
+
+    if inner_pair.is_none() {
+        return Ok(None);
+    }
+
+    let inner = inner_pair.unwrap();
     match inner.as_rule() {
         Rule::exprlist => {
-            // parse_expr returned Result<Expr>, so collect gives Vec<Expr>
             let mut exprs = inner
                 .into_inner()
                 .map(parse_expr)
                 .collect::<Result<Vec<_>>>()?;
 
             if exprs.len() == 1 {
-                // single expression statement
-                let e = exprs.pop().unwrap();
-                Ok(Some(Stmt::Expr(e)))
+                Ok(Some(Stmt::Expr(exprs.pop().unwrap())))
             } else {
-                // assignment: a, b = value  (targets are all but last)
-                let value = exprs.pop().unwrap(); // owned Expr
-                let targets = exprs; // remaining owned Exprs
+                let value = exprs.pop().unwrap();
+                let targets = exprs;
                 Ok(Some(Stmt::Assign { targets, value }))
             }
         }
@@ -81,38 +172,60 @@ fn parse_simple_stmt(pair: Pair<Rule>) -> Result<Option<Stmt>> {
             let value = parse_expr(inner_pairs.next().unwrap())?;
             Ok(Some(Stmt::AugAssign { target, op, value }))
         }
+
         Rule::return_stmt => {
             let mut inner_pairs = inner.into_inner();
             let expr = inner_pairs.next().map(parse_expr).transpose()?;
             Ok(Some(Stmt::Return(expr)))
         }
+
         Rule::pass_stmt => Ok(Some(Stmt::Pass)),
         Rule::break_stmt => Ok(Some(Stmt::Break)),
         Rule::continue_stmt => Ok(Some(Stmt::Continue)),
+
         Rule::raise_stmt => {
             let mut inner_pairs = inner.into_inner();
             let expr = inner_pairs.next().map(parse_expr).transpose()?;
             Ok(Some(Stmt::Raise(expr)))
         }
-        _ => Ok(None), // extend for other simple statements
+
+        // Add additional small_stmt kinds here (import, global, assert, del, yield, etc.)
+        other => {
+            // If it's already an expr (depending on grammar shape) try to parse it as expr
+            match other {
+                Rule::expr => {
+                    let e = parse_expr(inner)?;
+                    Ok(Some(Stmt::Expr(e)))
+                }
+                Rule::NAME | Rule::NUMBER | Rule::STRING | Rule::lambda_expr => {
+                    // these may appear as atoms — delegate to parse_expr
+                    let e = parse_expr(inner)?;
+                    Ok(Some(Stmt::Expr(e)))
+                }
+                _ => Ok(None),
+            }
+        }
     }
 }
 
-/// Parse compound statements
-/// No functions with decoratyors yet
-fn parse_compound_stmt(pair: Pair<Rule>) -> Result<Stmt> {
-    let inner = pair.into_inner().next().unwrap();
-    match inner.as_rule() {
-        Rule::if_stmt => parse_if(inner),
-        Rule::for_stmt => parse_for(inner),
-        Rule::while_stmt => parse_while(inner),
-        Rule::funcdef => parse_funcdef(inner),
-        Rule::classdef => parse_classdef(inner),
-        _ => Err(anyhow!("Unexpected compound_stmt: {:?}", inner.as_rule())),
+/// Parse a compound statement (if, for, while, funcdef, classdef)
+fn parse_compound_stmt(pair: Pair<Rule>) -> Result<Option<Stmt>> {
+    // Accept either compound_stmt node or a wrapper
+    let mut inner_iter = pair.into_inner();
+    let first = inner_iter
+        .next()
+        .unwrap_or_else(|| panic!("compound_stmt missing inner"));
+    match first.as_rule() {
+        Rule::if_stmt => parse_if(first).map(Some),
+        Rule::for_stmt => parse_for(first).map(Some),
+        Rule::while_stmt => parse_while(first).map(Some),
+        Rule::funcdef => parse_funcdef(first).map(Some),
+        Rule::classdef => parse_classdef(first).map(Some),
+        other => Err(anyhow!("Unexpected compound_stmt: {:?}", other)),
     }
 }
 
-/// Parse if/elif/else statement
+/// Parse if/elif/else
 fn parse_if(pair: Pair<Rule>) -> Result<Stmt> {
     let mut inner = pair.into_inner();
     let test = parse_expr(inner.next().unwrap())?;
@@ -173,12 +286,17 @@ fn parse_while(pair: Pair<Rule>) -> Result<Stmt> {
     Ok(Stmt::While { test, body, orelse })
 }
 
-/// Parse decorators
+/// Parse decorators list (decorators -> multiple decorator)
 fn parse_decorators(pair: Pair<Rule>) -> Result<Vec<String>> {
     let mut decorators = Vec::new();
     for decorator_pair in pair.into_inner() {
-        let inner = decorator_pair.into_inner().next().unwrap();
-        decorators.push(inner.as_str().to_string());
+        // decorator structure: "@" dotted_name ("(" arglist? ")")? NEWLINE
+        // We'll stringify the inner dotted_name for now
+        for inner in decorator_pair.into_inner() {
+            if inner.as_rule() == Rule::dotted_name {
+                decorators.push(inner.as_str().to_string());
+            }
+        }
     }
     Ok(decorators)
 }
@@ -192,6 +310,7 @@ fn parse_funcdef(pair: Pair<Rule>) -> Result<Stmt> {
         decorators = parse_decorators(first)?;
         first = inner.next().unwrap();
     }
+    // first is NAME
     let name = first.as_str().to_string();
     let params = parse_parameters(inner.next().unwrap())?;
     let body = parse_suite(inner.next().unwrap())?;
@@ -241,7 +360,7 @@ fn parse_parameters(pair: Pair<Rule>) -> Result<Vec<Param>> {
                 let name = inner
                     .next()
                     .map(|x| x.as_str().to_string())
-                    .unwrap_or(String::new());
+                    .unwrap_or_default();
                 params.push(Param {
                     name,
                     default: None,
@@ -262,18 +381,18 @@ fn parse_parameters(pair: Pair<Rule>) -> Result<Vec<Param>> {
     Ok(params)
 }
 
-/// Parse a suite (block)
+/// Parse a suite (block). Reuse flattening to collect statements
 fn parse_suite(pair: Pair<Rule>) -> Result<Vec<Stmt>> {
     let mut stmts = Vec::new();
     for stmt_pair in pair.into_inner() {
-        if let Some(stmt) = parse_statement(stmt_pair)? {
-            stmts.push(stmt);
-        }
+        // Each item might be statement/simple_stmt/compound_stmt/file_input etc.
+        let mut items = flatten_top_level_item(stmt_pair)?;
+        stmts.append(&mut items);
     }
     Ok(stmts)
 }
 
-/// Parse expressions
+/// Parse expressions (kept largely as your prior implementation)
 fn parse_expr(pair: Pair<Rule>) -> Result<Expr> {
     match pair.as_rule() {
         Rule::NAME => Ok(Expr::Name(pair.as_str().to_string())),

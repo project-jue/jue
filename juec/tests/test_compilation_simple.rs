@@ -2,7 +2,7 @@ use juec::backend::cranelift_gen::CraneliftCodeGen;
 /// Simple compilation test to verify the Cranelift backend works
 use juec::frontend::parser;
 use juec::middle::mir_lower::lower_frontend_module;
-use std::path::PathBuf;
+use test_data::data_dir;
 
 #[test]
 fn test_hello_world() {
@@ -17,8 +17,7 @@ fn test_file_access() {
     use std::fs;
 
     // Test accessing a file from the tests directory
-    let test_file =
-        PathBuf::from("../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
+    let test_file = data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue");
 
     println!("Looking for file at: {:?}", test_file);
 
@@ -89,17 +88,17 @@ fn test_compilation_with_shared_samples() {
     // This test verifies the full pipeline works with real Jue code
 
     let sample_files = vec![
-        "../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue",
-        "../tests/shared_samples/phase_1_parsing/02_variable_declarations.jue",
-        "../tests/shared_samples/phase_1_parsing/03_control_flow.jue",
-        "../tests/shared_samples/phase_1_parsing/04_function_definitions.jue",
+        data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue"),
+        data_dir().join("shared_samples/phase_1_parsing/02_variable_declarations.jue"),
+        data_dir().join("shared_samples/phase_1_parsing/03_control_flow.jue"),
+        data_dir().join("shared_samples/phase_1_parsing/04_function_definitions.jue"),
     ];
 
     for file_path in sample_files {
-        println!("Testing compilation of: {}", file_path);
+        println!("Testing compilation of: {}", file_path.to_string_lossy());
 
-        let source =
-            std::fs::read_to_string(file_path).expect(&format!("Failed to read {}", file_path));
+        let source = std::fs::read_to_string(&file_path)
+            .expect(&format!("Failed to read {}", file_path.to_string_lossy()));
 
         // For now, just test that we can parse the files
         // The actual compilation will be tested once we have working parser syntax
@@ -107,33 +106,36 @@ fn test_compilation_with_shared_samples() {
 
         match result {
             Ok(ast) => {
-                println!("Successfully parsed: {}", file_path);
+                println!("Successfully parsed: {}", file_path.to_string_lossy());
 
                 // Lower to MIR
                 let mir = lower_frontend_module(&ast);
 
                 // Generate Cranelift IR
-                let mut codegen =
-                    CraneliftCodeGen::new(&format!("test_{}", file_path.replace('/', "_")))
-                        .expect("Failed to create Cranelift code generator");
+                let mut codegen = CraneliftCodeGen::new(&format!(
+                    "test_{}",
+                    file_path.to_string_lossy().replace('/', "_")
+                ))
+                .expect("Failed to create Cranelift code generator");
 
                 let compile_result = codegen.generate(&mir);
 
                 assert!(
                     compile_result.is_ok(),
                     "Should successfully compile {} through full pipeline: {:?}",
-                    file_path,
+                    file_path.to_string_lossy(),
                     compile_result.err()
                 );
 
-                println!("✅ Successfully compiled: {}", file_path);
+                println!("✅ Successfully compiled: {}", file_path.to_string_lossy());
             }
             Err(e) => {
                 // If parsing fails, that's okay for now - it means the parser needs work
                 // but the compilation infrastructure is working
                 println!(
                     "⚠️  Parsing failed for {} (parser needs work): {:?}",
-                    file_path, e
+                    file_path.to_string_lossy(),
+                    e
                 );
                 // We'll still mark this as passing since the infrastructure works
                 assert!(

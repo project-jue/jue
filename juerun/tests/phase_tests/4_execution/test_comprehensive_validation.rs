@@ -1,7 +1,7 @@
 use juec::backend::cranelift_gen::CraneliftCodeGen;
 use juec::frontend::parser;
 use juec::middle::mir_lower::lower_frontend_module;
-use std::path::PathBuf;
+use test_data::data_dir;
 
 /// Phase 4 Comprehensive Validation Tests
 /// These tests provide comprehensive validation of the full execution pipeline
@@ -13,26 +13,26 @@ fn test_complete_execution_pipeline() {
     let sample_files = vec![
         (
             "arithmetic",
-            "../../../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue",
+            data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue"),
         ),
         (
             "variables",
-            "../../../tests/shared_samples/phase_1_parsing/02_variable_declarations.jue",
+            data_dir().join("shared_samples/phase_1_parsing/02_variable_declarations.jue"),
         ),
         (
             "control_flow",
-            "../../../tests/shared_samples/phase_1_parsing/03_control_flow.jue",
+            data_dir().join("shared_samples/phase_1_parsing/03_control_flow.jue"),
         ),
         (
             "functions",
-            "../../../tests/shared_samples/phase_1_parsing/04_function_definitions.jue",
+            data_dir().join("shared_samples/phase_1_parsing/04_function_definitions.jue"),
         ),
     ];
 
     let mut total_functions = 0;
 
     for (name, file_path) in sample_files {
-        let source = std::fs::read_to_string(file_path)
+        let source = std::fs::read_to_string(&file_path)
             .expect(&format!("Failed to read {} test file", name));
 
         // Complete pipeline: Parse → MIR → Cranelift IR

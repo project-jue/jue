@@ -1,7 +1,7 @@
 use juec::backend::cranelift_gen::CraneliftCodeGen;
 use juec::frontend::parser;
 use juec::middle::mir_lower::lower_frontend_module;
-use std::path::PathBuf;
+use test_data::data_dir;
 
 /// Phase 4 Pipeline Validation Tests
 /// These tests provide final validation of the complete execution pipeline
@@ -11,38 +11,41 @@ use std::path::PathBuf;
 fn test_final_pipeline_validation() {
     // Final validation test that demonstrates the complete execution pipeline works
     let test_files = vec![
-        "../../../tests/shared_samples/phase_1_parsing/01_arithmetic_expressions.jue",
-        "../../../tests/shared_samples/phase_1_parsing/02_variable_declarations.jue",
-        "../../../tests/shared_samples/phase_1_parsing/03_control_flow.jue",
-        "../../../tests/shared_samples/phase_1_parsing/04_function_definitions.jue",
+        data_dir().join("shared_samples/phase_1_parsing/01_arithmetic_expressions.jue"),
+        data_dir().join("shared_samples/phase_1_parsing/02_variable_declarations.jue"),
+        data_dir().join("shared_samples/phase_1_parsing/03_control_flow.jue"),
+        data_dir().join("shared_samples/phase_1_parsing/04_function_definitions.jue"),
     ];
 
     let mut total_functions_generated = 0;
     let mut total_compilation_time = std::time::Duration::from_secs(0);
 
     for file_path in test_files {
-        let source =
-            std::fs::read_to_string(file_path).expect(&format!("Failed to read {}", file_path));
+        let source = std::fs::read_to_string(&file_path)
+            .expect(&format!("Failed to read {}", file_path.to_string_lossy()));
 
         // Complete pipeline execution with timing
         let start_time = std::time::Instant::now();
 
-        let ast = parser::parse_jue(&source).expect(&format!("Failed to parse {}", file_path));
+        let ast = parser::parse_jue(&source)
+            .expect(&format!("Failed to parse {}", file_path.to_string_lossy()));
 
         let mir = lower_frontend_module(&ast);
 
-        let mut codegen =
-            CraneliftCodeGen::new(&format!("final_validation_{}", file_path.replace('/', "_")))
-                .expect(&format!(
-                    "Failed to create code generator for {}",
-                    file_path
-                ));
+        let mut codegen = CraneliftCodeGen::new(&format!(
+            "final_validation_{}",
+            file_path.to_string_lossy().replace('/', "_")
+        ))
+        .expect(&format!(
+            "Failed to create code generator for {}",
+            file_path.to_string_lossy()
+        ));
 
         let result = codegen.generate(&mir);
         assert!(
             result.is_ok(),
             "Final validation should succeed for {}: {:?}",
-            file_path,
+            file_path.to_string_lossy(),
             result.err()
         );
 
@@ -53,13 +56,13 @@ fn test_final_pipeline_validation() {
         assert!(
             !codegen.function_ids.is_empty(),
             "Should have generated functions for {}",
-            file_path
+            file_path.to_string_lossy()
         );
 
         total_functions_generated += codegen.function_ids.len();
         println!(
             "✅ Final validation passed for {}: {} functions in {:?}",
-            file_path,
+            file_path.to_string_lossy(),
             codegen.function_ids.len(),
             compilation_duration
         );

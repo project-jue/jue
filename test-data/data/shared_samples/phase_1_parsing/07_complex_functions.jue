@@ -1,0 +1,88 @@
+"""
+* Phase 1 Parsing Test: Complex Functions
+* Tests advanced function patterns, recursion, and complex parameter handling
+* @phase 1
+* @complexity advanced
+* @component parsing
+"""
+
+
+# Function with complex parameter patterns
+def complex_params(a, b, c=10, d=20):
+    result = (a + b) * (c - d)
+    return result
+
+
+# Recursive function
+def factorial(n):
+    if n <= 1:
+        return 1
+    else:
+        return n * factorial(n - 1)
+
+
+# Mutually recursive functions
+def is_even(n):
+    if n == 0:
+        return True
+    else:
+        return is_odd(n - 1)
+
+
+def is_odd(n):
+    if n == 0:
+        return False
+    else:
+        return is_even(n - 1)
+
+
+# Function with complex nested logic
+def complex_calculation(x, y, z):
+    temp1 = x * 2 + y * 3
+    temp2 = z * 4 - y * 2
+    temp3 = temp1 + temp2
+
+    if temp3 > 100:
+        result = temp3 / 2
+    elif temp3 > 50:
+        result = temp3 * 0.8
+    else:
+        result = temp3 + 10
+
+    return result
+
+
+# Function with complex return patterns
+def multi_return_condition(a, b, c):
+    if a > b and a > c:
+        return "a is largest"
+    elif b > a and b > c:
+        return "b is largest"
+    elif c > a and c > b:
+        return "c is largest"
+    else:
+        return "values are equal or mixed"
+
+
+# Complex function calls with nested expressions
+result1 = complex_params(5, 3, 15, 25)
+result2 = factorial(5)
+result3 = is_even(10)
+result4 = complex_calculation(10, 20, 30)
+result5 = multi_return_condition(5, 10, 15)
+
+# Nested function calls
+# Note: Python doesn't have ternary operator like Jue's ? : syntax
+# Original: final_result = complex_params(
+#     factorial(3),
+#     complex_calculation(2, 3, 4),
+#     is_even(8) ? 10 : 20,
+#     is_odd(7) ? 30 : 40
+# )
+# Python equivalent:
+final_result = complex_params(
+    factorial(3),
+    complex_calculation(2, 3, 4),
+    10 if is_even(8) else 20,
+    30 if is_odd(7) else 40,
+)
