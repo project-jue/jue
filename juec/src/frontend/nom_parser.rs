@@ -164,7 +164,7 @@ fn parse_function(input: Span) -> IResult<Span, Stmt> {
 // Top-level parser
 // ----------------------
 
-fn parse_program(input: Span) -> IResult<Span, Vec<Stmt>> {
+pub fn parse_program(input: Span) -> IResult<Span, Vec<Stmt>> {
     many0(alt((parse_function, parse_stmt))).parse(input)
 }
 

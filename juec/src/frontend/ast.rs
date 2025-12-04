@@ -1,11 +1,13 @@
+use std::cmp::PartialEq;
+
 // frontend/ast.rs
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Module {
     pub body: Vec<Stmt>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Stmt {
     Expr(Expr),
     Assign {
@@ -61,21 +63,21 @@ pub enum Stmt {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Param {
     pub name: String,
     pub default: Option<Expr>,
     pub kind: ParamKind,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ParamKind {
     Positional,
     Star,
     DoubleStar,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Expr {
     Name(String),
     Number(String),
