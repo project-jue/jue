@@ -6,10 +6,12 @@ edition = "2021"
 name = "juec"
 build = "build.rs"
 
-
 [dependencies]
 pest = "2.7"
 pest_derive = "2.7"
+nom = "=8.0.0" #latest stable
+nom_locate = "5.0.0" #Adds input position tracking (LocatedSpan) for error reporting and homoiconicity.
+
 anyhow = "1.0"        # convenient error handling
 
 # JIT backend support
@@ -23,9 +25,11 @@ cranelift-frontend = "0.126.1"
 
 jue_common = { path = "../jue_common" }
 
-
 [build-dependencies]
 pest_generator = "2.7"
+
+[dev-dependencies]
+test_data = { path = "../test-data" }
 
 [features]
 default = ["jit"]
