@@ -4,6 +4,7 @@ members = [
     "juec",
     "juerun",
     "jue_std",
+    "test-data"
 ]
 
 resolver = "2"

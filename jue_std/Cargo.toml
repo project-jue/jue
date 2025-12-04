@@ -2,3 +2,6 @@
 name = "jue_std"
 version = "0.1.0"
 edition = "2021"
+
+[dev-dependencies]
+test_data = { path = "../test-data" }
