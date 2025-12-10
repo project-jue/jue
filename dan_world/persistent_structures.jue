@@ -1,0 +1,448 @@
+;; Dan-World Persistent Structures
+;; This file contains the persistent data structures implementation
+;; Immutable maps and versioned data structures
+
+;; Import necessary modules for integration
+(import core_world::core_expr::CoreExpr)
+
+;; Define persistent map structure
+(define-type PersistentMap
+  (version number)
+  (root hash-table) ; Root hash table for this version
+  (parent PersistentMap) ; Parent version (for structural sharing)
+  (timestamp number)
+  (changes list)) ; List of changes from parent
+
+;; Define map entry
+(define-type MapEntry
+  (key any)
+  (value any)
+  (version number)
+  (timestamp number))
+
+;; Global version counter
+(define global-version-counter 0)
+
+;; Current persistent map
+(define current-persistent-map #f)
+
+;; Create initial persistent map
+(define (persistent_map)
+  "Create a new persistent map (initial version)"
+  (let ((new-version (inc-global-version!))
+        (new-map (PersistentMap new-version
+                               (make-hash-table)
+                               #f
+                               (current-time)
+                               '())))
+    (set! current-persistent-map new-map)
+    new-map))
+
+;; Increment global version counter
+(define (inc-global-version!)
+  "Increment and return global version counter"
+  (set! global-version-counter (+ global-version-counter 1))
+  global-version-counter)
+
+;; Associate key-value pair in persistent map (create new version)
+;; Expected Output: New version
+;; Proof Obligation: Proof: old version untouched
+;; Unit Test Specification: Check multiple insertions; assert immutability
+(define (assoc map key value)
+  "Insert new key-value pair into persistent map, creating new version"
+  (try
+    (let ((new-version (inc-global-version!))
+          (new-root (copy-hash-table (PersistentMap-root map)))
+          (timestamp (current-time)))
+
+      ;; Add new entry to new root
+      (hash-table-set! new-root key (MapEntry key value new-version timestamp))
+
+      ;; Create new map with structural sharing
+      (let ((new-map (PersistentMap new-version
+                                   new-root
+                                   map
+                                   timestamp
+                                   (list (MapEntry key value new-version timestamp)))))
+
+        ;; Update current map reference
+        (set! current-persistent-map new-map)
+
+        new-map))
+
+    (catch (error)
+      (format "Association error: ~a" error)
+      #f)))
+
+;; Copy hash table (shallow copy for structural sharing)
+(define (copy-hash-table original)
+  "Create a shallow copy of hash table"
+  (let ((new-table (make-hash-table)))
+    (hash-table-for-each (lambda (key value)
+                           (hash-table-set! new-table key value))
+                         original)
+    new-table))
+
+;; Get value from persistent map
+(define (get map key)
+  "Get value from persistent map by key"
+  (try
+    (let ((entry (hash-table-ref (PersistentMap-root map) key)))
+      (if entry
+          (MapEntry-value entry)
+          #f))
+    (catch (error)
+      (format "Get error: ~a" error)
+      #f)))
+
+;; Get value from specific version
+(define (get-from-version map version key)
+  "Get value from specific version of persistent map"
+  (try
+    (let ((target-map (find-version map version)))
+      (if target-map
+          (get target-map key)
+          #f))
+    (catch (error)
+      (format "Version get error: ~a" error)
+      #f)))
+
+;; Find specific version in version history
+(define (find-version map target-version)
+  "Find specific version in version history"
+  (let ((current map))
+    (while (and current (not (eq? (PersistentMap-version current) target-version)))
+      (set! current (PersistentMap-parent current)))
+    current))
+
+;; Get all versions
+(define (get-all-versions map)
+  "Get all versions from current map back to initial"
+  (let ((versions '()))
+    (let ((current map))
+      (while current
+        (set! versions (cons current versions))
+        (set! current (PersistentMap-parent current))))
+    versions))
+
+;; Get changes between versions
+(define (get-changes-from-version map from-version)
+  "Get all changes made from a specific version"
+  (try
+    (let ((target-version (find-version map from-version)))
+      (if (not target-version)
+          (throw (format "Version ~a not found" from-version)))
+
+      (let ((changes '())
+            (current map))
+        (while (and current (not (eq? (PersistentMap-version current) from-version)))
+          (set! changes (append (PersistentMap-changes current) changes))
+          (set! current (PersistentMap-parent current)))
+        changes))
+
+    (catch (error)
+      (format "Changes error: ~a" error)
+      '())))
+
+;; Create snapshot of current state
+(define (create-snapshot map)
+  "Create a snapshot of current persistent map state"
+  (try
+    (let ((snapshot (PersistentMap (PersistentMap-version map)
+                                  (copy-hash-table (PersistentMap-root map))
+                                  (PersistentMap-parent map)
+                                  (current-time)
+                                  (PersistentMap-changes map))))
+      ;; Store snapshot in history
+      ;; In real implementation, this would be more sophisticated
+      snapshot)
+    (catch (error)
+      (format "Snapshot error: ~a" error)
+      #f)))
+
+;; Rollback to previous version
+(define (rollback map target-version)
+  "Rollback persistent map to specific version"
+  (try
+    (let ((target-map (find-version map target-version)))
+      (if (not target-map)
+          (throw (format "Target version ~a not found" target-version)))
+
+      ;; Create new version based on target
+      (let ((new-version (inc-global-version!))
+            (new-root (copy-hash-table (PersistentMap-root target-map)))
+            (timestamp (current-time)))
+
+        (let ((new-map (PersistentMap new-version
+                                     new-root
+                                     target-map
+                                     timestamp
+                                     '())))
+
+          ;; Update current map reference
+          (set! current-persistent-map new-map)
+
+          new-map)))
+
+    (catch (error)
+      (format "Rollback error: ~a" error)
+      #f)))
+
+;; Merge two persistent maps (create new version with combined data)
+(define (merge-maps map1 map2)
+  "Merge two persistent maps into new version"
+  (try
+    (let ((new-version (inc-global-version!))
+          (new-root (make-hash-table))
+          (timestamp (current-time))
+          (changes '()))
+
+      ;; Copy all entries from map1
+      (hash-table-for-each (lambda (key entry)
+                             (hash-table-set! new-root key entry)
+                             (set! changes (cons entry changes)))
+                           (PersistentMap-root map1))
+
+      ;; Copy all entries from map2 (overwrite conflicts)
+      (hash-table-for-each (lambda (key entry)
+                             (let ((existing (hash-table-ref new-root key)))
+                               (if (not existing)
+                                   (set! changes (cons entry changes)))
+                               (hash-table-set! new-root key entry)))
+                           (PersistentMap-root map2))
+
+      ;; Create new map
+      (let ((new-map (PersistentMap new-version
+                                   new-root
+                                   (if (> (PersistentMap-version map1) (PersistentMap-version map2))
+                                       map1
+                                       map2)
+                                   timestamp
+                                   changes)))
+
+        ;; Update current map reference
+        (set! current-persistent-map new-map)
+
+        new-map))
+
+    (catch (error)
+      (format "Merge error: ~a" error)
+      #f)))
+
+;; Get map statistics
+(define (map-stats map)
+  "Get statistics about persistent map"
+  (let ((stats (make-hash-table)))
+    (hash-table-set! stats 'version (PersistentMap-version map))
+    (hash-table-set! stats 'size (hash-table-size (PersistentMap-root map)))
+    (hash-table-set! stats 'timestamp (PersistentMap-timestamp map))
+    (hash-table-set! stats 'has_parent (not (eq? (PersistentMap-parent map) #f)))
+    stats))
+
+;; Persistent list implementation
+(define-type PersistentList
+  (version number)
+  (head any)
+  (tail PersistentList)
+  (timestamp number))
+
+;; Create empty persistent list
+(define (persistent-list)
+  "Create empty persistent list"
+  (PersistentList (inc-global-version!) #f #f (current-time)))
+
+;; Add item to persistent list (create new version)
+(define (cons-persistent list item)
+  "Add item to persistent list, creating new version"
+  (try
+    (let ((new-version (inc-global-version!))
+          (timestamp (current-time)))
+      (PersistentList new-version item list timestamp))
+    (catch (error)
+      (format "Persistent list cons error: ~a" error)
+      #f)))
+
+;; Get item from persistent list by index
+(define (list-ref-persistent list index)
+  "Get item from persistent list by index"
+  (try
+    (if (= index 0)
+        (PersistentList-head list)
+        (if (PersistentList-tail list)
+            (list-ref-persistent (PersistentList-tail list) (- index 1))
+            (throw "Index out of bounds")))
+    (catch (error)
+      (format "Persistent list ref error: ~a" error)
+      #f)))
+
+;; Get length of persistent list
+(define (length-persistent list)
+  "Get length of persistent list"
+  (try
+    (if (eq? list #f)
+        0
+        (+ 1 (length-persistent (PersistentList-tail list))))
+    (catch (error)
+      (format "Persistent list length error: ~a" error)
+      0)))
+
+;; Persistent vector implementation (simplified)
+(define-type PersistentVector
+  (version number)
+  (data list)
+  (timestamp number))
+
+;; Create persistent vector
+(define (persistent-vector data)
+  "Create persistent vector from list"
+  (PersistentVector (inc-global-version!) data (current-time)))
+
+;; Add item to persistent vector
+(define (vector-conj vector item)
+  "Add item to persistent vector"
+  (try
+    (let ((new-version (inc-global-version!))
+          (new-data (append (PersistentVector-data vector) (list item)))
+          (timestamp (current-time)))
+      (PersistentVector new-version new-data timestamp))
+    (catch (error)
+      (format "Persistent vector conj error: ~a" error)
+      #f)))
+
+;; Unit tests for persistent structures
+(define (run-persistent-structures-tests)
+  "Run unit tests for persistent structures functionality"
+  (let ((tests '())
+        (passed 0)
+        (failed 0))
+
+    ;; Test 1: Persistent map creation
+    (let ((map1 (persistent_map)))
+      (if (and (PersistentMap? map1) (= (PersistentMap-version map1) 1))
+          (set! passed (+ passed 1))
+          (set! failed (+ failed 1)))
+      (set! tests (cons "Persistent map creation" tests)))
+
+    ;; Test 2: Association and immutability
+    (let ((map1 (persistent_map))
+          (map2 (assoc map1 'key1 'value1))
+          (map3 (assoc map2 'key2 'value2)))
+      (let ((val1 (get map1 'key1))
+            (val2 (get map2 'key1))
+            (val3 (get map3 'key1)))
+        (if (and (not val1) ; map1 should not have key1
+                 (eq? val2 'value1) ; map2 should have key1
+                 (eq? val3 'value1)) ; map3 should have key1 (inherited)
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Association and immutability" tests))))
+
+    ;; Test 3: Version history
+    (let ((map1 (persistent_map))
+          (map2 (assoc map1 'a 1))
+          (map3 (assoc map2 'b 2))
+          (map4 (assoc map3 'c 3)))
+      (let ((versions (get-all-versions map4)))
+        (if (= (length versions) 4)
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Version history" tests))))
+
+    ;; Test 4: Version-specific access
+    (let ((map1 (persistent_map))
+          (map2 (assoc map1 'test 'v1))
+          (map3 (assoc map2 'test 'v2)))
+      (let ((v1 (get-from-version map3 2 'test))
+            (v2 (get-from-version map3 3 'test)))
+        (if (and (eq? v1 'v1) (eq? v2 'v2))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Version-specific access" tests))))
+
+    ;; Test 5: Rollback functionality
+    (let ((map1 (persistent_map))
+          (map2 (assoc map1 'x 10))
+          (map3 (assoc map2 'y 20))
+          (rolled-back (rollback map3 2)))
+      (let ((x-val (get rolled-back 'x))
+            (y-val (get rolled-back 'y)))
+        (if (and (eq? x-val 10) (not y-val))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Rollback functionality" tests))))
+
+    ;; Test 6: Map merging
+    (let ((map1 (persistent_map))
+          (map2 (persistent_map))
+          (map1-with-a (assoc map1 'a 'from-map1))
+          (map2-with-b (assoc map2 'b 'from-map2))
+          (map2-with-a (assoc map2-with-b 'a 'from-map2)) ; Override in map2
+          (merged (merge-maps map1-with-a map2-with-a)))
+      (let ((a-val (get merged 'a))
+            (b-val (get merged 'b)))
+        (if (and (eq? a-val 'from-map2) ; map2 should win
+                 (eq? b-val 'from-map2))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Map merging" tests))))
+
+    ;; Test 7: Persistent list
+    (let ((list1 (persistent-list))
+          (list2 (cons-persistent list1 'first))
+          (list3 (cons-persistent list2 'second))
+          (list4 (cons-persistent list3 'third)))
+      (let ((len (length-persistent list4))
+            (item1 (list-ref-persistent list4 0))
+            (item2 (list-ref-persistent list4 1))
+            (item3 (list-ref-persistent list4 2)))
+        (if (and (= len 3)
+                 (eq? item1 'third)
+                 (eq? item2 'second)
+                 (eq? item3 'first))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Persistent list" tests))))
+
+    ;; Test 8: Persistent vector
+    (let ((vec1 (persistent-vector '(1 2 3)))
+          (vec2 (vector-conj vec1 4))
+          (vec3 (vector-conj vec2 5)))
+      (let ((len (length (PersistentVector-data vec3)))
+            (first (car (PersistentVector-data vec3)))
+            (last (car (reverse (PersistentVector-data vec3)))))
+        (if (and (= len 5)
+                 (eq? first 1)
+                 (eq? last 5))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Persistent vector" tests))))
+
+    ;; Test 9: Structural sharing verification
+    (let ((map1 (persistent_map))
+          (map2 (assoc map1 'shared 'value))
+          (map3 (assoc map2 'different 'value2)))
+      ;; Both map2 and map3 should share the 'shared' entry from map2
+      (let ((shared-val2 (get map2 'shared))
+            (shared-val3 (get map3 'shared)))
+        (if (and (eq? shared-val2 'value)
+                 (eq? shared-val3 'value))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Structural sharing verification" tests))))
+
+    ;; Test 10: Change tracking
+    (let ((map1 (persistent_map))
+          (map2 (assoc map1 'a 1))
+          (map3 (assoc map2 'b 2))
+          (map4 (assoc map3 'c 3)))
+      (let ((changes (get-changes-from-version map4 1)))
+        (if (= (length changes) 3) ; Should have 3 changes from version 1
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Change tracking" tests))))
+
+    (format "Persistent Structures tests: ~a passed, ~a failed out of ~a"
+            passed failed (+ passed failed))))
+
+;; Run tests when module loads
+(run-persistent-structures-tests)

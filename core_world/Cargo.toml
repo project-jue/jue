@@ -1,0 +1,23 @@
+[package]
+name = "core_world"
+version = "0.1.0"
+edition = "2021"
+authors = ["Project Jue Team"]
+description = "Core-World: Formal λ-calculus kernel with relational semantics"
+license = "MIT"
+
+[dependencies]
+# Core Rust dependencies
+serde = { version = "1.0", features = ["derive"] }  # Serialization for proofs & AST
+serde_json = "1.0"                                  # Optional JSON output for logging/proofs
+anyhow = "1.0"                                      # Error handling
+thiserror = "1.0"                                   # Custom errors
+
+# Logging
+log = "0.4"
+env_logger = "0.10"
+
+[dev-dependencies]
+# Testing
+proptest = "1.0"           # Property-based testing for Core proofs
+criterion = "0.4"          # Benchmarking

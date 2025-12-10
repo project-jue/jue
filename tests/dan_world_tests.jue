@@ -1,0 +1,599 @@
+;; Dan-World Component Tests
+;; Comprehensive unit tests for all Dan-World components
+;; Tests module kernel, event loop, global workspace, mutation protocol, and persistent structures
+
+;; Import all Dan-World components
+(import dan_world::module_kernel)
+(import dan_world::event_loop)
+(import dan_world::global_workspace)
+(import dan_world::mutation_protocol)
+(import dan_world::persistent_structures)
+
+;; Import supporting modules
+(import core_world::core_expr::CoreExpr)
+(import jue_world::parser::parse_expr)
+
+;; Main test runner
+(define (run-all-dan-world-tests)
+  "Run all Dan-World component tests"
+  (format "=== Running Dan-World Component Tests ===")
+
+  ;; Run individual test suites
+  (run-module-kernel-tests)
+  (run-event-loop-tests)
+  (run-global-workspace-tests)
+  (run-mutation-protocol-tests)
+  (run-persistent-structures-tests)
+  (run-integration-tests)
+  (run-error-handling-tests)
+  (run-performance-tests)
+
+  (format "=== All Dan-World Tests Completed ==="))
+
+;; Module Kernel Tests
+(define (run-module-kernel-tests)
+  "Test Module Kernel functionality"
+  (format "\n--- Module Kernel Tests ---")
+
+  (let ((tests-passed 0)
+        (tests-failed 0))
+
+    ;; Test 1: Valid proposal validation
+    (try
+      (let ((valid-proposal (ModuleProposal 'test_module
+                                          (Var 'x)
+                                          (CoreExpr::Var 0)
+                                          :experimental
+                                          '())))
+        (if (micro_kernel_validate valid-proposal)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 1: Valid proposal validation passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 1: Valid proposal validation failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 1: Valid proposal validation error: ~a" error)))
+
+    ;; Test 2: Invalid proposal validation
+    (try
+      (let ((invalid-proposal "not a proposal"))
+        (if (not (micro_kernel_validate invalid-proposal))
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 2: Invalid proposal validation passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 2: Invalid proposal validation failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 2: Invalid proposal validation error: ~a" error)))
+
+    ;; Test 3: Module proposal creation
+    (try
+      (let ((proposal (module_propose 'test_module2
+                                     (Lam 'x (Var 'x))
+                                     (CoreExpr::Lam (CoreExpr::Var 0))
+                                     :experimental
+                                     '())))
+        (if (ModuleProposal? proposal)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 3: Module proposal creation passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 3: Module proposal creation failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 3: Module proposal creation error: ~a" error)))
+
+    ;; Test 4: Module installation
+    (try
+      (let ((proposal (module_propose 'test_module3
+                                     (App (Var 'f) (Var 'x))
+                                     (CoreExpr::App (CoreExpr::Var 0) (CoreExpr::Var 1))
+                                     :experimental
+                                     '())))
+        (if proposal
+            (let ((installed (install_new_version proposal (CoreExpr::App (CoreExpr::Var 0) (CoreExpr::Var 1)))))
+              (if (Module? installed)
+                  (begin
+                    (set! tests-passed (+ tests-passed 1))
+                    (format "✓ Test 4: Module installation passed"))
+                  (begin
+                    (set! tests-failed (+ tests-failed 1))
+                    (format "✗ Test 4: Module installation failed"))))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 4: Module installation failed - no proposal"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 4: Module installation error: ~a" error)))
+
+    (format "Module Kernel Tests: ~a passed, ~a failed" tests-passed tests-failed)))
+
+;; Event Loop Tests
+(define (run-event-loop-tests)
+  "Test Event Loop functionality"
+  (format "\n--- Event Loop Tests ---")
+
+  (let ((tests-passed 0)
+        (tests-failed 0))
+
+    ;; Test 1: Event creation and delivery
+    (try
+      (let ((test-event (Event 'test1 :message 'tester 'target "Hello" (current-time) 5))
+            (mailbox (create-mailbox 'target)))
+        (if (deliver-to-module test-event mailbox)
+            (let ((received (receive_event mailbox)))
+              (if (and received (eq? (Event-id received) 'test1))
+                  (begin
+                    (set! tests-passed (+ tests-passed 1))
+                    (format "✓ Test 1: Event creation and delivery passed"))
+                  (begin
+                    (set! tests-failed (+ tests-failed 1))
+                    (format "✗ Test 1: Event creation and delivery failed"))))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 1: Event delivery failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 1: Event creation and delivery error: ~a" error)))
+
+    ;; Test 2: Event processing
+    (try
+      (let ((message-event (Event 'test2 :message 'sender 'receiver "Test message" (current-time) 3)))
+        (if (process_event message-event)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 2: Event processing passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 2: Event processing failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 2: Event processing error: ~a" error)))
+
+    ;; Test 3: Mailbox overflow
+    (try
+      (let ((small-mailbox (create-mailbox 'overflow_test)))
+        ;; Set small mailbox size
+        (set! (Mailbox-max_size small-mailbox) 2)
+
+        (let ((event1 (Event 'fill1 :message 'sender 'overflow_test "First" (current-time) 5))
+              (event2 (Event 'fill2 :message 'sender 'overflow_test "Second" (current-time) 5))
+              (event3 (Event 'overflow :message 'sender 'overflow_test "Third" (current-time) 5)))
+
+          (if (and (deliver-to-module event1 small-mailbox)
+                   (deliver-to-module event2 small-mailbox)
+                   (not (deliver-to-module event3 small-mailbox)))
+              (begin
+                (set! tests-passed (+ tests-passed 1))
+                (format "✓ Test 3: Mailbox overflow handling passed"))
+              (begin
+                (set! tests-failed (+ tests-failed 1))
+                (format "✗ Test 3: Mailbox overflow handling failed")))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 3: Mailbox overflow error: ~a" error)))
+
+    (format "Event Loop Tests: ~a passed, ~a failed" tests-passed tests-failed)))
+
+;; Global Workspace Tests
+(define (run-global-workspace-tests)
+  "Test Global Workspace functionality"
+  (format "\n--- Global Workspace Tests ---")
+
+  (let ((tests-passed 0)
+        (tests-failed 0))
+
+    ;; Test 1: Salience computation
+    (try
+      (let ((high-event (Event 'high :error 'system 'all "Critical error" (current-time) 10))
+            (low-event (Event 'low :notification 'user 'all "Info message" (current-time) 1))
+            (high-salience (compute_salience high-event))
+            (low-salience (compute_salience low-event)))
+
+        (if (and (>= high-salience 8) (<= low-salience 3))
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 1: Salience computation passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 1: Salience computation failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 1: Salience computation error: ~a" error)))
+
+    ;; Test 2: Subscription management
+    (try
+      (let ((sub1 (subscribe_to_all_modules 'test_module1 '(:message :notification) 3 #f))
+            (sub2 (subscribe_to_all_modules 'test_module2 '(:all) 0 #f)))
+
+        (if (and (Subscription? sub1) (Subscription? sub2))
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 2: Subscription management passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 2: Subscription management failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 2: Subscription management error: ~a" error)))
+
+    ;; Test 3: Event broadcasting
+    (try
+      (let ((test-event (Event 'broadcast :message 'tester 'all "Broadcast test" (current-time) 5)))
+        (if (publish_to_all test-event)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 3: Event broadcasting passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 3: Event broadcasting failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 3: Event broadcasting error: ~a" error)))
+
+    (format "Global Workspace Tests: ~a passed, ~a failed" tests-passed tests-failed)))
+
+;; Mutation Protocol Tests
+(define (run-mutation-protocol-tests)
+  "Test Mutation Protocol functionality"
+  (format "\n--- Mutation Protocol Tests ---")
+
+  (let ((tests-passed 0)
+        (tests-failed 0))
+
+    ;; Test 1: Mutation request creation
+    (try
+      (let ((request (mutate 'test_component 2.0 (Var 'x) (CoreExpr::Var 0) :experimental)))
+        (if (MutationRequest? request)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 1: Mutation request creation passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 1: Mutation request creation failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 1: Mutation request creation error: ~a" error)))
+
+    ;; Test 2: Consensus checking
+    (try
+      (let ((request (mutate 'test_component2 2.0 (Var 'y) (CoreExpr::Var 1) :empirical)))
+        (if request
+            (begin
+              ;; Add votes (3 yes, 1 no)
+              (submit_vote request 'module1 #t 0.8 "Good")
+              (submit_vote request 'module2 #t 0.7 "Good")
+              (submit_vote request 'module3 #t 0.9 "Excellent")
+              (submit_vote request 'module4 #f 0.3 "Needs work")
+
+              (if (consensus_reached? request)
+                  (begin
+                    (set! tests-passed (+ tests-passed 1))
+                    (format "✓ Test 2: Consensus checking passed"))
+                  (begin
+                    (set! tests-failed (+ tests-failed 1))
+                    (format "✗ Test 2: Consensus checking failed"))))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 2: Consensus checking failed - no request"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 2: Consensus checking error: ~a" error)))
+
+    ;; Test 3: Level validation
+    (try
+      (let ((formal-request (mutate 'test_component3 2.0
+                                   (App (Var 'f) (Var 'x))
+                                   (CoreExpr::App (CoreExpr::Var 0) (CoreExpr::Var 1))
+                                   :formal))
+            (experimental-request (mutate 'test_component4 2.0
+                                         (Var 'z)
+                                         (CoreExpr::Var 2)
+                                         :experimental)))
+
+        (if (and formal-request experimental-request)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 3: Level validation passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 3: Level validation failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 3: Level validation error: ~a" error)))
+
+    (format "Mutation Protocol Tests: ~a passed, ~a failed" tests-passed tests-failed)))
+
+;; Persistent Structures Tests
+(define (run-persistent-structures-tests)
+  "Test Persistent Structures functionality"
+  (format "\n--- Persistent Structures Tests ---")
+
+  (let ((tests-passed 0)
+        (tests-failed 0))
+
+    ;; Test 1: Persistent map creation
+    (try
+      (let ((map1 (persistent_map)))
+        (if (PersistentMap? map1)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 1: Persistent map creation passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 1: Persistent map creation failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 1: Persistent map creation error: ~a" error)))
+
+    ;; Test 2: Association and immutability
+    (try
+      (let ((map1 (persistent_map))
+            (map2 (assoc map1 'key1 'value1))
+            (map3 (assoc map2 'key2 'value2))
+            (val1 (get map1 'key1))
+            (val2 (get map2 'key1))
+            (val3 (get map3 'key1)))
+
+        (if (and (not val1) (eq? val2 'value1) (eq? val3 'value1))
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 2: Association and immutability passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 2: Association and immutability failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 2: Association and immutability error: ~a" error)))
+
+    ;; Test 3: Version history
+    (try
+      (let ((map1 (persistent_map))
+            (map2 (assoc map1 'a 1))
+            (map3 (assoc map2 'b 2))
+            (map4 (assoc map3 'c 3))
+            (versions (get-all-versions map4)))
+
+        (if (= (length versions) 4)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 3: Version history passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 3: Version history failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 3: Version history error: ~a" error)))
+
+    ;; Test 4: Rollback functionality
+    (try
+      (let ((map1 (persistent_map))
+            (map2 (assoc map1 'x 10))
+            (map3 (assoc map2 'y 20))
+            (rolled-back (rollback map3 2))
+            (x-val (get rolled-back 'x))
+            (y-val (get rolled-back 'y)))
+
+        (if (and (eq? x-val 10) (not y-val))
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 4: Rollback functionality passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 4: Rollback functionality failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 4: Rollback functionality error: ~a" error)))
+
+    (format "Persistent Structures Tests: ~a passed, ~a failed" tests-passed tests-failed)))
+
+;; Integration Tests
+(define (run-integration-tests)
+  "Test integration between Dan-World components"
+  (format "\n--- Integration Tests ---")
+
+  (let ((tests-passed 0)
+        (tests-failed 0))
+
+    ;; Test 1: Module proposal → event broadcasting → mutation
+    (try
+      (let ((proposal (module_propose 'integration_test
+                                     (Lam 'x (Var 'x))
+                                     (CoreExpr::Lam (CoreExpr::Var 0))
+                                     :experimental
+                                     '()))
+            (proposal-event (Event 'proposal_event :module_proposal 'module_kernel 'all
+                                  (format "Proposal: ~a" proposal) (current-time) 7)))
+
+        (if (and proposal (publish_to_all proposal-event))
+            (let ((mutation-request (mutate 'integration_test 2.0
+                                           (ModuleProposal-code proposal)
+                                           (ModuleProposal-proof proposal)
+                                           :experimental)))
+              (if mutation-request
+                  (begin
+                    (set! tests-passed (+ tests-passed 1))
+                    (format "✓ Test 1: Module proposal → event → mutation passed"))
+                  (begin
+                    (set! tests-failed (+ tests-failed 1))
+                    (format "✗ Test 1: Module proposal → event → mutation failed"))))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 1: Module proposal → event → mutation failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 1: Module proposal → event → mutation error: ~a" error)))
+
+    ;; Test 2: Event processing → module update → persistent storage
+    (try
+      (let ((update-event (Event 'update_event :module_update 'mutation_protocol 'module_kernel
+                                "Module updated successfully" (current-time) 8))
+            (update-map (assoc (persistent_map) 'integration_test 'updated)))
+
+        (if (and (process_event update-event) update-map)
+            (let ((stored-value (get update-map 'integration_test)))
+              (if (eq? stored-value 'updated)
+                  (begin
+                    (set! tests-passed (+ tests-passed 1))
+                    (format "✓ Test 2: Event processing → module update → storage passed"))
+                  (begin
+                    (set! tests-failed (+ tests-failed 1))
+                    (format "✗ Test 2: Event processing → module update → storage failed"))))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 2: Event processing → module update → storage failed"))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 2: Event processing → module update → storage error: ~a" error)))
+
+    (format "Integration Tests: ~a passed, ~a failed" tests-passed tests-failed)))
+
+;; Error Handling Tests
+(define (run-error-handling-tests)
+  "Test error handling and edge cases"
+  (format "\n--- Error Handling Tests ---")
+
+  (let ((tests-passed 0)
+        (tests-failed 0))
+
+    ;; Test 1: Invalid module proposal
+    (try
+      (let ((invalid-proposal (ModuleProposal '' (Var 'x) (CoreExpr::Var 0) :invalid_level '("nonexistent"))))
+        (if (not (micro_kernel_validate invalid-proposal))
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 1: Invalid module proposal handling passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 1: Invalid module proposal handling failed"))))
+
+      (catch (error)
+        (set! tests-passed (+ tests-passed 1)) ; Expected to fail
+        (format "✓ Test 1: Invalid module proposal handling passed (expected error)")))
+
+    ;; Test 2: Invalid mutation level
+    (try
+      (let ((invalid-mutation (mutate 'test '' 2.0 (Var 'x) (CoreExpr::Var 0) :invalid_level)))
+        (if (not invalid-mutation)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 2: Invalid mutation level handling passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 2: Invalid mutation level handling failed"))))
+
+      (catch (error)
+        (set! tests-passed (+ tests-passed 1)) ; Expected to fail
+        (format "✓ Test 2: Invalid mutation level handling passed (expected error)")))
+
+    ;; Test 3: Nonexistent version rollback
+    (try
+      (let ((map (persistent_map))
+            (rollback-result (rollback map 999)))
+        (if (not rollback-result)
+            (begin
+              (set! tests-passed (+ tests-passed 1))
+              (format "✓ Test 3: Nonexistent version rollback handling passed"))
+            (begin
+              (set! tests-failed (+ tests-failed 1))
+              (format "✗ Test 3: Nonexistent version rollback handling failed"))))
+
+      (catch (error)
+        (set! tests-passed (+ tests-passed 1)) ; Expected to fail
+        (format "✓ Test 3: Nonexistent version rollback handling passed (expected error)")))
+
+    (format "Error Handling Tests: ~a passed, ~a failed" tests-passed tests-failed)))
+
+;; Performance Tests
+(define (run-performance-tests)
+  "Test performance characteristics"
+  (format "\n--- Performance Tests ---")
+
+  (let ((tests-passed 0)
+        (tests-failed 0))
+
+    ;; Test 1: Bulk event processing
+    (try
+      (let ((start-time (current-time))
+            (mailbox (create-mailbox 'performance_test)))
+
+        ;; Deliver 100 events
+        (let ((events-delivered 0))
+          (for (i 0 99)
+            (let ((event (Event (format "event_~a" i) :message 'tester 'performance_test
+                               (format "Message ~a" i) (+ (current-time) i) 5)))
+              (if (deliver-to-module event mailbox)
+                  (set! events-delivered (+ events-delivered 1)))))
+
+          (if (= events-delivered 100)
+              (let ((delivery-time (- (current-time) start-time)))
+                (format "Delivered 100 events in ~a ms" delivery-time)
+                (set! tests-passed (+ tests-passed 1))
+                (format "✓ Test 1: Bulk event processing passed"))
+              (begin
+                (set! tests-failed (+ tests-failed 1))
+                (format "✗ Test 1: Bulk event processing failed")))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 1: Bulk event processing error: ~a" error)))
+
+    ;; Test 2: Persistent map operations
+    (try
+      (let ((start-time (current-time))
+            (current-map (persistent_map)))
+
+        ;; Create 50 versions
+        (for (i 0 49)
+          (set! current-map (assoc current-map (format "key_~a" i) (format "value_~a" i))))
+
+        (let ((map-time (- (current-time) start-time)))
+          (format "Created 50 map versions in ~a ms" map-time)
+
+          ;; Verify versions
+          (let ((all-valid #t))
+            (for (i 0 49)
+              (let ((value (get current-map (format "key_~a" i))))
+                (if (not (eq? value (format "value_~a" i)))
+                    (set! all-valid #f))))
+
+            (if all-valid
+                (begin
+                  (set! tests-passed (+ tests-passed 1))
+                  (format "✓ Test 2: Persistent map operations passed"))
+                (begin
+                  (set! tests-failed (+ tests-failed 1))
+                  (format "✗ Test 2: Persistent map operations failed")))))
+
+      (catch (error)
+        (set! tests-failed (+ tests-failed 1))
+        (format "✗ Test 2: Persistent map operations error: ~a" error)))
+
+    (format "Performance Tests: ~a passed, ~a failed" tests-passed tests-failed)))
+
+;; Run all tests when module loads
+(run-all-dan-world-tests)

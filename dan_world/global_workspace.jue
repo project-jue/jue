@@ -1,0 +1,351 @@
+;; Dan-World Global Workspace
+;; This file contains the global workspace implementation
+;; Handles event salience computation, broadcasting, and subscriptions
+
+;; Import necessary modules for integration
+(import core_world::core_expr::CoreExpr)
+(import dan_world::event_loop::Event)
+(import dan_world::event_loop::publish-event)
+(import dan_world::event_loop::get-mailbox)
+
+;; Define salience threshold levels
+(define LOW_SALIENCE_THRESHOLD 3)
+(define MEDIUM_SALIENCE_THRESHOLD 6)
+(define HIGH_SALIENCE_THRESHOLD 9)
+
+;; Define subscription structure
+(define-type Subscription
+  (module_name symbol)
+  (event_types list) ; List of event types to subscribe to
+  (priority_threshold number) ; Minimum priority to receive
+  (callback function) ; Function to call when event received
+  (active? boolean))
+
+;; Global subscriptions registry
+(define global-subscriptions (make-hash-table))
+
+;; Event history for salience computation
+(define event-history (make-list 100)) ; Circular buffer of last 100 events
+(define history-index 0)
+
+;; Module registry for broadcast
+(define module-registry (make-hash-table))
+
+;; Compute salience of an event
+;; Expected Output: Salience score
+;; Proof Obligation: Threshold mapping correct
+;; Unit Test Specification: Test high/low events; assert proper filtering
+(define (compute_salience event)
+  "Evaluate event importance based on multiple factors"
+  (try
+    (let ((base-score 0))
+
+      ;; Factor 1: Event priority (0-10)
+      (set! base-score (+ base-score (Event-priority event)))
+
+      ;; Factor 2: Event type weight
+      (let ((type-weight (get-event-type-weight (Event-type event))))
+        (set! base-score (+ base-score type-weight)))
+
+      ;; Factor 3: Source reputation (simplified)
+      (let ((source-rep (get-source-reputation (Event-source event))))
+        (set! base-score (+ base-score source-rep)))
+
+      ;; Factor 4: Recent similar events (reduce salience if many similar)
+      (let ((similar-count (count-similar-recent-events event)))
+        (set! base-score (- base-score (* similar-count 0.5))))
+
+      ;; Factor 5: Payload complexity (simplified)
+      (let ((payload-score (compute-payload-score (Event-payload event))))
+        (set! base-score (+ base-score payload-score)))
+
+      ;; Ensure score is within bounds
+      (max 0 (min 10 (round base-score))))
+
+    (catch (error)
+      (format "Salience computation error: ~a" error)
+      5))) ; Default medium salience on error
+
+;; Get event type weight
+(define (get-event-type-weight event-type)
+  "Get weight for different event types"
+  (cond
+    ((eq? event-type :error) 3)
+    ((eq? event-type :command) 2)
+    ((eq? event-type :message) 1)
+    ((eq? event-type :notification) 0)
+    (else 0)))
+
+;; Get source reputation (simplified)
+(define (get-source-reputation source)
+  "Get reputation score for event source"
+  ;; In real implementation, this would track module reliability
+  1) ; Default reputation
+
+;; Count similar recent events
+(define (count-similar-recent-events event)
+  "Count how many similar events occurred recently"
+  (let ((count 0))
+    (for-each (lambda (past-event)
+                (if (and (eq? (Event-type past-event) (Event-type event))
+                         (eq? (Event-source past-event) (Event-source event)))
+                    (set! count (+ count 1))))
+              event-history)
+    count))
+
+;; Compute payload score
+(define (compute-payload-score payload)
+  "Compute score based on payload complexity"
+  (cond
+    ((string? payload) (min 2 (* 0.1 (string-length payload))))
+    ((number? payload) 1)
+    ((list? payload) (min 3 (* 0.5 (length payload))))
+    ((symbol? payload) 0.5)
+    (else 0)))
+
+;; Publish event to all subscribed modules
+;; Expected Output: Event broadcast
+;; Proof Obligation: Verify all modules receive
+;; Unit Test Specification: Send event; assert all subscribed modules receive
+(define (publish_to_all event)
+  "Broadcast event to all subscribed modules based on salience and subscriptions"
+  (try
+    ;; First compute salience
+    (let ((salience (compute_salience event)))
+
+      ;; Add to event history
+      (add-to-event-history event)
+
+      ;; Get all active subscriptions
+      (let ((subscriptions (get-active-subscriptions)))
+        (for-each (lambda (sub)
+                    (let ((module-name (Subscription-module_name sub))
+                          (event-types (Subscription-event_types sub))
+                          (priority-threshold (Subscription-priority_threshold sub))
+                          (callback (Subscription-callback sub)))
+
+                      ;; Check if module subscribes to this event type
+                      (if (or (memq (Event-type event) event-types)
+                              (memq :all event-types))
+                          ;; Check priority threshold
+                          (if (>= salience priority-threshold)
+                              ;; Create module-specific event
+                              (let ((module-event (Event (Event-id event)
+                                                        (Event-type event)
+                                                        (Event-source event)
+                                                        module-name
+                                                        (Event-payload event)
+                                                        (Event-timestamp event)
+                                                        salience)))
+
+                                ;; Deliver to module
+                                (deliver-to-module module-event sub callback))
+                              ;; Priority too low, skip
+                              #f)
+                          ;; Not subscribed to this type, skip
+                          #f)))
+                subscriptions)))
+
+    (catch (error)
+      (format "Broadcast error: ~a" error)
+      #f)))
+
+;; Add event to history
+(define (add-to-event-history event)
+  "Add event to circular history buffer"
+  (set! (list-ref event-history history-index) event)
+  (set! history-index (mod (+ history-index 1) (length event-history))))
+
+;; Get all active subscriptions
+(define (get-active-subscriptions)
+  "Get all currently active subscriptions"
+  (let ((active-subs '()))
+    (hash-table-for-each (lambda (module-name sub)
+                           (if (Subscription-active? sub)
+                               (set! active-subs (cons sub active-subs))))
+                         global-subscriptions)
+    active-subs))
+
+;; Deliver event to module with callback
+(define (deliver-to-module event sub callback)
+  "Deliver event to module and invoke callback"
+  (try
+    ;; Use event loop's delivery mechanism
+    (let ((mailbox (get-mailbox (Subscription-module_name sub))))
+      ;; Add event to mailbox
+      (let ((delivered? (dan_world::event_loop::deliver-to-module event)))
+        (if delivered?
+            ;; Invoke callback if provided
+            (if callback
+                (callback event)
+                #t)
+            #f)))
+
+    (catch (error)
+      (format "Module delivery error: ~a" error)
+      #f)))
+
+;; Subscribe module to events
+;; Expected Output: Registration
+;; Proof Obligation: All modules receive events
+;; Unit Test Specification: Register 5 modules; send event; check delivery
+(define (subscribe_to_all_modules module_name event_types priority_threshold callback)
+  "Subscribe a module to receive events"
+  (try
+    (let ((existing-sub (hash-table-ref global-subscriptions module_name)))
+
+      (if existing-sub
+          ;; Update existing subscription
+          (begin
+            (set! (Subscription-event_types existing-sub) event_types)
+            (set! (Subscription-priority_threshold existing-sub) priority_threshold)
+            (set! (Subscription-callback existing-sub) callback)
+            (set! (Subscription-active? existing-sub) #t)
+            existing-sub)
+
+          ;; Create new subscription
+          (let ((new-sub (Subscription module_name
+                                      event_types
+                                      priority_threshold
+                                      callback
+                                      #t)))
+            (hash-table-set! global-subscriptions module_name new-sub)
+            new-sub)))
+
+    (catch (error)
+      (format "Subscription error: ~a" error)
+      #f)))
+
+;; Unsubscribe module from events
+(define (unsubscribe_module module_name)
+  "Unsubscribe a module from receiving events"
+  (try
+    (let ((existing-sub (hash-table-ref global-subscriptions module_name)))
+      (if existing-sub
+          (set! (Subscription-active? existing-sub) #f)
+          #f))
+
+    (catch (error)
+      (format "Unsubscription error: ~a" error)
+      #f)))
+
+;; Register module in global registry
+(define (register_module module)
+  "Register a module in the global workspace"
+  (try
+    (hash-table-set! module-registry (Module-name module) module)
+    #t
+    (catch (error)
+      (format "Module registration error: ~a" error)
+      #f)))
+
+;; Get module by name
+(define (get_module module_name)
+  "Get module by name from registry"
+  (hash-table-ref module-registry module_name))
+
+;; Get all modules
+(define (get-all-modules)
+  "Get all registered modules"
+  (hash-table-values module-registry))
+
+;; Filter events by salience
+(define (filter-events-by-salience events threshold)
+  "Filter events based on salience threshold"
+  (let ((filtered '()))
+    (for-each (lambda (event)
+                (if (>= (compute-salience event) threshold)
+                    (set! filtered (cons event filtered))))
+              events)
+    filtered))
+
+;; Get events by type
+(define (get-events-by-type event-type)
+  "Get recent events of specific type"
+  (let ((matching '()))
+    (for-each (lambda (event)
+                (if (eq? (Event-type event) event-type)
+                    (set! matching (cons event matching))))
+              event-history)
+    matching))
+
+;; Global workspace monitoring
+(define (monitor-workspace)
+  "Monitor global workspace state and metrics"
+  (let ((stats (make-hash-table)))
+    (hash-table-set! stats 'active_subscriptions (length (get-active-subscriptions)))
+    (hash-table-set! stats 'registered_modules (length (hash-table-keys module-registry)))
+    (hash-table-set! stats 'recent_events (length (filter (lambda (e) e) event-history)))
+    stats))
+
+;; Unit tests for global workspace
+(define (run-global-workspace-tests)
+  "Run unit tests for global workspace functionality"
+  (let ((tests '())
+        (passed 0)
+        (failed 0))
+
+    ;; Test 1: Salience computation
+    (let ((high-event (Event 'test1 :error 'system 'all "Critical error" (current-time) 10))
+          (low-event (Event 'test2 :notification 'user 'all "Info message" (current-time) 1)))
+      (let ((high-salience (compute_salience high-event))
+            (low-salience (compute_salience low-event)))
+        (if (and (>= high-salience HIGH_SALIENCE_THRESHOLD)
+                 (< low-salience LOW_SALIENCE_THRESHOLD))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Salience computation" tests))))
+
+    ;; Test 2: Event broadcasting
+    (let ((test-event (Event 'broadcast-test :message 'tester 'all "Broadcast test" (current-time) 5)))
+      ;; Subscribe test modules
+      (subscribe_to_all_modules 'test-module1 '(:message :notification) 3 #f)
+      (subscribe_to_all_modules 'test-module2 '(:all) 0 #f)
+
+      ;; Broadcast event
+      (publish_to_all test-event)
+
+      ;; Check if modules received events
+      (let ((mailbox1 (get-mailbox 'test-module1))
+            (mailbox2 (get-mailbox 'test-module2))
+            (event1 (receive_event mailbox1))
+            (event2 (receive_event mailbox2)))
+        (if (and event1 event2)
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Event broadcasting" tests))))
+
+    ;; Test 3: Subscription management
+    (let ((sub1 (subscribe_to_all_modules 'test-module3 '(:command) 5 #f))
+          (sub2 (subscribe_to_all_modules 'test-module4 '(:all) 0 #f)))
+      (if (and (Subscription? sub1) (Subscription? sub2))
+          (set! passed (+ passed 1))
+          (set! failed (+ failed 1)))
+      (set! tests (cons "Subscription management" tests)))
+
+    ;; Test 4: Module registration
+    (let ((test-module (Module 'test-module5 1.0 (Var 'x) (CoreExpr::Var 0) :active '())))
+      (register_module test-module)
+      (let ((retrieved (get_module 'test-module5)))
+        (if (and retrieved (eq? (Module-name retrieved) 'test-module5))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Module registration" tests))))
+
+    ;; Test 5: Event filtering
+    (let ((events (list
+                   (Event 'high :error 'system 'all "High" (current-time) 10)
+                   (Event 'medium :message 'user 'all "Medium" (current-time) 5)
+                   (Event 'low :notification 'user 'all "Low" (current-time) 1))))
+      (let ((high-events (filter-events-by-salience events 8)))
+        (if (and (= (length high-events) 1)
+                 (eq? (Event-id (car high-events)) 'high))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Event filtering" tests))))
+
+    (format "Global Workspace tests: ~a passed, ~a failed out of ~a"
+            passed failed (+ passed failed))))
+
+;; Run tests when module loads
+(run-global-workspace-tests)

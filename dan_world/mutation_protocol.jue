@@ -1,0 +1,509 @@
+;; Dan-World Mutation Protocol
+;; This file contains the mutation protocol implementation
+;; Handles four-level mutation system and consensus verification
+
+;; Import necessary modules for integration
+(import core_world::core_expr::CoreExpr)
+(import core_world::proof_checker::verify_proof)
+(import dan_world::module_kernel::Module)
+(import dan_world::module_kernel::ModuleProposal)
+(import dan_world::module_kernel::micro_kernel_validate)
+(import dan_world::module_kernel::install_new_version)
+(import dan_world::global_workspace::publish_to_all)
+
+;; Define mutation levels
+(define MUTATION_LEVELS '(:experimental :empirical :verified :formal))
+
+;; Define vote structure
+(define-type Vote
+  (module_name symbol)
+  (component_name symbol)
+  (new_version number)
+  (vote_value boolean) ; #t for yes, #f for no
+  (confidence number) ; 0-1 scale
+  (timestamp number)
+  (reason string))
+
+;; Define mutation request structure
+(define-type MutationRequest
+  (component_name symbol)
+  (current_version number)
+  (new_version number)
+  (new_code Expr)
+  (new_proof CoreExpr)
+  (target_level symbol)
+  (requester symbol)
+  (timestamp number)
+  (votes list)
+  (status symbol)) ; :pending, :approved, :rejected, :installed
+
+;; Mutation requests registry
+(define mutation-requests (make-hash-table))
+
+;; Consensus thresholds
+(define EXPERIMENTAL_CONSENSUS_THRESHOLD 0.5) ; 50% majority
+(define EMPIRICAL_CONSENSUS_THRESHOLD 0.6)   ; 60% majority
+(define VERIFIED_CONSENSUS_THRESHOLD 0.7)   ; 70% majority
+(define FORMAL_CONSENSUS_THRESHOLD 0.8)      ; 80% majority
+
+;; Minimum votes required
+(define MIN_VOTES_REQUIRED 3)
+
+;; Mutate component with four-level protocol
+;; Expected Output: Component updated
+;; Proof Obligation: Level-specific validation
+;; Unit Test Specification: Test all 4 levels; assert correct promotion
+(define (mutate component_name new_version new_code new_proof target_level)
+  "Perform mutation according to four-level protocol"
+  (try
+    ;; Get current module
+    (let ((current-module (get-current-module component_name)))
+      (if (not current-module)
+          (throw (format "Component not found: ~a" component_name)))
+
+      ;; Validate target level
+      (if (not (memq target_level MUTATION_LEVELS))
+          (throw (format "Invalid mutation level: ~a" target_level)))
+
+      ;; Create mutation request
+      (let ((request (create-mutation-request component_name
+                                              (Module-version current-module)
+                                              new_version
+                                              new_code
+                                              new_proof
+                                              target_level
+                                              'system
+                                              (current-time))))
+
+        ;; Validate request based on target level
+        (let ((validation-result (validate-mutation-request request)))
+          (if (not validation-result)
+              (throw "Mutation request validation failed"))
+
+          ;; Store request
+          (store-mutation-request request)
+
+          ;; Start consensus process
+          (start-consensus-process request)
+
+          ;; Return request for tracking
+          request))
+
+    (catch (error)
+      (format "Mutation failed: ~a" error)
+      #f)))
+
+;; Create mutation request
+(define (create-mutation-request component_name current_version new_version new_code new_proof target_level requester timestamp)
+  "Create a new mutation request"
+  (MutationRequest component_name
+                   current_version
+                   new_version
+                   new_code
+                   new_proof
+                   target_level
+                   requester
+                   timestamp
+                   '() ; Empty votes initially
+                   :pending))
+
+;; Validate mutation request based on target level
+(define (validate-mutation-request request)
+  "Validate mutation request according to target level requirements"
+  (let ((level (MutationRequest-target_level request)))
+    (cond
+      ((eq? level :formal)
+       ;; Formal level requires proof verification
+       (if (not (verify_proof (MutationRequest-new_proof request)
+                              (compile_to_core (MutationRequest-new_code request))))
+           (throw "Formal level requires valid proof"))
+       #t)
+
+      ((eq? level :verified)
+       ;; Verified level requires proof verification
+       (if (not (verify_proof (MutationRequest-new_proof request)
+                              (compile_to_core (MutationRequest-new_code request))))
+           (throw "Verified level requires valid proof"))
+       #t)
+
+      ((eq? level :empirical)
+       ;; Empirical level requires either proof or empirical validation
+       (let ((proof-valid? (verify_proof (MutationRequest-new_proof request)
+                                         (compile_to_core (MutationRequest-new_code request)))))
+         (if (not (or proof-valid? (empirical-validation-passed? (MutationRequest-new_code request))))
+             (throw "Empirical level requires proof or empirical validation")))
+       #t)
+
+      ((eq? level :experimental)
+       ;; Experimental level has minimal requirements
+       (if (not (micro_kernel_validate (ModuleProposal (MutationRequest-component_name request)
+                                                      (MutationRequest-new_code request)
+                                                      (MutationRequest-new_proof request)
+                                                      :experimental
+                                                      '())))
+           (throw "Experimental level requires valid module proposal"))
+       #t)
+
+      (else
+       (throw (format "Unknown mutation level: ~a" level))))))
+
+;; Store mutation request
+(define (store-mutation-request request)
+  "Store mutation request in registry"
+  (let ((key (format "~a-~a" (MutationRequest-component_name request) (MutationRequest-timestamp request))))
+    (hash-table-set! mutation-requests key request)))
+
+;; Start consensus process
+(define (start-consensus-process request)
+  "Start consensus process for mutation request"
+  (try
+    ;; Broadcast mutation request to all modules
+    (let ((request-event (Event (gensym 'mutation-request)
+                               :mutation_request
+                               'mutation_protocol
+                               'all
+                               request
+                               (current-time)
+                               8)))
+      (publish_to_all request-event))
+
+      ;; Set status to pending consensus
+      (set! (MutationRequest-status request) :pending_consensus)
+
+      #t
+    (catch (error)
+      (format "Consensus process failed: ~a" error)
+      #f)))
+
+;; Submit vote for mutation request
+(define (submit-vote request module_name vote_value confidence reason)
+  "Submit a vote for a mutation request"
+  (try
+    (let ((vote (Vote module_name
+                      (MutationRequest-component_name request)
+                      (MutationRequest-new_version request)
+                      vote_value
+                      confidence
+                      (current-time)
+                      reason)))
+
+      ;; Add vote to request
+      (set! (MutationRequest-votes request) (cons vote (MutationRequest-votes request)))
+
+      ;; Check if consensus reached
+      (let ((consensus? (consensus_reached? request)))
+        (if consensus?
+            (process-consensus-result request)
+            #t))
+
+      #t)
+    (catch (error)
+      (format "Vote submission failed: ~a" error)
+      #f)))
+
+;; Check if consensus reached for mutation request
+;; Expected Output: Boolean
+;; Proof Obligation: Correct majority
+;; Unit Test Specification: Simulate votes; assert promotion only if majority
+(define (consensus_reached? request)
+  "Check if consensus has been reached for mutation request"
+  (try
+    (let ((votes (MutationRequest-votes request))
+          (level (MutationRequest-target_level request)))
+
+      ;; Check minimum votes requirement
+      (if (< (length votes) MIN_VOTES_REQUIRED)
+          #f
+
+          ;; Calculate consensus based on level
+          (let ((threshold (get-consensus-threshold level))
+                (yes-votes 0)
+                (total-confidence 0.0))
+
+            (for-each (lambda (vote)
+                        (if (Vote-vote_value vote)
+                            (begin
+                              (set! yes-votes (+ yes-votes 1))
+                              (set! total-confidence (+ total-confidence (Vote-confidence vote))))))
+                      votes)
+
+            ;; Calculate consensus ratio
+            (let ((consensus-ratio (if (> (length votes) 0)
+                                       (/ yes-votes (length votes))
+                                       0.0)))
+              (and (>= consensus-ratio threshold)
+                   (>= total-confidence (* MIN_VOTES_REQUIRED 0.5)))))))
+
+    (catch (error)
+      (format "Consensus check error: ~a" error)
+      #f)))
+
+;; Get consensus threshold for level
+(define (get-consensus-threshold level)
+  "Get consensus threshold for mutation level"
+  (cond
+    ((eq? level :formal) FORMAL_CONSENSUS_THRESHOLD)
+    ((eq? level :verified) VERIFIED_CONSENSUS_THRESHOLD)
+    ((eq? level :empirical) EMPIRICAL_CONSENSUS_THRESHOLD)
+    ((eq? level :experimental) EXPERIMENTAL_CONSENSUS_THRESHOLD)
+    (else 0.5))) ; Default
+
+;; Process consensus result
+(define (process-consensus-result request)
+  "Process the result of consensus voting"
+  (try
+    (let ((level (MutationRequest-target_level request))
+          (component_name (MutationRequest-component_name request)))
+
+      ;; Check if consensus reached
+      (let ((consensus? (consensus_reached? request)))
+        (if consensus?
+            ;; Consensus reached - proceed with mutation
+            (begin
+              (set! (MutationRequest-status request) :approved)
+
+              ;; Create module proposal for installation
+              (let ((proposal (ModuleProposal component_name
+                                             (MutationRequest-new_code request)
+                                             (MutationRequest-new_proof request)
+                                             level
+                                             '())))
+
+                ;; Install new version
+                (let ((installed-module (install_new_version proposal (MutationRequest-new_proof request))))
+                  (if installed-module
+                      (begin
+                        (set! (MutationRequest-status request) :installed)
+                        (broadcast-mutation-result request :success "Mutation installed successfully"))
+                      (begin
+                        (set! (MutationRequest-status request) :rejected)
+                        (broadcast-mutation-result request :failure "Installation failed"))))))
+
+            ;; Consensus not reached - reject
+            (begin
+              (set! (MutationRequest-status request) :rejected)
+              (broadcast-mutation-result request :failure "Consensus not reached")))))
+
+    (catch (error)
+      (format "Consensus processing error: ~a" error)
+      (set! (MutationRequest-status request) :rejected)
+      (broadcast-mutation-result request :failure (format "Processing error: ~a" error))
+      #f)))
+
+;; Broadcast mutation result
+(define (broadcast-mutation-result request status message)
+  "Broadcast the result of a mutation process"
+  (let ((result-event (Event (gensym 'mutation-result)
+                            :mutation_result
+                            'mutation_protocol
+                            'all
+                            (list 'request request
+                                  'status status
+                                  'message message
+                                  'component (MutationRequest-component_name request)
+                                  'version (MutationRequest-new_version request))
+                            (current-time)
+                            9)))
+    (publish_to_all result-event)))
+
+;; Get current module
+(define (get-current-module component_name)
+  "Get current module by name"
+  ;; This would integrate with module kernel in real implementation
+  ;; For now, return a mock module
+  (Module component_name 1.0 (Var 'x) (CoreExpr::Var 0) :active '()))
+
+;; Empirical validation (placeholder)
+(define (empirical-validation-passed? code)
+  "Perform empirical validation of code"
+  ;; Simplified - in real implementation this would run tests
+  #t)
+
+;; Promote component through mutation levels
+(define (promote-component component_name from_level to_level)
+  "Promote a component from one mutation level to another"
+  (try
+    ;; Get current module
+    (let ((current-module (get-current-module component_name)))
+      (if (not current-module)
+          (throw (format "Component not found: ~a" component_name)))
+
+      ;; Validate level progression
+      (let ((from-index (list-index MUTATION_LEVELS from_level))
+            (to-index (list-index MUTATION_LEVELS to_level)))
+        (if (not (and from-index to-index (> to-index from-index)))
+            (throw "Invalid level progression"))
+
+        ;; Create promotion request
+        (let ((new-version (+ (Module-version current-module) 0.1))
+              (request (create-mutation-request component_name
+                                                (Module-version current-module)
+                                                new-version
+                                                (Module-code current-module)
+                                                (Module-proof current-module)
+                                                to_level
+                                                'system
+                                                (current-time))))
+
+          ;; Validate and process
+          (let ((validation-result (validate-mutation-request request)))
+            (if (not validation-result)
+                (throw "Promotion validation failed"))
+
+            ;; Start consensus process
+            (start-consensus-process request)
+
+            #t)))
+
+    (catch (error)
+      (format "Promotion failed: ~a" error)
+      #f)))
+
+;; Get mutation request by component and timestamp
+(define (get-mutation-request component_name timestamp)
+  "Get mutation request by component name and timestamp"
+  (let ((key (format "~a-~a" component_name timestamp)))
+    (hash-table-ref mutation-requests key)))
+
+;; Get all pending mutation requests
+(define (get-pending-requests)
+  "Get all pending mutation requests"
+  (let ((pending '()))
+    (hash-table-for-each (lambda (key request)
+                           (if (eq? (MutationRequest-status request) :pending)
+                               (set! pending (cons request pending))))
+                         mutation-requests)
+    pending))
+
+;; Get mutation history for component
+(define (get-mutation-history component_name)
+  "Get mutation history for a specific component"
+  (let ((history '()))
+    (hash-table-for-each (lambda (key request)
+                           (if (eq? (MutationRequest-component_name request) component_name)
+                               (set! history (cons request history))))
+                         mutation-requests)
+    ;; Sort by timestamp (newest first)
+    (sort history (lambda (a b) (> (MutationRequest-timestamp a) (MutationRequest-timestamp b))))))
+
+;; Unit tests for mutation protocol
+(define (run-mutation-protocol-tests)
+  "Run unit tests for mutation protocol functionality"
+  (let ((tests '())
+        (passed 0)
+        (failed 0))
+
+    ;; Test 1: Mutation request creation
+    (let ((request (create-mutation-request 'test-component
+                                           1.0
+                                           2.0
+                                           (Lam 'x (Var 'x))
+                                           (CoreExpr::Lam (CoreExpr::Var 0))
+                                           :experimental
+                                           'tester
+                                           (current-time))))
+      (if (MutationRequest? request)
+          (set! passed (+ passed 1))
+          (set! failed (+ failed 1)))
+      (set! tests (cons "Mutation request creation" tests)))
+
+    ;; Test 2: Consensus checking
+    (let ((request (create-mutation-request 'test-component2
+                                           1.0
+                                           2.0
+                                           (Var 'y)
+                                           (CoreExpr::Var 1)
+                                           :empirical
+                                           'tester
+                                           (current-time))))
+      ;; Add votes (3 yes, 1 no)
+      (submit-vote request 'module1 #t 0.8 "Good")
+      (submit-vote request 'module2 #t 0.7 "Good")
+      (submit-vote request 'module3 #t 0.9 "Excellent")
+      (submit-vote request 'module4 #f 0.3 "Needs work")
+
+      (let ((consensus? (consensus_reached? request)))
+        (if consensus?
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Consensus checking" tests))))
+
+    ;; Test 3: Level validation
+    (let ((formal-request (create-mutation-request 'test-component3
+                                                  1.0
+                                                  2.0
+                                                  (App (Var 'f) (Var 'x))
+                                                  (CoreExpr::App (CoreExpr::Var 0) (CoreExpr::Var 1))
+                                                  :formal
+                                                  'tester
+                                                  (current-time)))
+          (experimental-request (create-mutation-request 'test-component4
+                                                        1.0
+                                                        2.0
+                                                        (Var 'z)
+                                                        (CoreExpr::Var 2)
+                                                        :experimental
+                                                        'tester
+                                                        (current-time))))
+      (let ((formal-valid? (validate-mutation-request formal-request))
+            (experimental-valid? (validate-mutation-request experimental-request)))
+        (if (and formal-valid? experimental-valid?)
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Level validation" tests))))
+
+    ;; Test 4: Mutation process simulation
+    (try
+      (let ((request (mutate 'test-component5
+                            2.0
+                            (Let 'x (Var 'y) (Var 'x))
+                            (CoreExpr::App (CoreExpr::Lam (CoreExpr::Var 0)) (CoreExpr::Var 1))
+                            :experimental)))
+        (if (MutationRequest? request)
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Mutation process simulation" tests)))
+      (catch (error)
+        (set! failed (+ failed 1))
+        (set! tests (cons "Mutation process simulation" tests))))
+
+    ;; Test 5: Consensus thresholds
+    (let ((experimental-request (create-mutation-request 'test-component6
+                                                        1.0
+                                                        2.0
+                                                        (Var 'a)
+                                                        (CoreExpr::Var 0)
+                                                        :experimental
+                                                        'tester
+                                                        (current-time)))
+          (formal-request (create-mutation-request 'test-component7
+                                                  1.0
+                                                  2.0
+                                                  (Var 'b)
+                                                  (CoreExpr::Var 1)
+                                                  :formal
+                                                  'tester
+                                                  (current-time))))
+      ;; Add votes for experimental (2/3 majority should pass)
+      (submit-vote experimental-request 'mod1 #t 0.6 "Good")
+      (submit-vote experimental-request 'mod2 #t 0.5 "OK")
+      (submit-vote experimental-request 'mod3 #f 0.4 "Bad")
+
+      ;; Add votes for formal (3/4 majority should pass)
+      (submit-vote formal-request 'mod1 #t 0.8 "Good")
+      (submit-vote formal-request 'mod2 #t 0.7 "Good")
+      (submit-vote formal-request 'mod3 #t 0.6 "Good")
+      (submit-vote formal-request 'mod4 #f 0.3 "Bad")
+
+      (let ((exp-consensus? (consensus_reached? experimental-request))
+            (formal-consensus? (consensus_reached? formal-request)))
+        (if (and exp-consensus? formal-consensus?)
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Consensus thresholds" tests))))
+
+    (format "Mutation Protocol tests: ~a passed, ~a failed out of ~a"
+            passed failed (+ passed failed))))
+
+;; Run tests when module loads
+(run-mutation-protocol-tests)

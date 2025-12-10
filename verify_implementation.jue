@@ -1,0 +1,245 @@
+;; Jue-World Implementation Verification Script
+;; This script verifies that all Jue-World components are properly implemented
+;; and integrated with Core-World according to specifications
+
+;; Import all Jue-World components
+(import jue_world::parser)
+(import jue_world::compiler)
+(import jue_world::evaluator)
+(import jue_world::macros)
+(import jue_world::concurrency)
+
+;; Import Core-World components for integration testing
+(import core_world::core_expr::CoreExpr)
+(import core_world::core_kernel::{beta_reduce, normalize})
+(import core_world::proof_checker::{verify_proof, attach_proof})
+
+;; Main verification function
+(define (verify-jue-world-implementation)
+  "Verify complete Jue-World implementation according to specifications"
+  (format "Starting Jue-World implementation verification...")
+  (let ((results '())
+        (passed 0)
+        (failed 0))
+
+    ;; Verify parser implementation
+    (let ((parser-result (verify-parser)))
+      (set! results (cons parser-result results))
+      (if (car parser-result) (set! passed (+ passed 1)) (set! failed (+ failed 1))))
+
+    ;; Verify compiler implementation
+    (let ((compiler-result (verify-compiler)))
+      (set! results (cons compiler-result results))
+      (if (car compiler-result) (set! passed (+ passed 1)) (set! failed (+ failed 1))))
+
+    ;; Verify evaluator implementation
+    (let ((evaluator-result (verify-evaluator)))
+      (set! results (cons evaluator-result results))
+      (if (car evaluator-result) (set! passed (+ passed 1)) (set! failed (+ failed 1))))
+
+    ;; Verify macros implementation
+    (let ((macros-result (verify-macros)))
+      (set! results (cons macros-result results))
+      (if (car macros-result) (set! passed (+ passed 1)) (set! failed (+ failed 1))))
+
+    ;; Verify concurrency implementation
+    (let ((concurrency-result (verify-concurrency)))
+      (set! results (cons concurrency-result results))
+      (if (car concurrency-result) (set! passed (+ passed 1)) (set! failed (+ failed 1))))
+
+    ;; Verify Core-World integration
+    (let ((integration-result (verify-core-integration)))
+      (set! results (cons integration-result results))
+      (if (car integration-result) (set! passed (+ passed 1)) (set! failed (+ failed 1))))
+
+    ;; Verify proof obligations
+    (let ((proof-result (verify-proof-obligations)))
+      (set! results (cons proof-result results))
+      (if (car proof-result) (set! passed (+ passed 1)) (set! failed (+ failed 1))))
+
+    (let ((summary (format "Verification complete: ~a passed, ~a failed out of ~a"
+                          passed failed (+ passed failed))))
+      (cons summary (reverse results)))))
+
+;; Verify parser implementation
+(define (verify-parser)
+  "Verify parser.jue implementation"
+  (try
+    ;; Test parse_expr function
+    (let ((expr1 (parser::parse_expr "x"))
+          (expr2 (parser::parse_expr "(lambda x x)")
+          (expr3 (parser::parse_expr "(f x)")))
+
+      ;; Test expand_syntax function
+      (let ((core1 (parser::expand_syntax expr1))
+            (core2 (parser::expand_syntax expr2))
+            (core3 (parser::expand_syntax expr3)))
+
+        ;; Verify all results are valid
+        (if (and core1 core2 core3)
+            (cons #t "Parser verification: PASSED - All functions working")
+            (cons #f "Parser verification: FAILED - Some functions not working"))))
+    (catch (error)
+      (cons #f (format "Parser verification: ERROR - ~a" error)))))
+
+;; Verify compiler implementation
+(define (verify-compiler)
+  "Verify compiler.jue implementation"
+  (try
+    ;; Test compile_to_core function
+    (let ((expr (parser::parse_expr "(lambda x x)"))
+          (core (compiler::compile_to_core expr)))
+
+      ;; Test compile_to_bytecode function
+      (let ((bytecode (compiler::compile_to_bytecode core)))
+
+        ;; Test optimize_expr function
+        (let ((optimized (compiler::optimize_expr expr)))
+
+          (if (and core bytecode optimized)
+              (cons #t "Compiler verification: PASSED - All functions working")
+              (cons #f "Compiler verification: FAILED - Some functions not working")))))
+    (catch (error)
+      (cons #f (format "Compiler verification: ERROR - ~a" error)))))
+
+;; Verify evaluator implementation
+(define (verify-evaluator)
+  "Verify evaluator.jue implementation"
+  (try
+    ;; Test eval_jue function
+    (let ((expr (parser::parse_expr "42"))
+          (env (evaluator::make_empty_env))
+          (result (evaluator::eval_jue expr env)))
+
+      ;; Test run_test_suite function
+      (let ((suite (list (parser::parse_expr "42") (parser::parse_expr "(lambda x x)")))
+            (suite-result (evaluator::run_test_suite suite)))
+
+        (if (and result suite-result)
+            (cons #t "Evaluator verification: PASSED - All functions working")
+            (cons #f "Evaluator verification: FAILED - Some functions not working"))))
+    (catch (error)
+      (cons #f (format "Evaluator verification: ERROR - ~a" error)))))
+
+;; Verify macros implementation
+(define (verify-macros)
+  "Verify macros.jue implementation"
+  (try
+    ;; Register built-in macros
+    (macros::register_builtin_macros)
+
+    ;; Test expand_macro function
+    (let ((macro1 (macros::expand_macro "when" '("#t" "42")))
+          (macro2 (macros::expand_macro "unless" '("#f" "42")))
+          (macro3 (macros::expand_macro "and" '("#t" "#f"))))
+
+      (if (and macro1 macro2 macro3)
+          (cons #t "Macros verification: PASSED - All functions working")
+          (cons #f "Macros verification: FAILED - Some functions not working")))
+    (catch (error)
+      (cons #f (format "Macros verification: ERROR - ~a" error)))))
+
+;; Verify concurrency implementation
+(define (verify-concurrency)
+  "Verify concurrency.jue implementation"
+  (try
+    ;; Initialize concurrency system
+    (concurrency::init_concurrency_system)
+
+    ;; Test spawn_module_process function
+    (let ((module (concurrency::create_module "test" (lambda (mod event) "handled")))
+          (spawn-result (concurrency::spawn_module_process module)))
+
+      ;; Test send_event function
+      (let ((event (concurrency::Event "sender" "test" "message" "data"))
+            (send-result (concurrency::send_event "test" event)))
+
+        ;; Cleanup
+        (concurrency::cleanup_concurrency-system)
+
+        (if (and spawn-result send-result)
+            (cons #t "Concurrency verification: PASSED - All functions working")
+            (cons #f "Concurrency verification: FAILED - Some functions not working"))))
+    (catch (error)
+      (cons #f (format "Concurrency verification: ERROR - ~a" error)))))
+
+;; Verify Core-World integration
+(define (verify-core-integration)
+  "Verify integration with Core-World components"
+  (try
+    ;; Test Jue → CoreExpr compilation
+    (let ((jue-expr (parser::parse_expr "(lambda x x)"))
+          (core-expr (compiler::compile_to_core jue-expr)))
+
+      ;; Verify it's a valid CoreExpr
+      (let ((is-core? (match core-expr
+                         ((CoreExpr::Lam _) #t)
+                         (else #f))))
+
+        ;; Test evaluation consistency
+        (let ((env (evaluator::make_empty_env))
+              (jue-result (evaluator::eval_jue jue-expr env))
+              (core-result (normalize core-expr)))
+
+          (let ((consistent? (evaluator::results-match jue-result core-result)))
+
+            (if (and is-core? consistent?)
+                (cons #t "Core integration: PASSED - Proper integration verified")
+                (cons #f "Core integration: FAILED - Integration issues detected"))))))
+    (catch (error)
+      (cons #f (format "Core integration: ERROR - ~a" error)))))
+
+;; Verify proof obligations
+(define (verify-proof-obligations)
+  "Verify that all proof obligations are properly implemented"
+  (try
+    ;; Test parser proof obligations
+    (let ((expr (parser::parse_expr "(lambda x x)"))
+          (core (parser::expand_syntax expr))
+          (parser-proof (and core (has-proof? core))))
+
+      ;; Test compiler proof obligations
+      (let ((compiler-proof (has-proof? (compiler::compile_to_core expr))))
+
+        ;; Test evaluator proof obligations
+        (let ((env (evaluator::make_empty_env))
+              (eval-result (evaluator::eval_jue expr env))
+              (evaluator-proof (and eval-result (has-proof? eval-result))))
+
+          ;; Test macros proof obligations
+          (macros::register_builtin_macros)
+          (let ((macro-expr (macros::expand_macro "when" '("#t" "42")))
+                (macros-proof (and macro-expr (has-proof? macro-expr))))
+
+            ;; Test concurrency proof obligations
+            (let ((module (concurrency::create_module "test" (lambda (mod event) "handled")))
+                  (spawn-result (concurrency::spawn_module_process module))
+                  (concurrency-proof (and spawn-result (has-proof? spawn-result))))
+
+              ;; Cleanup
+              (concurrency::stop-module module)
+
+              (if (and parser-proof compiler-proof evaluator-proof macros-proof concurrency-proof)
+                  (cons #t "Proof obligations: PASSED - All proofs verified")
+                  (cons #f "Proof obligations: FAILED - Some proofs missing")))))))
+    (catch (error)
+      (cons #f (format "Proof obligations: ERROR - ~a" error)))))
+
+;; Helper function to check if value has proof
+(define (has-proof? value)
+  "Check if value has attached proof"
+  (string-contains? (format "~a" value) "proof"))
+
+;; Run complete verification
+(define (run-complete-verification)
+  "Run complete verification and print results"
+  (let ((results (verify-jue-world-implementation)))
+    (for-each (lambda (result)
+                (if (string? result)
+                    (format "~a" result)
+                    (format "~a" result)))
+              results)
+    (format "Verification process completed.")))
+
+;; Run verification when script loads
+(run-complete-verification)

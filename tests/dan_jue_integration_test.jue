@@ -1,0 +1,366 @@
+;; Dan-World ↔ Jue-World Integration Test
+;; Comprehensive test of integration between Dan-World and Jue-World components
+
+;; Import all necessary modules
+(import core_world::core_expr::CoreExpr)
+(import jue_world::parser::parse_expr)
+(import jue_world::compiler::compile_to_core)
+(import jue_world::evaluator::eval_jue)
+(import dan_world::module_kernel::{ModuleProposal, module_propose, install_new_version})
+(import dan_world::event_loop::{Event, publish-event, process_event, create-mailbox, deliver-to-module})
+(import dan_world::global_workspace::{compute_salience, publish_to_all, subscribe_to_all_modules})
+(import dan_world::mutation_protocol::{mutate, consensus_reached?, submit_vote})
+(import dan_world::persistent_structures::{persistent_map, assoc, get})
+
+;; Main integration test runner
+(define (run-dan-jue-integration-tests)
+  "Run comprehensive integration tests between Dan-World and Jue-World"
+  (format "=== Dan-World ↔ Jue-World Integration Tests ===")
+
+  ;; Test 1: Jue Expression → Module Proposal → Installation
+  (test-jue-to-module-lifecycle)
+
+  ;; Test 2: Jue Event Processing → Dan-World Event System
+  (test-jue-event-integration)
+
+  ;; Test 3: Mutation with Jue-Compiled Code
+  (test-mutation-with-jue-code)
+
+  ;; Test 4: Persistent Storage of Jue Evaluation Results
+  (test-persistent-jue-storage)
+
+  ;; Test 5: Global Workspace with Jue Modules
+  (test-global-workspace-jue-integration)
+
+  ;; Test 6: Full Cognitive Cycle
+  (test-full-cognitive-cycle)
+
+  (format "=== Integration Tests Completed ==="))
+
+;; Test 1: Jue Expression → Module Proposal → Installation
+(define (test-jue-to-module-lifecycle)
+  "Test complete lifecycle from Jue expression to installed module"
+  (format "\n--- Test 1: Jue Expression → Module Proposal → Installation ---")
+
+  (try
+    ;; Step 1: Parse Jue expression
+    (let ((jue-code "(lambda (x) (* x x))")
+          (parsed (parse_expr jue-code)))
+
+      (if (not parsed)
+          (throw "Failed to parse Jue expression"))
+
+      (format "✓ Parsed Jue expression: ~a" jue-code)
+
+      ;; Step 2: Compile to CoreExpr
+      (let ((compiled (compile_to_core parsed)))
+        (if (not compiled)
+            (throw "Failed to compile to CoreExpr"))
+
+        (format "✓ Compiled to CoreExpr: ~a" compiled)
+
+        ;; Step 3: Create module proposal
+        (let ((proposal (module_propose 'jue-math-module
+                                       parsed
+                                       compiled
+                                       :experimental
+                                       '())))
+
+          (if (not proposal)
+              (throw "Failed to create module proposal"))
+
+          (format "✓ Created module proposal")
+
+          ;; Step 4: Install module
+          (let ((installed (install_new_version proposal compiled)))
+            (if (not installed)
+                (throw "Failed to install module"))
+
+            (format "✓ Successfully installed module: ~a" (Module-name installed))
+            (format "✓ Test 1 PASSED: Complete Jue → Module lifecycle"))))
+
+    (catch (error)
+      (format "✗ Test 1 FAILED: ~a" error))))
+
+;; Test 2: Jue Event Processing → Dan-World Event System
+(define (test-jue-event-integration)
+  "Test Jue event expressions processed through Dan-World event system"
+  (format "\n--- Test 2: Jue Event Processing → Dan-World Event System ---")
+
+  (try
+    ;; Step 1: Create Jue event expression
+    (let ((jue-event-expr "(event :type 'module_update :source 'jue_compiler :target 'dan_kernel :payload 'code_updated)")
+          (event-ast (parse_expr jue-event-expr)))
+
+      (if (not event-ast)
+          (throw "Failed to parse Jue event expression"))
+
+      (format "✓ Parsed Jue event expression")
+
+      ;; Step 2: Convert to Dan-World event
+      (let ((dan-event (Event 'jue-event-1 :module_update 'jue_compiler 'dan_kernel
+                             "Jue code updated successfully" (current-time) 7)))
+
+        (format "✓ Created Dan-World event from Jue expression")
+
+        ;; Step 3: Process through Dan-World event system
+        (let ((processing-result (process_event dan-event)))
+          (if (not processing-result)
+              (throw "Failed to process event"))
+
+          (format "✓ Processed event through Dan-World system")
+
+          ;; Step 4: Publish to global workspace
+          (let ((publish-result (publish_to_all dan-event)))
+            (if (not publish-result)
+                (throw "Failed to publish event"))
+
+            (format "✓ Published event to global workspace")
+            (format "✓ Test 2 PASSED: Jue event integration"))))
+
+    (catch (error)
+      (format "✗ Test 2 FAILED: ~a" error))))
+
+;; Test 3: Mutation with Jue-Compiled Code
+(define (test-mutation-with-jue-code)
+  "Test mutation protocol using Jue-compiled code"
+  (format "\n--- Test 3: Mutation with Jue-Compiled Code ---")
+
+  (try
+    ;; Step 1: Parse and compile new module version in Jue
+    (let ((new-code "(lambda (x y) (+ (* x x) (* y y)))")
+          (parsed-code (parse_expr new-code))
+          (compiled-code (compile_to_core parsed-code)))
+
+      (if (not (and parsed-code compiled-code))
+          (throw "Failed to parse and compile Jue code"))
+
+      (format "✓ Parsed and compiled new Jue code")
+
+      ;; Step 2: Create mutation request
+      (let ((mutation-request (mutate 'math-functions 2.0
+                                     parsed-code
+                                     compiled-code
+                                     :empirical)))
+
+        (if (not mutation-request)
+            (throw "Failed to create mutation request"))
+
+        (format "✓ Created mutation request for Jue code")
+
+        ;; Step 3: Simulate consensus process
+        (let ((votes-submitted 0))
+          (for-each (lambda (module)
+                      (let ((vote-result (submit_vote mutation-request
+                                                     module
+                                                     #t
+                                                     0.8
+                                                     "Jue code validation passed")))
+                        (if vote-result
+                            (set! votes-submitted (+ votes-submitted 1)))))
+                    '('math_validator 'code_analyzer 'performance_tester))
+
+          (if (< votes-submitted 3)
+              (throw "Failed to submit sufficient votes"))
+
+          (format "✓ Submitted ~a votes for mutation" votes-submitted)
+
+          ;; Step 4: Check consensus
+          (let ((consensus? (consensus_reached? mutation-request)))
+            (if (not consensus?)
+                (throw "Consensus not reached"))
+
+            (format "✓ Consensus reached for Jue code mutation")
+            (format "✓ Test 3 PASSED: Mutation with Jue-compiled code"))))
+
+    (catch (error)
+      (format "✗ Test 3 FAILED: ~a" error))))
+
+;; Test 4: Persistent Storage of Jue Evaluation Results
+(define (test-persistent-jue-storage)
+  "Test storing Jue evaluation results in persistent structures"
+  (format "\n--- Test 4: Persistent Storage of Jue Evaluation Results ---")
+
+  (try
+    ;; Step 1: Evaluate Jue expressions
+    (let ((expr1 "(+ 1 2 3 4 5)")
+          (expr2 "(* 2 3 4)")
+          (expr3 "(lambda (x) (* x x))")
+
+          (ast1 (parse_expr expr1))
+          (ast2 (parse_expr expr2))
+          (ast3 (parse_expr expr3))
+
+          (result1 (eval_jue ast1 '()))
+          (result2 (eval_jue ast2 '()))
+          (result3 (eval_jue ast3 '())))
+
+      (if (not (and ast1 ast2 ast3 result1 result2 result3))
+          (throw "Failed to evaluate Jue expressions"))
+
+      (format "✓ Evaluated Jue expressions: ~a, ~a, ~a" result1 result2 result3)
+
+      ;; Step 2: Store results in persistent map
+      (let ((storage-map (persistent_map)))
+        (if (not storage-map)
+            (throw "Failed to create persistent map"))
+
+        (let ((map-with-results (assoc storage-map 'expr1-result result1)))
+          (if (not map-with-results)
+              (throw "Failed to store first result"))
+
+          (let ((map-with-more (assoc map-with-results 'expr2-result result2)))
+            (if (not map-with-more)
+                (throw "Failed to store second result"))
+
+            (let ((map-final (assoc map-with-more 'expr3-result result3)))
+              (if (not map-final)
+                  (throw "Failed to store third result"))
+
+              (format "✓ Stored all evaluation results in persistent map")
+
+              ;; Step 3: Retrieve and verify results
+              (let ((retrieved1 (get map-final 'expr1-result))
+                    (retrieved2 (get map-final 'expr2-result))
+                    (retrieved3 (get map-final 'expr3-result)))
+
+                (if (and (eq? retrieved1 result1)
+                         (eq? retrieved2 result2)
+                         (eq? retrieved3 result3))
+                    (begin
+                      (format "✓ Verified stored results match original evaluations")
+                      (format "✓ Test 4 PASSED: Persistent storage of Jue results"))
+                    (throw "Retrieved results don't match originals")))))))
+
+      (catch (error)
+        (format "✗ Test 4 FAILED: ~a" error))))
+
+;; Test 5: Global Workspace with Jue Modules
+(define (test-global-workspace-jue-integration)
+  "Test global workspace broadcasting to Jue-based modules"
+  (format "\n--- Test 5: Global Workspace with Jue Modules ---")
+
+  (try
+    ;; Step 1: Create Jue-based module subscriptions
+    (let ((jue-module1-sub (subscribe_to_all_modules 'jue-calculator
+                                                     '(:math_operation :result)
+                                                     5
+                                                     (lambda (event)
+                                                       (format "Jue Calculator received: ~a" (Event-payload event)))))
+          (jue-module2-sub (subscribe_to_all_modules 'jue-validator
+                                                     '(:validation_request :error)
+                                                     3
+                                                     (lambda (event)
+                                                       (format "Jue Validator received: ~a" (Event-payload event))))))
+
+      (if (not (and jue-module1-sub jue-module2-sub))
+          (throw "Failed to create Jue module subscriptions"))
+
+      (format "✓ Created subscriptions for Jue modules")
+
+      ;; Step 2: Create event from Jue expression evaluation
+      (let ((math-expr "(+ 10 20)")
+            (math-ast (parse_expr math-expr))
+            (math-result (eval_jue math-ast '()))
+            (math-event (Event 'jue-math-1 :math_operation 'jue-calculator 'all
+                              (format "Math result: ~a = ~a" math-expr math-result)
+                              (current-time)
+                              6)))
+
+        (if (not math-event)
+            (throw "Failed to create math event"))
+
+        (format "✓ Created math event from Jue evaluation")
+
+        ;; Step 3: Broadcast event through global workspace
+        (let ((broadcast-result (publish_to_all math-event)))
+          (if (not broadcast-result)
+              (throw "Failed to broadcast event"))
+
+          (format "✓ Broadcast math event to Jue modules")
+
+          ;; Step 4: Verify salience computation
+          (let ((salience (compute_salience math-event)))
+            (if (>= salience 5)
+                (begin
+                  (format "✓ Computed appropriate salience: ~a" salience)
+                  (format "✓ Test 5 PASSED: Global workspace with Jue modules"))
+                (throw "Salience too low for math operation"))))
+
+      (catch (error)
+        (format "✗ Test 5 FAILED: ~a" error))))
+
+;; Test 6: Full Cognitive Cycle
+(define (test-full-cognitive-cycle)
+  "Test complete cognitive cycle: Jue input → Dan processing → Jue output"
+  (format "\n--- Test 6: Full Cognitive Cycle ---")
+
+  (try
+    ;; Step 1: Jue input - user request
+    (let ((user-request "(calculate (* (+ 5 3) (- 10 2)))")
+          (request-ast (parse_expr user-request))
+          (request-event (Event 'user-request-1 :user_input 'user_interface 'calculator
+                               user-request
+                               (current-time)
+                               8)))
+
+      (if (not (and request-ast request-event))
+          (throw "Failed to process user request"))
+
+      (format "✓ Processed user request: ~a" user-request)
+
+      ;; Step 2: Dan-World event processing
+      (let ((processing-result (process_event request-event)))
+        (if (not processing-result)
+            (throw "Failed to process request event"))
+
+        (format "✓ Processed request through Dan-World event system")
+
+        ;; Step 3: Jue evaluation
+        (let ((evaluation-result (eval_jue request-ast '())))
+          (if (not evaluation-result)
+              (throw "Failed to evaluate Jue expression"))
+
+          (format "✓ Evaluated Jue expression: ~a = ~a" user-request evaluation-result)
+
+          ;; Step 4: Store result persistently
+          (let ((result-storage (persistent_map)))
+            (if (not result-storage)
+                (throw "Failed to create result storage"))
+
+            (let ((storage-with-result (assoc result-storage 'last-calculation evaluation-result)))
+              (if (not storage-with-result)
+                  (throw "Failed to store calculation result"))
+
+              (format "✓ Stored calculation result persistently")
+
+              ;; Step 5: Broadcast result
+              (let ((result-event (Event 'calculation-result :result 'calculator 'user_interface
+                                        (format "Result: ~a" evaluation-result)
+                                        (current-time)
+                                        9)))
+                    (broadcast-result (publish_to_all result-event)))
+
+                (if (not broadcast-result)
+                    (throw "Failed to broadcast result"))
+
+                (format "✓ Broadcast calculation result")
+
+                ;; Step 6: Verify complete cycle
+                (let ((stored-result (get storage-with-result 'last-calculation)))
+                  (if (eq? stored-result evaluation-result)
+                      (begin
+                        (format "✓ Verified complete cognitive cycle")
+                        (format "✓ Test 6 PASSED: Full cognitive cycle from Jue input to Dan processing to Jue output"))
+                      (throw "Stored result doesn't match evaluation")))))))
+
+      (catch (error)
+        (format "✗ Test 6 FAILED: ~a" error))))
+
+;; Helper function for current time
+(define (current-time)
+  "Get current timestamp"
+  (system-time))
+
+;; Run all integration tests
+(run-dan-jue-integration-tests)

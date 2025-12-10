@@ -1,0 +1,381 @@
+;; Dan-World Event Loop
+;; This file contains the event loop implementation
+;; Handles event receiving, processing, and continuous module loops
+
+;; Import necessary modules for integration
+(import core_world::core_expr::CoreExpr)
+(import jue_world::concurrency::spawn_module_process)
+(import dan_world::module_kernel::Module)
+
+;; Define event structure
+(define-type Event
+  (id symbol)
+  (type symbol) ; :message, :command, :notification, :error
+  (source symbol)
+  (target symbol)
+  (payload any)
+  (timestamp number)
+  (priority number)) ; 0-10 scale
+
+;; Define mailbox structure
+(define-type Mailbox
+  (module_name symbol)
+  (queue list)
+  (max_size number)
+  (overflow_policy symbol)) ; :drop, :block, :expand
+
+;; Global event queue
+(define global-event-queue (make-queue))
+
+;; Module mailboxes registry
+(define module-mailboxes (make-hash-table))
+
+;; Event counter
+(define event-counter 0)
+
+;; Create a new mailbox for a module
+(define (create-mailbox module_name)
+  "Create a new mailbox for a module"
+  (let ((mailbox (Mailbox module_name '() 100 :drop)))
+    (hash-table-set! module-mailboxes module_name mailbox)
+    mailbox))
+
+;; Get mailbox for a module
+(define (get-mailbox module_name)
+  "Get mailbox for a module, create if doesn't exist"
+  (let ((mailbox (hash-table-ref module-mailboxes module_name)))
+    (if (not mailbox)
+        (create-mailbox module_name)
+        mailbox)))
+
+;; Receive event from mailbox
+;; Expected Output: Event object
+;; Proof Obligation: Delivery guarantee
+;; Unit Test Specification: Send test events; assert correct receipt
+(define (receive_event mailbox)
+  "Fetch an event from the module's mailbox"
+  (try
+    (let ((module-mailbox (if (symbol? mailbox)
+                              (get-mailbox mailbox)
+                              mailbox)))
+
+      ;; Check if queue is empty
+      (if (null? (Mailbox-queue module-mailbox))
+          #f ; Return false if no events
+          (let ((event (car (Mailbox-queue module-mailbox))))
+            ;; Remove event from queue
+            (set! (Mailbox-queue module-mailbox) (cdr (Mailbox-queue module-mailbox)))
+            event)))
+
+    (catch (error)
+      (format "Error receiving event: ~a" error)
+      #f)))
+
+;; Process event
+;; Expected Output: Side-effect
+;; Proof Obligation: Must maintain module correctness
+;; Unit Test Specification: Test effect on state or broadcast
+(define (process_event event)
+  "Handle an event and perform appropriate actions"
+  (try
+    (cond
+      ;; Handle message events
+      ((eq? (Event-type event) :message)
+       (handle-message-event event))
+
+      ;; Handle command events
+      ((eq? (Event-type event) :command)
+       (handle-command-event event))
+
+      ;; Handle notification events
+      ((eq? (Event-type event) :notification)
+       (handle-notification-event event))
+
+      ;; Handle error events
+      ((eq? (Event-type event) :error)
+       (handle-error-event event))
+
+      ;; Unknown event type
+      (else
+       (format "Unknown event type: ~a" (Event-type event))))
+
+    (catch (error)
+      (format "Error processing event: ~a" error)
+      ;; Create error event for failed processing
+      (let ((error-event (Event (gensym 'error)
+                               :error
+                               'event_processor
+                               (Event-source event)
+                               (format "Processing failed: ~a" error)
+                               (current-time)
+                               10)))
+        (publish-event error-event)))))
+
+;; Handle message event
+(define (handle-message-event event)
+  "Handle a message event"
+  (format "Processing message from ~a to ~a: ~a"
+          (Event-source event)
+          (Event-target event)
+          (Event-payload event))
+
+  ;; Deliver message to target module
+  (deliver-to-module event))
+
+;; Handle command event
+(define (handle-command-event event)
+  "Handle a command event"
+  (format "Processing command from ~a to ~a: ~a"
+          (Event-source event)
+          (Event-target event)
+          (Event-payload event))
+
+  ;; Execute command in target module
+  (execute-command event))
+
+;; Handle notification event
+(define (handle-notification-event event)
+  "Handle a notification event"
+  (format "Processing notification from ~a: ~a"
+          (Event-source event)
+          (Event-payload event))
+
+  ;; Broadcast notification to interested modules
+  (broadcast-notification event))
+
+;; Handle error event
+(define (handle-error-event event)
+  "Handle an error event"
+  (format "ERROR from ~a: ~a" (Event-source event) (Event-payload event))
+
+  ;; Log error and potentially trigger recovery
+  (log-error event))
+
+;; Deliver event to target module
+(define (deliver-to-module event)
+  "Deliver event to target module's mailbox"
+  (try
+    (let ((target-mailbox (get-mailbox (Event-target event))))
+
+      ;; Check mailbox capacity
+      (if (>= (length (Mailbox-queue target-mailbox)) (Mailbox-max_size target-mailbox))
+          (handle-mailbox-overflow target-mailbox event)
+          (begin
+            ;; Add event to queue
+            (set! (Mailbox-queue target-mailbox)
+                  (append (Mailbox-queue target-mailbox) (list event)))
+            #t)))
+    (catch (error)
+      (format "Delivery failed: ~a" error)
+      #f)))
+
+;; Handle mailbox overflow
+(define (handle-mailbox-overflow mailbox event)
+  "Handle mailbox overflow according to policy"
+  (let ((policy (Mailbox-overflow_policy mailbox)))
+    (cond
+      ((eq? policy :drop)
+       (format "Mailbox full, dropping event ~a" (Event-id event))
+       #f)
+      ((eq? policy :block)
+       ;; In real implementation, this would block until space available
+       (format "Mailbox full, would block for event ~a" (Event-id event))
+       #f)
+      ((eq? policy :expand)
+       (format "Expanding mailbox capacity")
+       (set! (Mailbox-max_size mailbox) (* (Mailbox-max_size mailbox) 2))
+       ;; Try to deliver again
+       (deliver-to-module event))
+      (else
+       (format "Unknown overflow policy: ~a" policy)
+       #f))))
+
+;; Execute command in target module
+(define (execute-command event)
+  "Execute command in target module"
+  (try
+    (let ((module-name (Event-target event))
+          (command (Event-payload event)))
+
+      ;; Find module and execute command
+      ;; This is simplified - real implementation would use module system
+      (format "Executing command ~a in module ~a" command module-name)
+
+      ;; Simulate command execution
+      (let ((result (format "Command ~a executed successfully" command)))
+        ;; Create response event
+        (let ((response-event (Event (gensym 'response)
+                                    :message
+                                    module-name
+                                    (Event-source event)
+                                    result
+                                    (current-time)
+                                    5)))
+          (publish-event response-event))))
+
+    (catch (error)
+      (format "Command execution failed: ~a" error)
+      #f)))
+
+;; Broadcast notification to interested modules
+(define (broadcast-notification event)
+  "Broadcast notification to all subscribed modules"
+  (try
+    ;; Get all module mailboxes
+    (let ((mailboxes (hash-table-values module-mailboxes)))
+      (for-each (lambda (mailbox)
+                  (let ((notification-event (Event (gensym 'notification)
+                                                  :notification
+                                                  (Event-source event)
+                                                  (Mailbox-module_name mailbox)
+                                                  (Event-payload event)
+                                                  (Event-timestamp event)
+                                                  (Event-priority event))))
+                    (deliver-to-module notification-event)))
+                mailboxes))
+    (catch (error)
+      (format "Broadcast failed: ~a" error)
+      #f)))
+
+;; Log error event
+(define (log-error event)
+  "Log error event for debugging"
+  (format "ERROR LOG: ~a" (Event-payload event))
+  ;; In real implementation, this would write to error log
+  #t)
+
+;; Module event loop
+;; Expected Output: Continuous loop
+;; Proof Obligation: Deadlock-free
+;; Unit Test Specification: Simulate ≥10 modules; assert no blocking
+(define (module_loop mailbox)
+  "Continuous event loop for a module"
+  (let ((running #t))
+    (while running
+      (try
+        ;; Receive event
+        (let ((event (receive_event mailbox)))
+          (if event
+              (begin
+                ;; Process event
+                (process_event event)
+
+                ;; Check if we should continue running
+                (if (eq? (Event-type event) :shutdown)
+                    (set! running #f)))
+              ;; No event, wait briefly
+              (sleep 100))) ; Sleep 100ms
+
+        (catch (error)
+          (format "Module loop error: ~a" error)
+          ;; Continue running even after errors
+          (sleep 1000)))))) ; Wait 1s after error
+
+;; Publish event to global queue
+(define (publish-event event)
+  "Publish event to global event queue"
+  (try
+    (let ((event-with-id (Event (gensym 'event)
+                               (Event-type event)
+                               (Event-source event)
+                               (Event-target event)
+                               (Event-payload event)
+                               (current-time)
+                               (Event-priority event 5))))
+
+      ;; Add to global queue
+      (queue-enqueue! global-event-queue event-with-id)
+
+      ;; Route to appropriate mailbox
+      (route-event event-with-id))
+
+    (catch (error)
+      (format "Event publishing failed: ~a" error)
+      #f)))
+
+;; Route event from global queue to target mailbox
+(define (route-event event)
+  "Route event from global queue to target mailbox"
+  (try
+    (if (Event-target event)
+        (deliver-to-module event)
+        ;; Broadcast to all modules if no specific target
+        (broadcast-notification event))
+
+    (catch (error)
+      (format "Event routing failed: ~a" error)
+      #f)))
+
+;; Helper function to get current time
+(define (current-time)
+  "Get current timestamp"
+  (system-time))
+
+;; Helper function for queue operations
+(define (queue-enqueue! queue item)
+  "Add item to queue"
+  (set! queue (append queue (list item))))
+
+;; Unit tests for event loop
+(define (run-event-loop-tests)
+  "Run unit tests for event loop functionality"
+  (let ((tests '())
+        (passed 0)
+        (failed 0))
+
+    ;; Test 1: Event creation and publishing
+    (let ((test-event (Event 'test1 :message 'tester 'target "Hello" (current-time) 5)))
+      (publish-event test-event)
+      (let ((mailbox (get-mailbox 'target))
+            (received (receive_event mailbox)))
+        (if (and received (eq? (Event-id received) 'test1))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Event publishing and receiving" tests))))
+
+    ;; Test 2: Mailbox overflow handling
+    (let ((mailbox (create-mailbox 'overflow-test)))
+      ;; Set small mailbox size for testing
+      (set! (Mailbox-max_size mailbox) 2)
+
+      ;; Fill mailbox
+      (deliver-to-module (Event 'fill1 :message 'sender 'overflow-test "First" (current-time) 5))
+      (deliver-to-module (Event 'fill2 :message 'sender 'overflow-test "Second" (current-time) 5))
+
+      ;; Try to add third event (should overflow)
+      (let ((result (deliver-to-module (Event 'overflow :message 'sender 'overflow-test "Third" (current-time) 5))))
+        (if (not result) ; Should fail due to overflow
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Mailbox overflow handling" tests))))
+
+    ;; Test 3: Event processing
+    (let ((test-event (Event 'test3 :message 'tester 'processor "Test message" (current-time) 5)))
+      (let ((result (process_event test-event)))
+        (if (not (eq? result #f)) ; Should not return false
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1)))
+        (set! tests (cons "Event processing" tests))))
+
+    ;; Test 4: Module loop simulation
+    (try
+      (let ((test-mailbox (create-mailbox 'loop-test)))
+        ;; Add a shutdown event
+        (deliver-to-module (Event 'shutdown :shutdown 'tester 'loop-test "Stop" (current-time) 10))
+
+        ;; Run loop briefly (it should process the shutdown event)
+        ;; Note: This is simplified - real test would need threading
+        (let ((event (receive_event test-mailbox)))
+          (if (and event (eq? (Event-type event) :shutdown))
+              (set! passed (+ passed 1))
+              (set! failed (+ failed 1)))
+          (set! tests (cons "Module loop simulation" tests))))
+      (catch (error)
+        (set! failed (+ failed 1))
+        (set! tests (cons "Module loop simulation" tests))))
+
+    (format "Event Loop tests: ~a passed, ~a failed out of ~a"
+            passed failed (+ passed failed))))
+
+;; Run tests when module loads
+(run-event-loop-tests)

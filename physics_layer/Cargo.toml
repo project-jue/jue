@@ -1,0 +1,29 @@
+[package]
+name = "physics_layer"
+version = "0.1.0"
+edition = "2021"
+authors = ["Project Jue Team"]
+description = "Physics Layer: Minimal runtime operations and atomic primitives"
+license = "MIT"
+
+[dependencies]
+# Core Rust dependencies
+serde = { version = "1.0", features = ["derive"] }  # Serialization for proofs & AST
+serde_json = "1.0"                                  # Optional JSON output for logging/proofs
+anyhow = "1.0"                                      # Error handling
+thiserror = "1.0"                                   # Custom errors
+
+# Async & concurrency for atomic operations
+tokio = { version = "1.30", features = ["full"] }
+
+# Logging
+log = "0.4"
+env_logger = "0.10"
+
+# Optional math / numeric ops
+num-traits = "0.2"
+
+[dev-dependencies]
+# Testing
+proptest = "1.0"           # Property-based testing for Core proofs
+criterion = "0.4"          # Benchmarking

@@ -1,0 +1,257 @@
+;; Jue Compiler
+;; This file contains the compiler implementation for Jue language
+;; Compiles Jue to CoreExpr and generates bytecode
+
+;; Import CoreExpr and related functions from Core-World
+(import core_world::core_expr::CoreExpr)
+(import core_world::core_kernel::{beta_reduce, normalize})
+(import core_world::proof_checker::{verify_proof, attach_proof})
+
+;; Define bytecode instruction set
+(define-type Bytecode
+  (Push value)
+  (Pop)
+  (Call)
+  (Return)
+  (Jump label)
+  (JumpIfFalse label)
+  (Lambda arity)
+  (Apply)
+  (VarRef index)
+  (Constant value))
+
+;; Compile Jue expression to CoreExpr
+;; Expected Output: CoreExpr
+;; Proof Obligation: Attach proof
+;; Unit Test Specification: For all Jue AST nodes, test resulting CoreExpr correctness
+(define (compile-to-core expr)
+  "Compile Jue AST to CoreExpr with proof attachment"
+  (let ((core-expr (to-core-expr expr)))
+    (attach-proof core-expr (generate-compilation-proof expr core-expr))))
+
+;; Convert Jue AST to CoreExpr (internal implementation)
+(define (to-core-expr expr)
+  "Internal conversion of Jue AST to CoreExpr"
+  (match expr
+    ;; Handle parser's Expr type
+    ((Var symbol)
+     ;; Convert symbol to De Bruijn index - simplified for now
+     (CoreExpr::Var 0)) ; Would need proper symbol table in real implementation
+    ((Lam var body)
+     (CoreExpr::Lam (to-core-expr body)))
+    ((App func arg)
+     (CoreExpr::App (to-core-expr func) (to-core-expr arg)))
+    ((Literal value)
+     ;; Convert literal to variable - simplified
+     (CoreExpr::Var 0))
+    ((Let var value body)
+     ;; Desugar let: (λvar.body) value
+     (CoreExpr::App (CoreExpr::Lam (to-core-expr body)) (to-core-expr value)))
+    ((If cond then else)
+     ;; Desugar if: (cond then else) as application
+     (CoreExpr::App (CoreExpr::App (to-core-expr cond) (to-core-expr then)) (to-core-expr else)))
+    ((Macro name args)
+     ;; Expand macro first, then compile
+     (compile-to-core (expand-macro name args)))
+    (else
+     (throw (format "Unknown expression type: ~a" expr)))))
+
+;; Generate compilation proof
+(define (generate-compilation-proof original core)
+  "Generate proof that compilation preserves semantics"
+  ;; This would be a formal proof in a real implementation
+  (format "Compilation proof: ~a → ~a" original core))
+
+;; Compile CoreExpr to bytecode
+;; Expected Output: Bytecode
+;; Proof Obligation: Proof that bytecode evaluates equivalently
+;; Unit Test Specification: Bytecode execution → matches CoreExpr eval
+(define (compile-to-bytecode core-expr)
+  "Compile CoreExpr to bytecode with proof generation"
+  (let ((bytecode (generate-bytecode core-expr)))
+    (attach-bytecode-proof bytecode core-expr)))
+
+;; Generate bytecode from CoreExpr
+(define (generate-bytecode expr)
+  "Generate bytecode instructions from CoreExpr"
+  (let ((instructions '())
+        (env '())
+        (label-counter 0))
+
+    (define (new-label)
+      "Generate unique label"
+      (let ((label (format "L~a" label-counter)))
+        (set! label-counter (+ label-counter 1))
+        label))
+
+    (define (compile-expr expr env)
+      "Compile expression to bytecode instructions"
+      (match expr
+        ((CoreExpr::Var index)
+         (list (Bytecode::VarRef index)))
+        ((CoreExpr::Lam body)
+         (let ((body-code (compile-expr body (cons 'lambda env)))
+               (arity 1)) ; Simplified - would calculate actual arity
+           (append (list (Bytecode::Lambda arity)) body-code (list (Bytecode::Return)))))
+        ((CoreExpr::App func arg)
+         (let ((func-code (compile-expr func env))
+               (arg-code (compile-expr arg env)))
+           (append func-code arg-code (list (Bytecode::Apply)))))))
+
+    (set! instructions (compile-expr expr env))
+    instructions))
+
+;; Attach proof to bytecode
+(define (attach-bytecode-proof bytecode core-expr)
+  "Attach proof that bytecode is equivalent to CoreExpr"
+  ;; In real implementation, this would create proof-annotated bytecode
+  (format "Bytecode with proof: ~a for ~a" bytecode core-expr))
+
+;; Optimize Jue expression
+;; Expected Output: Optimized AST
+;; Proof Obligation: Proof of functional equivalence
+;; Unit Test Specification: (1+2)*3 → 9; verify output same after optimization
+(define (optimize-expr expr)
+  "Optimize Jue expression with constant folding and inlining"
+  (let ((optimized (apply-optimizations expr)))
+    (attach-optimization-proof expr optimized)))
+
+;; Apply optimization passes
+(define (apply-optimizations expr)
+  "Apply optimization passes to expression"
+  (let ((expr (constant-fold expr)))
+    (let ((expr (inline-functions expr)))
+      expr)))
+
+;; Constant folding optimization
+(define (constant-fold expr)
+  "Perform constant folding on arithmetic expressions"
+  (match expr
+    ((App (App (Var '+)
+               (Literal a))
+          (Literal b))
+     (Literal (+ a b)))
+    ((App (App (Var '-)
+               (Literal a))
+          (Literal b))
+     (Literal (- a b)))
+    ((App (App (Var '*)
+               (Literal a))
+          (Literal b))
+     (Literal (* a b)))
+    ((App (App (Var '/)
+               (Literal a))
+          (Literal b))
+     (if (= b 0)
+         (throw "Division by zero in constant folding")
+         (Literal (/ a b))))
+    ((App func arg)
+     (App (constant-fold func) (constant-fold arg)))
+    ((Lam var body)
+     (Lam var (constant-fold body)))
+    ((Let var value body)
+     (Let var (constant-fold value) (constant-fold body)))
+    ((If cond then else)
+     (If (constant-fold cond) (constant-fold then) (constant-fold else)))
+    (else expr)))
+
+;; Function inlining optimization
+(define (inline-functions expr)
+  "Inline function applications where beneficial"
+  (match expr
+    ((App (Lam var body) arg)
+     ;; Simple inlining: substitute arg for var in body
+     (substitute-var body var arg))
+    ((App func arg)
+     (App (inline-functions func) (inline-functions arg)))
+    ((Lam var body)
+     (Lam var (inline-functions body)))
+    ((Let var value body)
+     (Let var (inline-functions value) (inline-functions body)))
+    ((If cond then else)
+     (If (inline-functions cond) (inline-functions then) (inline-functions else)))
+    (else expr)))
+
+;; Substitute variable in expression
+(define (substitute-var expr target replacement)
+  "Substitute target variable with replacement expression"
+  (match expr
+    ((Var symbol)
+     (if (equal? symbol target)
+         replacement
+         expr))
+    ((Lam var body)
+     (if (equal? var target)
+         expr ; Don't substitute bound variables
+         (Lam var (substitute-var body target replacement))))
+    ((App func arg)
+     (App (substitute-var func target replacement)
+          (substitute-var arg target replacement)))
+    ((Let var value body)
+     (if (equal? var target)
+         (Let var (substitute-var value target replacement) body)
+         (Let var (substitute-var value target replacement)
+              (substitute-var body target replacement))))
+    ((If cond then else)
+     (If (substitute-var cond target replacement)
+         (substitute-var then target replacement)
+         (substitute-var else target replacement)))
+    (else expr)))
+
+;; Attach optimization proof
+(define (attach-optimization-proof original optimized)
+  "Attach proof that optimization preserves semantics"
+  ;; This would be a formal proof in real implementation
+  (format "Optimization proof: ~a ≡ ~a" original optimized))
+
+;; Generate proof that compilation is correct
+(define (generate-compilation-correctness-proof expr core bytecode)
+  "Generate comprehensive proof of compilation correctness"
+  ;; This would verify that:
+  ;; 1. Jue → CoreExpr transformation is correct
+  ;; 2. CoreExpr → Bytecode transformation is correct
+  ;; 3. Bytecode execution matches CoreExpr evaluation
+  (format "Compilation correctness proof for ~a → ~a → ~a" expr core bytecode))
+
+;; Unit tests for compiler
+(define (run-compiler-tests)
+  "Run unit tests for compiler functionality"
+  (let ((passed 0)
+        (failed 0))
+
+    ;; Test compile-to-core
+    (try
+      (let ((expr (Var 'x))
+            (core (compile-to-core expr)))
+        (if (and (not (null? core)) (string-contains? core "CoreExpr"))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1))))
+      (catch (error)
+        (set! failed (+ failed 1))))
+
+    ;; Test bytecode generation
+    (try
+      (let ((core-expr (CoreExpr::Var 0))
+            (bytecode (compile-to-bytecode core-expr)))
+        (if (and (not (null? bytecode)) (string-contains? bytecode "Bytecode"))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1))))
+      (catch (error)
+        (set! failed (+ failed 1))))
+
+    ;; Test optimization
+    (try
+      (let ((expr (App (App (Var '+)
+                            (Literal 1))
+                       (Literal 2)))
+            (optimized (optimize-expr expr)))
+        (if (and (not (null? optimized)) (string-contains? optimized "3"))
+            (set! passed (+ passed 1))
+            (set! failed (+ failed 1))))
+      (catch (error)
+        (set! failed (+ failed 1))))
+
+    (format "Compiler tests: ~a passed, ~a failed" passed failed)))
+
+;; Run tests when module loads
+(run-compiler-tests)

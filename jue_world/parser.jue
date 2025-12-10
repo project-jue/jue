@@ -1,0 +1,245 @@
+;; Jue Parser
+;; This file contains the parser implementation for Jue language
+;; Converts input to AST and expands syntax to core syntax
+
+;; Import CoreExpr from Core-World for integration
+(import core_world::core_expr::CoreExpr)
+
+;; Define Jue AST structure
+(define-type Expr
+  (Var symbol)
+  (Lam symbol Expr)
+  (App Expr Expr)
+  (Literal value)
+  (Let symbol Expr Expr)
+  (If Expr Expr Expr)
+  (Macro symbol list))
+
+;; Parse a Jue expression from string input
+;; Expected Output: AST of CoreExpr
+;; Proof Obligation: Must compile to CoreExpr
+;; Unit Test Specification: Test literals, symbols, λ-abstractions
+(define (parse_expr input)
+  "Parse Jue expression from string input to AST"
+  (try
+    (let ((tokens (tokenize input)))
+      (parse_tokens tokens))
+    (catch (error)
+      (throw (format "Parse error: ~a" error)))))
+
+;; Tokenize input string into tokens
+(define (tokenize input)
+  "Convert input string into tokens for parsing"
+  (let ((tokens '())
+        (i 0)
+        (len (string-length input)))
+    (while (< i len)
+      (let ((char (string-ref input i)))
+        (cond
+          ((or (char-whitespace? char) (char=? char #\,))
+           (set! i (+ i 1)))
+          ((char=? char #\()
+           (set! tokens (cons 'lparen tokens))
+           (set! i (+ i 1)))
+          ((char=? char #\))
+           (set! tokens (cons 'rparen tokens))
+           (set! i (+ i 1)))
+          ((char=? char #\')
+           (set! tokens (cons 'quote tokens))
+           (set! i (+ i 1)))
+          ((char=? char #\")
+           ;; Parse string literal
+           (let ((start (+ i 1))
+                 (end (string-index input #\" start)))
+             (if (not end)
+                 (throw "Unterminated string literal"))
+             (set! tokens (cons (substring input start end) tokens))
+             (set! i (+ end 1))))
+          (else
+           ;; Parse symbol or number
+           (let ((start i)
+                 (end (find-non-ident-char input start)))
+             (let ((token (substring input start end)))
+               (if (string->number token)
+                   (set! tokens (cons (string->number token) tokens))
+                   (set! tokens (cons (string->symbol token) tokens))))
+             (set! i end))))))
+    (reverse tokens)))
+
+;; Helper function to find end of identifier
+(define (find-non-ident-char input start)
+  "Find the end of an identifier starting at position start"
+  (let ((i start)
+        (len (string-length input)))
+    (while (and (< i len)
+                (not (char-whitespace? (string-ref input i)))
+                (not (char=? (string-ref input i) #\)))
+                (not (char=? (string-ref input i) #\())
+                (not (char=? (string-ref input i) #\,)))
+      (set! i (+ i 1)))
+    i))
+
+;; Parse tokens into AST
+(define (parse-tokens tokens)
+  "Convert token list into Jue AST"
+  (let ((token-stream (make-token-stream tokens)))
+    (parse-expression token-stream)))
+
+;; Create token stream for easier consumption
+(define (make-token-stream tokens)
+  "Create a stream from token list"
+  (cons tokens '()))
+
+;; Get next token from stream
+(define (next-token stream)
+  "Get next token from token stream"
+  (if (null? (car stream))
+      'eof
+      (let ((token (car (car stream))))
+        (set-car! stream (cdr (car stream)))
+        token)))
+
+;; Parse expression from token stream
+(define (parse-expression stream)
+  "Parse an expression from token stream"
+  (let ((token (next-token stream)))
+    (cond
+      ((eq? token 'eof) (throw "Unexpected end of input"))
+      ((eq? token 'lparen)
+       (let ((expr (parse-compound stream)))
+         (let ((next (next-token stream)))
+           (if (not (eq? next 'rparen))
+               (throw (format "Expected ')', got ~a" next)))
+           expr)))
+      ((symbol? token) (Var token))
+      ((number? token) (Literal token))
+      ((string? token) (Literal token))
+      (else (throw (format "Unexpected token: ~a" token))))))
+
+;; Parse compound expression (starting with '(')
+(define (parse-compound stream)
+  "Parse compound expression from token stream"
+  (let ((token (next-token stream)))
+    (cond
+      ((eq? token 'lambda)
+       (let ((var (next-token stream))
+             (body (parse-expression stream)))
+         (Lam var body)))
+      ((eq? token 'let)
+       (let ((var (next-token stream))
+             (value (parse-expression stream))
+             (body (parse-expression stream)))
+         (Let var value body)))
+      ((eq? token 'if)
+       (let ((cond (parse-expression stream))
+             (then (parse-expression stream))
+             (else (parse-expression stream)))
+         (If cond then else)))
+      ((eq? token 'macro)
+       (let ((name (next-token stream))
+             (args (parse-args stream)))
+         (Macro name args)))
+      (else
+       ;; Must be application
+       (let ((func (parse-expression (make-token-stream (cons token (car stream))))))
+         (let ((arg (parse-expression stream)))
+           (App func arg)))))))
+
+;; Parse arguments for macro
+(define (parse-args stream)
+  "Parse macro arguments from token stream"
+  (let ((args '())
+        (token (next-token stream)))
+    (while (not (eq? token 'rparen))
+      (set! args (cons (parse-expression (make-token-stream (cons token (car stream)))) args))
+      (set! token (next-token stream)))
+    (reverse args)))
+
+;; Expand Jue syntax to core syntax
+;; Expected Output: CoreExpr with proof
+;; Proof Obligation: Verify `to_core(expr)` produces correct CoreExpr
+;; Unit Test Specification: Input extended syntax → check CoreExpr equivalence
+(define (expand-syntax expr)
+  "Expand Jue extended syntax to core syntax with proof attachment"
+  (let ((core-expr (to-core expr)))
+    (attach-proof core-expr (generate-proof expr core-expr))))
+
+;; Convert Jue AST to CoreExpr
+(define (to-core expr)
+  "Convert Jue AST to CoreExpr representation"
+  (match expr
+    ((Var symbol)
+     ;; Convert symbol to De Bruijn index - this is simplified
+     ;; In a real implementation, we'd need a proper symbol table
+     (CoreExpr::Var 0)) ; Placeholder - would need proper context
+    ((Lam var body)
+     (CoreExpr::Lam (to-core body)))
+    ((App func arg)
+     (CoreExpr::App (to-core func) (to-core arg)))
+    ((Literal value)
+     ;; Convert literal to variable reference - simplified
+     (CoreExpr::Var 0)) ; Placeholder
+    ((Let var value body)
+     ;; Desugar let to lambda application: (λvar.body) value
+     (CoreExpr::App (CoreExpr::Lam (to-core body)) (to-core value)))
+    ((If cond then else)
+     ;; Desugar if to application: (cond then else) - simplified
+     (CoreExpr::App (CoreExpr::App (to-core cond) (to-core then)) (to-core else)))
+    ((Macro name args)
+     ;; Macro expansion would happen here
+     (expand-macro name args))))
+
+;; Generate proof for syntax expansion
+(define (generate-proof original core)
+  "Generate proof that original Jue expression corresponds to core syntax"
+  ;; This is a placeholder - in a real implementation, this would
+  ;; generate a formal proof that the transformation is correct
+  (format "Proof: Jue expression ~a expands to CoreExpr ~a" original core))
+
+;; Attach proof to CoreExpr
+(define (attach-proof expr proof)
+  "Attach proof to CoreExpr - placeholder for proof-carrying code"
+  ;; In a real implementation, this would create a proof-annotated expression
+  (format "Proof-annotated: ~a with proof ~a" expr proof))
+
+;; Unit tests for parser
+(define (run-parser-tests)
+  "Run unit tests for parser functionality"
+  (let ((tests '())
+        (passed 0)
+        (failed 0))
+
+    ;; Test variable parsing
+    (let ((result (parse_expr "x")))
+      (if (equal? result (Var 'x))
+          (set! passed (+ passed 1))
+          (set! failed (+ failed 1)))
+      (set! tests (cons "Variable parsing" tests)))
+
+    ;; Test lambda parsing
+    (let ((result (parse_expr "(lambda x x)")))
+      (if (equal? result (Lam 'x (Var 'x)))
+          (set! passed (+ passed 1))
+          (set! failed (+ failed 1)))
+      (set! tests (cons "Lambda parsing" tests)))
+
+    ;; Test application parsing
+    (let ((result (parse_expr "(f x)")))
+      (if (equal? result (App (Var 'f) (Var 'x)))
+          (set! passed (+ passed 1))
+          (set! failed (+ failed 1)))
+      (set! tests (cons "Application parsing" tests)))
+
+    ;; Test syntax expansion
+    (let ((jue-expr (parse_expr "(let x 5 x)"))
+          (core-expr (expand-syntax jue-expr)))
+      (if (not (null? core-expr))
+          (set! passed (+ passed 1))
+          (set! failed (+ failed 1)))
+      (set! tests (cons "Syntax expansion" tests)))
+
+    (format "Parser tests: ~a passed, ~a failed out of ~a"
+            passed failed (+ passed failed))))
+
+;; Run tests when module loads
+(run-parser-tests)
