@@ -1,11 +1,8 @@
-use core_world::core_expr::{app, lam, var, CoreExpr};
-use core_world::core_kernel::{alpha_equiv, beta_reduce, normalize, prove_consistency};
-use core_world::eval_relation::{eval_empty, is_normal_form, EvalResult};
+use core_world::core_expr::{app, lam, var};
+use core_world::core_kernel::{beta_reduce, normalize};
 use core_world::proof_checker::{
-    prove_beta_reduction, prove_evaluation, prove_normalization, verify_proof, Proof,
+    prove_beta_reduction, prove_evaluation, prove_normalization, verify_proof,
 };
-use physics_layer::memory_manager::MemoryManager;
-use physics_layer::primitives::{add, div_i32, mul};
 use std::time::Instant;
 
 #[test]
@@ -29,7 +26,7 @@ fn test_normalization_performance() {
     let start_time = Instant::now();
 
     // Test many normalizations
-    for i in 0..500 {
+    for _i in 0..500 {
         let expr = app(app(lam(lam(var(1))), var(0)), var(1));
         let _normalized = normalize(expr);
     }
@@ -43,7 +40,7 @@ fn test_proof_generation_performance() {
     let start_time = Instant::now();
 
     // Test proof generation
-    for i in 0..200 {
+    for _i in 0..200 {
         let expr = app(lam(var(0)), var(1));
         let _beta_proof = prove_beta_reduction(expr.clone());
         let _eval_proof = prove_evaluation(expr.clone());

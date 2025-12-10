@@ -1,16 +1,11 @@
 /// Core-World Comprehensive Test Suite
 /// This file contains comprehensive unit tests for all Core-World components
 /// Tests CoreExpr, CoreKernel, EvalRelation, and ProofChecker with extensive coverage
-use core_world::core_expr::{app, lam, var, CoreExpr};
-use core_world::core_kernel::{alpha_equiv, beta_reduce, normalize, prove_consistency};
-use core_world::eval_relation::{eval, eval_empty, is_normal_form, Env, EvalResult};
-use core_world::proof_checker::{
-    attach_proof, prove_alpha_equivalence, prove_beta_reduction,
-    prove_consistency as prove_consistency_proof, prove_evaluation, prove_normalization,
-    verify_proof, Proof, ProvenExpr,
-};
+use core_world::core_expr::{app, lam, var};
+use core_world::core_kernel::beta_reduce;
+use core_world::proof_checker::{prove_beta_reduction, prove_evaluation, prove_normalization};
 use physics_layer::memory_manager::MemoryManager;
-use physics_layer::primitives::{add, div_i32, mul};
+use physics_layer::primitives::{add, mul};
 #[test]
 fn test_high_volume_cross_layer_operations() {
     // Test high volume operations across all layers
@@ -60,7 +55,7 @@ fn test_memory_intensive_cross_layer_operations() {
     );
 
     // Verify no memory leaks
-    let (total, freed, active) = memory_manager.get_memory_stats();
+    let (_total, _freedd, active) = memory_manager.get_memory_stats();
     assert_eq!(active, 0);
 }
 
@@ -146,6 +141,6 @@ fn test_snapshot_rollback_stress_test() {
     );
 
     // Verify no memory leaks
-    let (total, freed, active) = memory_manager.get_memory_stats();
+    let (_total, _freed, active) = memory_manager.get_memory_stats();
     assert_eq!(active, 0);
 }

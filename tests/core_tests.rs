@@ -110,7 +110,8 @@ mod core_world_tests {
 
         // Test that already normal forms don't change
         let identity = lam(var(0));
-        let normalized = normalize(identity);
+        let normalized = normalize(identity.clone());
+
         assert_eq!(normalized, identity);
     }
 
@@ -317,16 +318,19 @@ mod core_world_tests {
         // Test deeply nested expressions
         let deeply_nested = app(lam(app(lam(var(1)), var(0))), lam(var(0)));
 
-        let normalized = normalize(deeply_nested);
+        let normalized = normalize(deeply_nested.clone());
+
         // Should normalize to var(0) after multiple reductions
         assert_eq!(normalized, var(0));
 
+        let eval_result = eval_empty(deeply_nested.clone());
         // Test evaluation of deeply nested expression
-        let eval_result = eval_empty(deeply_nested);
+
         assert!(is_normal_form(&eval_result));
 
+        let proof = prove_normalization(deeply_nested.clone());
         // Test proof generation for complex expression
-        let proof = prove_normalization(deeply_nested);
+
         assert!(verify_proof(&proof, &deeply_nested));
     }
 }

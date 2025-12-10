@@ -1,6 +1,4 @@
-use physics_layer::memory_manager::{
-    MemoryError, MemoryManager, MemoryPointer, ThreadSafeMemoryManager,
-};
+use physics_layer::memory_manager::{MemoryError, MemoryManager, ThreadSafeMemoryManager};
 /// Physics Layer Comprehensive Test Suite
 /// This file contains comprehensive unit tests for all Physics Layer components
 /// Tests primitive operations, memory management, and atomicity guarantees
@@ -130,7 +128,7 @@ mod physics_layer_tests {
 
         // Verify memory manager is still in consistent state
         let mm = memory_manager.lock().unwrap();
-        let (total, freed, active) = mm.get_memory_stats();
+        let (_total, _freed, active) = mm.get_memory_stats();
         assert_eq!(active, 0);
     }
 
@@ -179,21 +177,21 @@ mod physics_layer_tests {
         let block2 = memory_manager.allocate(200).unwrap();
 
         // Check for leaks (should find 2 allocated blocks)
-        let (total, freed, active) = memory_manager.get_memory_stats();
+        let (_total, _freed, active) = memory_manager.get_memory_stats();
         assert_eq!(active, 2);
 
         // Free one block
         memory_manager.free(block1).unwrap();
 
         // Should still have 1 active block
-        let (total, freed, active) = memory_manager.get_memory_stats();
+        let (_total, _freed, active) = memory_manager.get_memory_stats();
         assert_eq!(active, 1);
 
         // Free the other block
         memory_manager.free(block2).unwrap();
 
         // Should have no active blocks
-        let (total, freed, active) = memory_manager.get_memory_stats();
+        let (_total, _freed, active) = memory_manager.get_memory_stats();
         assert_eq!(active, 0);
     }
 
@@ -255,7 +253,7 @@ mod physics_layer_tests {
 
         // Allocate some memory
         let block1 = memory_manager.allocate(100).unwrap();
-        let block2 = memory_manager.allocate(200).unwrap();
+        let _block2 = memory_manager.allocate(200).unwrap();
 
         // Check updated stats
         let (total, freed, active) = memory_manager.get_memory_stats();
@@ -415,7 +413,7 @@ mod physics_performance_tests {
         println!("1,000 memory operations completed in {:?}", duration);
 
         // Verify no memory leaks
-        let (total, freed, active) = memory_manager.get_memory_stats();
+        let (_total, _freed, active) = memory_manager.get_memory_stats();
         assert_eq!(active, 0);
     }
 
@@ -454,7 +452,7 @@ mod physics_performance_tests {
 
         // Verify consistency
         let mm = memory_manager.lock().unwrap();
-        let (total, freed, active) = mm.get_memory_stats();
+        let (_total, _freed, active) = mm.get_memory_stats();
         assert_eq!(active, 0);
     }
 

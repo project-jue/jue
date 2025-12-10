@@ -2,8 +2,8 @@
 /// This file provides Rust-based testing for Dan World components
 /// by testing the core functionality that Dan World depends on
 /// following the recommended Rust-centric testing approach.
-use core_world::core_expr::{app, lam, var, CoreExpr};
-use core_world::core_kernel::{beta_reduce, normalize, prove_consistency};
+use core_world::core_expr::{app, lam, var};
+use core_world::core_kernel::{beta_reduce, prove_consistency};
 use core_world::eval_relation::{eval_empty, EvalResult};
 use core_world::proof_checker::{
     prove_beta_reduction, prove_evaluation, prove_normalization, verify_proof, Proof,

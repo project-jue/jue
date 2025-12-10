@@ -32,6 +32,8 @@ num-traits = "0.2"
 # Local dependencies
 core_world = { path = "core_world" }
 physics_layer = { path = "physics_layer" }
+[features]
+core_world_tests = []
 
 [dev-dependencies]
 # Testing

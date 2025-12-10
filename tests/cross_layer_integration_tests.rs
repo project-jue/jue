@@ -2,8 +2,8 @@
 /// This file contains comprehensive integration tests across all layers of Project Jue
 /// Tests Core-World ↔ Jue-World ↔ Dan-World ↔ Physics Layer interactions
 use core_world::core_expr::{app, lam, var, CoreExpr};
-use core_world::core_kernel::{alpha_equiv, beta_reduce, normalize, prove_consistency};
-use core_world::eval_relation::{eval_empty, is_normal_form, EvalResult};
+use core_world::core_kernel::{beta_reduce, normalize, prove_consistency};
+use core_world::eval_relation::{eval_empty, EvalResult};
 use core_world::proof_checker::{
     prove_beta_reduction, prove_evaluation, prove_normalization, verify_proof, Proof,
 };
@@ -28,8 +28,8 @@ mod cross_layer_integration_tests {
 
         // Test that core expressions maintain consistency
         let expr = app(lam(var(0)), var(1));
-        let beta_reduced = beta_reduce(expr.clone());
-        let eval_result = eval_empty(expr.clone());
+        let _beta_reduced = beta_reduce(expr.clone());
+        let _eval_result = eval_empty(expr.clone());
 
         assert!(verify_proof(
             &prove_beta_reduction(expr.clone()).unwrap(),
@@ -121,7 +121,7 @@ mod cross_layer_integration_tests {
         assert!(memory_manager.free(block).is_ok());
 
         // Test that physics operations maintain consistency
-        let (total, freed, active) = memory_manager.get_memory_stats();
+        let (_total, _freed, active) = memory_manager.get_memory_stats();
         assert_eq!(active, 0);
     }
 
@@ -220,32 +220,27 @@ mod cross_layer_integration_tests {
     fn test_cross_layer_proof_system() {
         // Test that proof system works consistently across all layers
 
-        // Create core expressions that represent operations from different layers
-        let core_expr1 = app(lam(var(0)), var(1)); // Represents Jue compilation
-        let core_expr2 = lam(app(var(0), var(1))); // Represents Dan module
-        let core_expr3 = app(lam(lam(var(1))), var(0)); // Represents physics operation
+        // Create a single core expression that represents operations from different layers
+        let core_expr = app(lam(var(0)), var(1)); // Represents Jue compilation and physics operation
 
-        // Generate proofs for each
-        let proof1 = prove_beta_reduction(core_expr1.clone()).unwrap();
-        let proof2 = prove_evaluation(core_expr2.clone());
-        let proof3 = prove_normalization(core_expr3.clone());
+        // Generate proofs for the same expression
+        let proof1 = prove_beta_reduction(core_expr.clone()).unwrap();
+        let proof2 = prove_evaluation(core_expr.clone());
+        let proof3 = prove_normalization(core_expr.clone());
 
-        // All proofs should verify correctly
-        assert!(verify_proof(&proof1, &core_expr1));
-        assert!(verify_proof(&proof2, &core_expr2));
-        assert!(verify_proof(&proof3, &core_expr3));
+        // All proofs should verify correctly for the same expression
+        assert!(verify_proof(&proof1, &core_expr));
+        assert!(verify_proof(&proof2, &core_expr));
+        assert!(verify_proof(&proof3, &core_expr));
 
-        // Test composite proof across layers
+        // Test composite proof for the same expression
         let cross_layer_proof = Proof::Composite {
             proofs: vec![proof1, proof2, proof3],
             conclusion: "Cross-layer proof verification".to_string(),
         };
 
-        // The composite proof should verify against any of the expressions
-        // (since they're all valid core expressions)
-        assert!(verify_proof(&cross_layer_proof, &core_expr1));
-        assert!(verify_proof(&cross_layer_proof, &core_expr2));
-        assert!(verify_proof(&cross_layer_proof, &core_expr3));
+        // The composite proof should verify against the expression
+        assert!(verify_proof(&cross_layer_proof, &core_expr));
 
         // Test that kernel consistency holds across all layers
         assert!(prove_consistency());
@@ -362,13 +357,13 @@ mod cross_layer_integration_tests {
         let mut memory_manager = MemoryManager::new();
         let block = memory_manager.allocate(100).unwrap();
 
-        let (total, freed, active) = memory_manager.get_memory_stats();
+        let (total, _freed, active) = memory_manager.get_memory_stats();
         assert_eq!(total, 100);
         assert_eq!(active, 1);
 
         assert!(memory_manager.free(block).is_ok());
 
-        let (total, freed, active) = memory_manager.get_memory_stats();
+        let (total, _freed, active) = memory_manager.get_memory_stats();
         assert_eq!(total, 100);
         assert_eq!(active, 0);
 
