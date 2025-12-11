@@ -12,6 +12,46 @@ members = [
     "physics_layer"
 ]
 
+[[test]]
+name = "utils"
+path = "tests/utils.rs"
+
+[[test]]
+name = "beta_reduction_comprehensive"
+path = "tests/core_world/test_beta_reduction_comprehensive.rs"
+
+[[test]]
+name = "core_expr_comprehensive"
+path = "tests/core_world/test_core_expr_comprehensive.rs"
+
+[[test]]
+name = "core_kernel_eval_consistency"
+path = "tests/core_world/test_core_kernel_eval_consistency.rs"
+
+[[test]]
+name = "evaluation_relation_comprehensive"
+path = "tests/core_world/test_evaluation_relation_comprehensive.rs"
+
+[[test]]
+name = "integration_comprehensive"
+path = "tests/core_world/test_integration_comprehensive.rs"
+
+[[test]]
+name = "normalization_comprehensive"
+path = "tests/core_world/test_normalization_comprehensive.rs"
+
+[[test]]
+name = "problematic_expressions"
+path = "tests/core_world/test_problematic_expressions.rs"
+
+[[test]]
+name = "proof_system_comprehensive"
+path = "tests/core_world/test_proof_system_comprehensive.rs"
+
+[[test]]
+name = "proof_system_integration"
+path = "tests/core_world/test_proof_system_integration.rs"
+
 [dependencies]
 # Core Rust dependencies
 serde = { version = "1.0", features = ["derive"] }  # Serialization for proofs & AST

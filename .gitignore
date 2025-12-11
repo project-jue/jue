@@ -1,1 +1,13 @@
 /target
+*.exe
+*.pdb
+*.dll
+*.so
+*.dylib
+*.class
+*.jar
+*.pyc
+*.obj
+*.out
+*.o
+*.a
