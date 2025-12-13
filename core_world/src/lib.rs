@@ -4,4 +4,5 @@
 pub mod core_expr;
 pub mod core_kernel;
 pub mod eval_relation;
+pub mod eval_relation_debug;
 pub mod proof_checker;

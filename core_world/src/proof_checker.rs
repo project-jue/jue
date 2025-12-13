@@ -130,10 +130,13 @@ pub fn verify_proof(proof: &Proof, expr: &CoreExpr) -> bool {
             let final_normalized = normalize(original.clone());
             current == *normal_form && final_normalized == *normal_form
         }
-        Proof::Evaluation { expr, result } => {
+        Proof::Evaluation {
+            expr: proof_expr,
+            result,
+        } => {
             // Check that the expression matches the input
-            if expr != expr {
-                return false; // This is always true, but we'll keep it for symmetry
+            if proof_expr != expr {
+                return false;
             }
 
             // Perform evaluation and check it matches
@@ -143,10 +146,18 @@ pub fn verify_proof(proof: &Proof, expr: &CoreExpr) -> bool {
         Proof::Consistency => {
             // Consistency proof doesn't depend on a specific expression
             // Just verify that kernel consistency holds
-            crate::core_kernel::prove_consistency()
+            crate::core_kernel::prove_kernel_consistency()
         }
         Proof::Composite { proofs, .. } => {
             // Verify all subproofs
+            // Note: In a composite proof, subproofs might be for different expressions
+            // that are related to the main expression, or they might be for the same expression.
+            // However, the current implementation of verify_proof takes a single expr argument.
+            // If we enforce that all subproofs must be valid for *this* expr, then we can't
+            // have composite proofs that chain steps (A->B, B->C).
+            // But based on the test case `test_composite_proof_semantics`, it seems we expect
+            // subproofs to be valid for the *given* expression.
+            // If a subproof is for a different expression, verify_proof(subproof, expr) should return false.
             proofs.iter().all(|subproof| verify_proof(subproof, expr))
         }
     }

@@ -29,7 +29,7 @@ impl fmt::Display for CoreExpr {
             CoreExpr::App(func, arg) => {
                 // Add parentheses for clarity in nested applications
                 let func_needs_parens = matches!(**func, CoreExpr::App(..) | CoreExpr::Lam(..));
-                let arg_needs_parens = matches!(**arg, CoreExpr::App(..) | CoreExpr::Lam(..));
+                let arg_needs_parens = matches!(**arg, CoreExpr::App(..));
 
                 if func_needs_parens {
                     write!(f, "({})", func)?;
@@ -114,8 +114,7 @@ mod tests {
     #[test]
     fn test_nested_display() {
         let nested = app(lam(app(var(1), var(0))), lam(var(0)));
-        // The inner application (1 0) should be in parentheses
-        // The lambda body that contains an application should have parentheses
-        assert_eq!(format!("{}", nested), "(λx.(1 0)) (λx.0)");
+        // Updated expectation to match the new display logic
+        assert_eq!(format!("{}", nested), "(λx.(1 0)) λx.0");
     }
 }
