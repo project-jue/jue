@@ -166,14 +166,16 @@ project_jue (root)
 5. **Documentation**: Update memory bank and docs
 
 ### Debugging Tools
-- Rust's built-in debugging with `dbg!` macro
-- Custom debug utilities in `debug_*.rs` files
+- Build println statements into inline or regular tests
+- Crete custom tests in the appropriate tests directory
 - Logging with contextual information
 - Property-based test case generation
 
 ## Build and Deployment
 
 ### Build Process
+- You are building in a windows environment, so only use powershell commands not Linux.
+- Remember that `cargo test` needs to be run from within the workspace directory in order to see those tests
 ```bash
 # Standard build
 cargo build
@@ -208,6 +210,7 @@ cargo bench
 ### Debt Reduction Strategy
 - Prioritize based on critical path analysis
 - Incremental implementation with verification
+- Do not claim "No regressions detected" if you did not test for that.
 - Comprehensive testing at each stage
 - Documentation updates in memory bank
 
