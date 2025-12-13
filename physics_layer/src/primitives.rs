@@ -34,10 +34,10 @@ impl fmt::Display for ArithmeticError {
 /// Result containing the sum or an ArithmeticError
 ///
 /// # Examples
-/// ```
+/// `
 /// let result = add(5, 3);
 /// assert_eq!(result, Ok(8));
-/// ```
+/// `
 pub fn add<T>(a: T, b: T) -> Result<T, ArithmeticError>
 where
     T: std::ops::Add<Output = T> + Copy,
@@ -55,10 +55,10 @@ where
 /// Result containing the difference or an ArithmeticError
 ///
 /// # Examples
-/// ```
+/// `
 /// let result = sub(10, 4);
 /// assert_eq!(result, Ok(6));
-/// ```
+/// `
 pub fn sub<T>(a: T, b: T) -> Result<T, ArithmeticError>
 where
     T: std::ops::Sub<Output = T> + Copy,
@@ -76,10 +76,10 @@ where
 /// Result containing the product or an ArithmeticError
 ///
 /// # Examples
-/// ```
+/// `
 /// let result = mul(3, 7);
 /// assert_eq!(result, Ok(21));
-/// ```
+/// `
 pub fn mul<T>(a: T, b: T) -> Result<T, ArithmeticError>
 where
     T: std::ops::Mul<Output = T> + Copy,
@@ -97,10 +97,10 @@ where
 /// Result containing the quotient or an ArithmeticError
 ///
 /// # Examples
-/// ```
+/// `
 /// let result = div(15, 3);
 /// assert_eq!(result, Ok(5));
-/// ```
+/// `
 ///
 /// # Errors
 /// Returns DivisionByZero error if divisor is zero
@@ -125,10 +125,10 @@ where
 /// Result containing the quotient or an ArithmeticError
 ///
 /// # Examples
-/// ```
+/// `
 /// let result = div_f64(15.0, 3.0);
 /// assert_eq!(result, Ok(5.0));
-/// ```
+/// `
 pub fn div_f64(a: f64, b: f64) -> Result<f64, ArithmeticError> {
     if b == 0.0 {
         Err(ArithmeticError::DivisionByZero)
@@ -147,10 +147,10 @@ pub fn div_f64(a: f64, b: f64) -> Result<f64, ArithmeticError> {
 /// Result containing the quotient or an ArithmeticError
 ///
 /// # Examples
-/// ```
+/// `
 /// let result = div_i32(15, 3);
 /// assert_eq!(result, Ok(5));
-/// ```
+/// `
 pub fn div_i32(a: i32, b: i32) -> Result<i32, ArithmeticError> {
     if b == 0 {
         Err(ArithmeticError::DivisionByZero)

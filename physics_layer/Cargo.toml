@@ -27,3 +27,4 @@ num-traits = "0.2"
 # Testing
 proptest = "1.0"           # Property-based testing for Core proofs
 criterion = "0.4"          # Benchmarking
+rand = "0.8"               # Random number generation for stress testing

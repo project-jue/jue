@@ -36,13 +36,13 @@ impl std::fmt::Display for AtomicError {
 /// Result containing the new value or an AtomicError
 ///
 /// # Examples
-/// ```
+/// `
 /// use std::sync::atomic::AtomicI32;
 /// use std::sync::Arc;
 /// let atomic_val = Arc::new(AtomicI32::new(5));
 /// let result = atomic_add(atomic_val.clone(), 3);
 /// assert_eq!(result, Ok(8));
-/// ```
+/// `
 pub fn atomic_add(ptr: Arc<AtomicI32>, val: i32) -> Result<i32, AtomicError> {
     if Arc::ptr_eq(&ptr, &Arc::new(AtomicI32::new(0))) {
         return Err(AtomicError::NullPointer);
@@ -62,14 +62,14 @@ pub fn atomic_add(ptr: Arc<AtomicI32>, val: i32) -> Result<i32, AtomicError> {
 /// Result containing the previous value or an AtomicError
 ///
 /// # Examples
-/// ```
+/// `
 /// use std::sync::atomic::AtomicI32;
 /// use std::sync::Arc;
 /// let atomic_val = Arc::new(AtomicI32::new(10));
 /// let result = atomic_swap(atomic_val.clone(), 15);
 /// assert_eq!(result, Ok(10));
 /// assert_eq!(atomic_val.load(Ordering::SeqCst), 15);
-/// ```
+/// `
 pub fn atomic_swap(ptr: Arc<AtomicI32>, val: i32) -> Result<i32, AtomicError> {
     if Arc::ptr_eq(&ptr, &Arc::new(AtomicI32::new(0))) {
         return Err(AtomicError::NullPointer);
@@ -258,7 +258,7 @@ mod tests {
         let atomic_val = Arc::new(AtomicI32::new(5));
 
         // Test that atomic operations are indeed atomic
-        let original = atomic_val.load(Ordering::SeqCst);
+        let _original = atomic_val.load(Ordering::SeqCst);
         let result = atomic_add(atomic_val.clone(), 3).unwrap();
         let new_val = atomic_val.load(Ordering::SeqCst);
 

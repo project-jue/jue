@@ -1,4 +1,6 @@
 /target
+/.VSCodeCounter
+/debug
 *.exe
 *.pdb
 *.dll

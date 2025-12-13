@@ -89,11 +89,11 @@ impl MemoryManager {
     /// Result containing a MemoryPointer or MemoryError
     ///
     /// # Examples
-    /// ```
+    /// `
     /// let mut manager = MemoryManager::new();
     /// let ptr = manager.allocate(1024);
     /// assert!(ptr.is_ok());
-    /// ```
+    /// `
     pub fn allocate(&mut self, size: usize) -> Result<MemoryPointer, MemoryError> {
         if size == 0 {
             return Err(MemoryError::OutOfMemory);
@@ -117,12 +117,12 @@ impl MemoryManager {
     /// Result indicating success or MemoryError
     ///
     /// # Examples
-    /// ```
+    /// `
     /// let mut manager = MemoryManager::new();
     /// let ptr = manager.allocate(100).unwrap();
     /// let result = manager.free(ptr);
     /// assert!(result.is_ok());
-    /// ```
+    /// `
     pub fn free(&mut self, ptr: MemoryPointer) -> Result<(), MemoryError> {
         let block = self
             .blocks
@@ -143,11 +143,11 @@ impl MemoryManager {
     /// Result indicating success or MemoryError
     ///
     /// # Examples
-    /// ```
+    /// `
     /// let mut manager = MemoryManager::new();
     /// let result = manager.snapshot();
     /// assert!(result.is_ok());
-    /// ```
+    /// `
     pub fn snapshot(&mut self) -> Result<(), MemoryError> {
         let snapshot = self.blocks.clone();
         self.snapshots.push(snapshot);
@@ -160,13 +160,13 @@ impl MemoryManager {
     /// Result indicating success or MemoryError
     ///
     /// # Examples
-    /// ```
+    /// `
     /// let mut manager = MemoryManager::new();
     /// manager.snapshot().unwrap();
     /// // ... make some changes ...
     /// let result = manager.rollback();
     /// assert!(result.is_ok());
-    /// ```
+    /// `
     pub fn rollback(&mut self) -> Result<(), MemoryError> {
         let snapshot = self.snapshots.pop().ok_or(MemoryError::RollbackFailed)?;
 
@@ -259,7 +259,7 @@ impl MemoryManager {
 /// Thread-safe memory manager wrapper
 #[derive(Debug, Clone)]
 pub struct ThreadSafeMemoryManager {
-    inner: Arc<Mutex<MemoryManager>>,
+    pub inner: Arc<Mutex<MemoryManager>>,
 }
 
 impl ThreadSafeMemoryManager {
@@ -298,6 +298,44 @@ impl ThreadSafeMemoryManager {
     pub fn get_memory_stats(&self) -> (usize, usize, usize) {
         let manager = self.inner.lock().unwrap();
         manager.get_memory_stats()
+    }
+
+    /// Writes data to the specified memory location in a thread-safe manner
+    ///
+    /// # Arguments
+    /// * `ptr` - MemoryPointer to write to
+    /// * `offset` - Offset within the memory block
+    /// * `data` - Data to write
+    ///
+    /// # Returns
+    /// Result indicating success or MemoryError
+    pub fn write_memory(
+        &self,
+        ptr: &MemoryPointer,
+        offset: usize,
+        data: &[u8],
+    ) -> Result<(), MemoryError> {
+        let mut manager = self.inner.lock().unwrap();
+        manager.write_memory(ptr, offset, data)
+    }
+
+    /// Reads data from the specified memory location in a thread-safe manner
+    ///
+    /// # Arguments
+    /// * `ptr` - MemoryPointer to read from
+    /// * `offset` - Offset within the memory block
+    /// * `length` - Number of bytes to read
+    ///
+    /// # Returns
+    /// Result containing the data or MemoryError
+    pub fn read_memory(
+        &self,
+        ptr: &MemoryPointer,
+        offset: usize,
+        length: usize,
+    ) -> Result<Vec<u8>, MemoryError> {
+        let manager = self.inner.lock().unwrap();
+        manager.read_memory(ptr, offset, length)
     }
 }
 
@@ -377,9 +415,9 @@ mod tests {
         let mut manager = MemoryManager::new();
 
         // Allocate some memory
-        let ptr1 = manager.allocate(100).unwrap();
+        let _ptr1 = manager.allocate(100).unwrap();
         let ptr2 = manager.allocate(200).unwrap();
-        let ptr3 = manager.allocate(300).unwrap();
+        let _ptr3 = manager.allocate(300).unwrap();
 
         // Check initial stats
         let (total, freed, active) = manager.get_memory_stats();
