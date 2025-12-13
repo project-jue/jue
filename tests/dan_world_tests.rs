@@ -3,7 +3,7 @@
 /// by testing the core functionality that Dan World depends on
 /// following the recommended Rust-centric testing approach.
 use core_world::core_expr::{app, lam, var};
-use core_world::core_kernel::{beta_reduce, prove_consistency};
+use core_world::core_kernel::{beta_reduce, prove_kernel_consistency};
 use core_world::eval_relation::{eval_empty, EvalResult};
 use core_world::proof_checker::{
     prove_beta_reduction, prove_evaluation, prove_normalization, verify_proof, Proof,
@@ -13,7 +13,7 @@ use core_world::proof_checker::{
 mod dan_world_core_tests {
     use super::*;
     use core_world::core_expr::{app, lam, var, CoreExpr};
-    use core_world::core_kernel::prove_consistency;
+    use core_world::core_kernel::prove_kernel_consistency;
     use core_world::proof_checker::verify_proof;
 
     /// Test that Dan World patterns work with Core World
@@ -149,7 +149,7 @@ mod dan_world_core_tests {
         assert!(verify_proof(&norm_proof, &expr));
 
         // 3. Consistency checking works
-        assert!(prove_consistency());
+        assert!(prove_kernel_consistency());
 
         // 4. Evaluation works
         let eval_result = eval_empty(expr.clone());
@@ -327,7 +327,7 @@ mod dan_world_integration_tests {
         }
 
         // Step 4: Verify system consistency
-        assert!(prove_consistency());
+        assert!(prove_kernel_consistency());
 
         // This workflow represents what Dan World would do internally
     }
