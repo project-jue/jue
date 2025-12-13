@@ -1,5 +1,5 @@
 use core_world::core_expr::{app, lam, var};
-use core_world::core_kernel::{beta_reduce, normalize, substitute};
+use core_world::core_kernel::{beta_reduce, normalize};
 
 fn main() {
     println!("=== Debugging the failing test case ===");
