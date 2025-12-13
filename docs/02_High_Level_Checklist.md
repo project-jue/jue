@@ -8,16 +8,16 @@ A **detailed, actionable implementation checklist** for Project Jue, broken down
 
 **Goal:** Implement a minimal λ-calculus kernel with relational semantics and verifiable proofs.
 
-| Task                     | Description                                               | Verification / Proof Obligation                                |
-| ------------------------ | --------------------------------------------------------- | -------------------------------------------------------------- |
-| **Define CoreExpr**      | Implement `Var`, `Lam`, `App` as Rust enums               | Unit test constructors and destructors                         |
-| **Beta Reduction**       | Implement `beta_reduce(expr: CoreExpr) -> CoreExpr`       | Proof: show `beta_reduce((λx.M) N) == M[x→N]`                  |
-| **Alpha Equivalence**    | Implement `alpha_equiv(a: CoreExpr, b: CoreExpr) -> bool` | Unit tests for renaming correctness                            |
-| **Normalization**        | Implement `normalize(expr: CoreExpr) -> CoreExpr`         | Property-based test: `normalize(normalize(e)) == normalize(e)` |
-| **Relational Semantics** | Encode `Eval(env, expr, value)` rules                     | Formal proof: each rule corresponds to λ-calculus semantics    |
-| **Proof Checker**        | Implement minimal proof system                            | Verify proofs for constants, variables, lambdas, applications  |
-| **Unit Tests**           | Test all constructs (<500 lines total)                    | Each test includes proof verification                          |
-| **Consistency Proof**    | Prove CoreKernel consistency                              | Trusted external checker validates self-consistency            |
+| Task                     | Description                                               | Verification / Proof Obligation                                                                |
+| ------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Define CoreExpr**      | Implement `Var`, `Lam`, `App` as Rust enums               | Unit test constructors and destructors                                                         |
+| **Beta Reduction**       | Implement `beta_reduce(expr: CoreExpr) -> CoreExpr`       | Proof: show `beta_reduce((λx.M) N) == M[x→N]`                                                  |
+| **Alpha Equivalence**    | Implement `alpha_equiv(a: CoreExpr, b: CoreExpr) -> bool` | Unit tests for renaming correctness                                                            |
+| **Normalization**        | Implement `normalize(expr: CoreExpr) -> CoreExpr`         | Property-based test: `normalize(normalize(e)) == normalize(e)`                                 |
+| **Relational Semantics** | Encode `Eval(env, expr, value)` rules                     | Formal proof: each rule corresponds to Lisp style λ-calculus semantics (default call by value) |
+| **Proof Checker**        | Implement minimal proof system                            | Verify proofs for constants, variables, lambdas, applications                                  |
+| **Unit Tests**           | Test all constructs (<500 lines total)                    | Each test includes proof verification                                                          |
+| **Consistency Proof**    | Prove CoreKernel consistency                              | Trusted external checker validates self-consistency                                            |
 
 **Example Proof Obligation:**
 
