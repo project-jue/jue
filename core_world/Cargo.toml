@@ -13,18 +13,4 @@ thiserror = "1.0"
 proptest = "1.0"
 criterion = "0.4"
 
-[[bin]]
-name = "debug_normalization_issue"
-path = "debug_normalization_issue.rs"
 
-[[bin]]
-name = "debug_substitution_detailed"
-path = "debug_substitution_detailed.rs"
-
-[[bin]]
-name = "debug_test"
-path = "debug_test.rs"
-
-[[bin]]
-name = "debug_double_app"
-path = "debug_double_app.rs"
