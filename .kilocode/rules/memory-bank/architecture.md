@@ -1,298 +1,171 @@
-
 # Project Jue: System Architecture
 
 ## Overall Architecture
-
-Project Jue implements a layered AGI system with clear separation of concerns between four main layers:
+Project Jue implements a layered cognitive system where each layer depends on the guarantees of the layer below and adds new expressive power. The flow is one of increasing abstraction and flexibility, grounded in a minimal formal core.
 
 ```mermaid
 graph TD
-    A[Dan-World: Cognitive Layer] -->|Jue Code| B[Jue-World: Execution Engine]
-    B -->|CoreExpr| C[Core-World: Formal Kernel]
-    C -->|Bytecode| D[Physics Layer: Runtime]
-    D -->|Primitives| C
+    A[Dan-World: Cognitive Ecology] -->|Jue Code / Proposals| B[Jue-World: Execution & Language]
+    B -->|CoreExpr + Proof| C[Core-World: Formal Kernel]
+    C -->|Verification Request| B
+    B -->|Bytecode + Budget| D[Physics Layer: Deterministic VM]
+    D -->|Structured Result| B
 ```
 
 ## Layer-by-Layer Architecture
 
 ### 1. Core-World Architecture
-
-**Purpose**: Formal λ-calculus kernel with mathematical guarantees
+**Purpose**: Frozen formal kernel defining timeless, mathematical meaning. It answers "What does this mean?" not "How is this run?".
+**Key Guarantee**: Acts as the final authority on semantic equivalence.
 
 **Key Components**:
-- `core_expr.rs`: Core expression types (Var, Lam, App) with De Bruijn indices
-- `core_kernel.rs`: β-reduction, α-equivalence, normalization algorithms
-- `eval_relation.rs`: Evaluation relation with proof obligations
-- `proof_checker.rs`: Formal verification of all transformations
+- `core_expr.rs`: Core expression types (Var, Lam, App) with De Bruijn indices.
+- `core_kernel.rs`: **βη-reduction** engine with **leftmost-outermost** strategy.
+- `proof_checker.rs`: Minimal verifier for equivalence proofs.
+- `specification_v1.md`: **Frozen API spec** defining syntax, reduction order, and primitive axioms (λ, Nat, Pair). <!-- NEW -->
 
-**Data Flow**:
+**Data Flow & Critical Paths**:
 ```
-CoreExpr → β-reduction → Normalization → Proof Verification
+CoreExpr → βη-reduction → Normal Form / ⊥
 ```
-
-**Critical Paths**:
-- `beta_reduce()`: Performs single-step β-reduction with substitution
-- `normalize()`: Recursive normalization to normal form
-- `alpha_equiv()`: Checks α-equivalence for semantic preservation
-- `prove_consistency()`: Verifies kernel mathematical consistency
+- `normalize()`: Recursive reduction to βη-normal form (or divergence).
+- `prove_equiv(t1, t2)`: Generates/validates proof that `t1 ≡ t2`.
+- `check_inconsistency()`: Detects and certifies logical contradictions in proposed terms.
 
 ### 2. Jue-World Architecture
-
-**Purpose**: Optimized execution engine with proof-carrying code
+**Purpose**: Dual-interpretation language and compiler. Bridges timeless meaning (Core) to efficient, stateful execution (Physics). For any Jue construct, it must answer both "What does this mean?" (denotational) and "How is this run?" (operational).
 
 **Key Components**:
-- `compiler.jue`: Jue-to-CoreExpr compilation with proof generation
-- `evaluator.jue`: Optimized evaluation with proof obligations
-- `concurrency.jue`: Event-driven concurrency runtime
-- `macros.jue`: Macro system for code generation
+- `compiler.jue`: Compiles Jue AST to CoreExpr, generating proof obligations.
+- `optimizer.jue`: Applies transformations (CBV, inlining) carrying proofs of equivalence to the original Core meaning.
+- `runtime.jue`: Manages **trust tiers** (Formal/Verified/Empirical/Experimental) for code execution.
+- `macro.jue`: **Hygienic, comptime-like macro system** with explicit capture escapes.
 
-**Compilation Pipeline**:
+**Compilation & Trust Pipeline**: <!-- REVISED -->
 ```
-Jue AST → compile-to-core() → CoreExpr → compile-to-bytecode() → Bytecode
-          ↓
-    generate-compilation-proof()
-```
-
-**Optimization Pipeline**:
-```
-Jue AST → constant-fold() → inline-functions() → Optimized AST
-          ↓
-    attach-optimization-proof()
+Jue AST
+    → [Trust Tier Assignment]
+    → compile-to-core() → CoreExpr + Proof Obligation
+    → [If Formal/Verified: Core-World Proof Check]
+    → compile-to-bytecode(ResourceBudget) → Physics Bytecode
+    → [If Empirical/Experimental: Sandbox Execution]
 ```
 
 ### 3. Dan-World Architecture
+**Purpose**: Emergent cognitive ecology, not a single agent. A collection of interacting modules where sentience and sapience can emerge from lower-level primitives.
 
-**Purpose**: Event-driven cognitive layer with safe self-modification
+**Key Components**: <!-- REVISED FOCUS -->
+- `gradient_system.jue`: Subcognitive drivers (novelty, efficiency, coherence).
+- `pattern_detector.jue`: Identifies recurring event/state patterns (foundation for concepts).
+- `theory_of_mind.jue`: Models other agents' beliefs and intentions.
+- `narrative_self.jue`: Maintains continuity through pattern-based self-schema, not fixed labels.
+- `global_workspace.jue`: Competitory attention and broadcast system between modules.
 
-**Key Components**:
-- `event_loop.jue`: Module event processing with mailbox system
-- `module_kernel.jue`: Module management and lifecycle
-- `mutation_protocol.jue`: Trust-level mutation validation
-- `global_workspace.jue`: Inter-module communication
-
-**Event Flow**:
+**Cognitive Flow**: <!-- REVISED -->
 ```
-Event → receive_event() → process_event() → deliver-to-module()
-       ↓
-   Mailbox System → Module Event Loop → Cognitive Processing
-```
-
-**Mutation Protocol**:
-```
-Mutation Proposal → Micro-Kernel Validation → Trust-Level Assignment → Safe Application
+Physics Event → Gradient Update → Module Activation
+    → Pattern Detection & Proposal → Global Workspace Competition
+    → Winning Proposal Broadcast → Module Action/Update
+    → [Loop] → Narrative Self-Update
 ```
 
 ### 4. Physics Layer Architecture
+**Purpose**: Minimal, deterministic virtual machine that enforces the constraints of reality (AIKR). It provides the unyielding causal feedback necessary for learning.
 
-**Purpose**: Minimal runtime with atomic primitives
+**Key Components**: <!-- SIGNIFICANTLY EXPANDED -->
+- `vm_core.rs`: **Deterministic, single-threaded bytecode interpreter**.
+- `scheduler.rs`: **Round-robin actor scheduler** guaranteeing reproducible order.
+- `memory_actor.rs`: **Shared-nothing, per-actor memory heaps**; communication via immutable message passing only.
+- `instruction_set.md`: **Frozen set of atomic ops** (alloc, send, recv, prim_math).
+- `error_system.rs`: Rich error reporting (`ResourceExhaustion`, `IllegalOp`) with context.
 
-**Key Components**:
-- `atomic_ops.rs`: 12 atomic operations for concurrency
-- `memory_manager.rs`: Memory allocation and garbage collection
-- `primitives.rs`: Core execution primitives
-
-**Execution Model**:
+**Execution Model**: <!-- REVISED -->
 ```
-Bytecode → VM Execution → Atomic Operations → Memory Management
+Bytecode + Step Budget
+    → VM Fetch/Decode
+    → [Atomic Op Execution | Schedule Next Actor]
+    → [If Error/Timeout: Structured Error Result]
+    → Return (Result, ResourcesUsed, Trace)
 ```
 
 ## Cross-Layer Integration
 
 ### Compilation and Execution Flow
-
 ```mermaid
 sequenceDiagram
-    Dan-World->>Jue-World: Cognitive Operations (Jue)
-    Jue-World->>Core-World: Compiled CoreExpr with Proofs
-    Core-World->>Physics Layer: Verified Bytecode
-    Physics Layer->>Core-World: Execution Results
-    Core-World->>Jue-World: Verified Results
-    Jue-World->>Dan-World: Processed Cognitive Results
+    participant D as Dan-World
+    participant J as Jue-World
+    participant C as Core-World
+    participant P as Physics Layer
+
+    D->>J: Cognitive Proposal + Context
+    J->>J: Assign Trust Tier, Apply Macros
+    J->>C: CoreExpr + Proof Obligation
+    C->>J: Verification Result / Inconsistency Certificate
+    J->>P: Verified Bytecode + Resource Budget
+    P->>J: Execution Result (Value or Structured Error)
+    J->>D: Processed Result + Updated World Model
 ```
 
-### Proof-Carrying Architecture
-
+### Mutation & Learning Flow
 ```
-Dan-World Operations
-    ↓
-Jue Compilation + Proof Generation
-    ↓
-CoreExpr + Semantic Preservation Proofs
-    ↓
-Bytecode + Equivalence Proofs
-    ↓
-Execution + Runtime Verification
+1. Dan Module Proposes Change (Jue code)
+2. Jue Compiler Classifies Trust Tier
+3. If Formal/Verified: Core-World Proof Generation/Check
+4. If Empirical: Sandbox Execution & Evaluation
+5. If Experimental: Require Module Consensus
+6. Apply Change to Running System (with Rollback Capability)
 ```
 
-## Key Technical Decisions
+## Key Technical Decisions & Specifications <!-- NEW SECTION -->
 
-### 1. De Bruijn Indices
-- **Decision**: Use De Bruijn indices instead of named variables
-- **Rationale**: Eliminates variable capture issues, simplifies substitution
-- **Impact**: More robust λ-calculus implementation, easier formal verification
+### Blocking Specifications (Must be Frozen)
+- **`CoreSpec v1.0`**: Defines βη-normal form as meaning, leftmost-outermost reduction, and the initial axiom set.
+- **`PhysicsSpec v1.0`**: Defines the deterministic instruction set, actor model, and structured error API.
+- **Jue-Core API**: The serialization format for sending `(CoreExpr, Proof)` for verification.
 
-### 2. Proof-Carrying Code
-- **Decision**: Attach formal proofs to all transformations
-- **Rationale**: Maintains mathematical guarantees throughout execution
-- **Impact**: Slower execution but verifiable correctness
-
-### 3. Event-Driven Cognitive Architecture
-- **Decision**: Mailbox-based event system for cognitive modules
-- **Rationale**: Enables modular, isolated cognitive processing
-- **Impact**: Better scalability, safer self-modification
-
-### 4. Layered Security Model
-- **Decision**: Trust-level mutation protocols
-- **Rationale**: Prevents unsafe self-modification
-- **Impact**: Controlled evolution with formal guarantees
-
-## Design Patterns
-
-### 1. Core-World Patterns
-- **Pure Functional**: Immutable expressions, no side effects
-- **Recursive Processing**: Normalization via recursive β-reduction
-- **Formal Verification**: Proof obligations for all operations
-
-### 2. Jue-World Patterns
-- **Compiler Pipeline**: Multi-stage compilation with proof generation
-- **Optimization Passes**: Separate constant folding and inlining
-- **Proof Attachment**: Decorator pattern for proof annotation
-
-### 3. Dan-World Patterns
-- **Event Loop**: Continuous processing with error recovery
-- **Mailbox System**: Queue-based inter-module communication
-- **Micro-Kernels**: Lightweight validation for mutations
-
-### 4. Physics Layer Patterns
-- **Atomic Operations**: Thread-safe primitives
-- **Memory Pooling**: Efficient memory management
-- **Bytecode Interpretation**: Stack-based execution
-
-## Critical Implementation Paths
-
-### Core-World Critical Path
-```
-core_kernel.rs:beta_reduce() → substitute() → shift_indices()
-↓
-eval_relation.rs:evaluate() → normalize()
-↓
-proof_checker.rs:verify_proof() → attach_proof()
-```
-
-### Jue-World Critical Path
-```
-compiler.jue:compile-to-core() → to-core-expr() → generate-compilation-proof()
-↓
-optimize-expr() → constant-fold() → inline-functions()
-↓
-compile-to-bytecode() → generate-bytecode() → attach-bytecode-proof()
-```
-
-### Dan-World Critical Path
-```
-event_loop.jue:module_loop() → receive_event() → process_event()
-↓
-deliver-to-module() → execute-command() → broadcast-notification()
-↓
-mutation_protocol.jue:validate-mutation() → apply-mutation()
-```
+### Foundational Principles
+- **Meaning is Extensional**: Core-World terms are equated under βη-reduction.
+- **Lies Emerge, Don't Primitive**: Deception is a pattern detected from belief-communication divergence + theory of mind, not a built-in function.
+- **Morality is Learned**: Ethical constraints emerge from empathy (simulated internal states of others), fairness (counterfactual distribution analysis), and social feedback.
+- **Self is a Narrative**: Identity is a maintained story built from persistent patterns, not a static label.
 
 ## Source Code Organization
-
 ```
 project_jue/
-├── core_world/          # Formal kernel implementation
-│   ├── src/core_expr.rs  # Core expression types
-│   ├── src/core_kernel.rs # β-reduction, normalization
-│   └── src/proof_checker.rs # Formal verification
-├── jue_world/           # Execution engine (Jue language)
-│   ├── compiler.jue     # Compilation pipeline
-│   ├── evaluator.jue     # Optimized evaluation
-│   └── concurrency.jue   # Event-driven runtime
-├── dan_world/           # Cognitive layer (Jue language)
-│   ├── event_loop.jue   # Module event processing
-│   ├── module_kernel.jue # Module management
-│   └── mutation_protocol.jue # Safe self-modification
-└── physics_layer/       # Runtime primitives
-    ├── src/atomic_ops.rs # Atomic operations
-    └── src/memory_manager.rs # Memory management
+├── spec/                       # Frozen layer specifications       <!-- NEW -->
+│   ├── core_v1.md
+│   └── physics_v1.md
+├── core_world/                 # Formal kernel
+│   ├── src/kernel/             # βη-reduction, proof checking
+│   └── src/interface.rs        # Jue-Core API (frozen)
+├── physics_layer/              # Deterministic VM
+│   ├── src/vm/                 # Interpreter & scheduler
+│   ├── src/actor/              # Memory-isolated actors
+│   └── src/interface.rs        # Bytecode/result API (frozen)
+├── jue_world/                  # Compiler & Runtime
+│   ├── compiler/               # Jue-to-Core, proof gen
+│   ├── runtime/                # Trust tier & sandbox management
+│   └── lib/                    # Standard library (empirical)
+└── dan_world/                  # Cognitive modules
+    ├── core_gradients/         # Novelty, efficiency drivers
+    ├── perception/             # Pattern detectors
+    ├── planning/               # Gradient-based goal systems
+    └── social/                 # Theory of mind, narrative self
 ```
 
-## Integration Points
-
-1. **Jue-World → Core-World**: `compile-to-core()` generates CoreExpr with proofs
-2. **Core-World → Physics Layer**: `compile-to-bytecode()` generates verified bytecode
-3. **Physics Layer → Core-World**: Execution results with runtime verification
-4. **Dan-World → Jue-World**: Cognitive operations compiled to Jue expressions
-5. **Cross-Layer Proof Verification**: Proof obligations validated at each transition
-
-## Testing Strategy
-
-### Core-World Testing
-- **Unit Tests**: Individual algorithm verification (β-reduction, α-equivalence)
-- **Property-Based Tests**: Mathematical property validation using proptest
-- **Integration Tests**: Cross-component interaction verification
-- **Stress Tests**: Performance under large expression loads
-
-### Jue-World Testing
-- **Compiler Tests**: Semantic preservation verification
-- **Optimization Tests**: Proof-carrying optimization validation
-- **Concurrency Tests**: Event-driven runtime verification
-- **Integration Tests**: Jue-to-CoreExpr compilation pipeline
-
-### Dan-World Testing
-- **Event Loop Tests**: Module communication validation
-- **Mutation Protocol Tests**: Trust-level validation verification
-- **Integration Tests**: Cognitive module interaction testing
-- **Stress Tests**: High-volume event processing
-
-### Physics Layer Testing
-- **Atomic Operation Tests**: Thread-safety verification
-- **Memory Management Tests**: Garbage collection validation
-- **VM Tests**: Bytecode execution correctness
-- **Integration Tests**: Cross-layer execution verification
-
-## Performance Considerations
-
-### Optimization Strategies
-1. **Core-World**: Efficient β-reduction with minimal allocations
-2. **Jue-World**: Aggressive inlining and constant folding
-3. **Dan-World**: Batch event processing
-4. **Physics Layer**: Memory pooling and reuse
-
-### Bottleneck Analysis
-- **Current Bottlenecks**: Complex nested expressions in Core-World
-- **Future Bottlenecks**: Large-scale cognitive module coordination
-- **Mitigation Strategies**: Caching, parallel processing, JIT compilation
-
-## Future Architecture Evolution
-
-### Planned Enhancements
-1. **Core-World**: Formal proof checker completion
-2. **Jue-World**: Full optimization pipeline implementation
-3. **Dan-World**: Complete cognitive module suite
-4. **Physics Layer**: Full VM with all atomic operations
-
-### Research Directions
-- Advanced λ-calculus optimizations
-- Distributed cognitive processing
-- Enhanced proof-carrying code
-- Safe self-modification protocols
-
-## Architecture Validation
-
-### Verification Methods
-- **Formal Verification**: Mathematical proof of correctness
-- **Property-Based Testing**: Automated property validation
-- **Integration Testing**: Cross-layer interaction verification
-- **Performance Benchmarking**: Baseline metric establishment
-
-### Validation Metrics
-- **Correctness**: All transformations preserve semantics
-- **Safety**: No unsafe operations or memory violations
-- **Performance**: Meets established baseline metrics
-- **Scalability**: Handles increasing workload gracefully
+## Critical Implementation Path
+1.  **Phase 1: Foundation**
+    *   Finalize and freeze `CoreSpec v1.0` and `PhysicsSpec v1.0`.
+    *   Build the reference `Core-World` proof checker and the deterministic `Physics VM`.
+2.  **Phase 2: Bridge**
+    *   Implement the `Jue-World` compiler frontend (parser, macro expander).
+    *   Implement the `compile-to-core` backend and the minimal `Jue->Physics` code generator.
+    *   Achieve first successful verified execution loop: `Jue -> Core -> Physics -> Result`.
+3.  **Phase 3: Emergence**
+    *   Implement the `Dan-World` gradient and pattern-detection primitives.
+    *   Create the first self-modification loop where a Dan module can propose a verified Jue code change.
+    *   Connect multiple Dan instances to begin social learning.
 
 ## Conclusion
-
-Project Jue's layered architecture provides a robust foundation for building safe, verifiable AGI systems. The clear separation of concerns between Core-World (formal guarantees), Jue-World (optimized execution), Dan-World (cognitive processing), and Physics Layer (runtime primitives) enables controlled evolution while maintaining mathematical correctness throughout the system.
+This architecture provides a coherent path from a minimal formal kernel to a potentially sentient cognitive system. Each layer's responsibilities and the critical interfaces between them are now explicitly defined, separating timeless meaning (Core), efficient execution (Jue/Physics), and emergent cognition (Dan). The system is designed to explore the conditions for sentience, not presuppose its features.
