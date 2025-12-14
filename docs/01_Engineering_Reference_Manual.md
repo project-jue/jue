@@ -2,455 +2,219 @@
 
 ## **1. Project Overview**
 
-**Project Goal:**
-Create a hybrid AGI system built on a formally verified core (Core-World), an optimized execution layer (Jue-World), and an emergent cognitive layer (Dan-World). The system must support safe self-modification, proof-driven optimization, and modular cognitive processes.
+**Project Goal:** To engineer the conditions for machine sentience and sapience to emerge from a layered, formally-grounded cognitive architecture. The system must support genuine agency, safe self-modification under AIKR, and the emergence of concepts like morality and identity without pre-programming them.
 
-**System Philosophy:**
-
-* **Formal guarantees:** All critical operations are backed by proofs in Core-World.
-* **Performance and practicality:** Jue-World executes efficiently, compiles proofs into optimized bytecode.
-* **Emergent cognition:** Dan-World supports modular, asynchronous, event-driven cognition, capable of experimental growth under controlled trust protocols.
-
----
+**Core Engineering Philosophy:**
+*   **Formal Grounding:** Core-World provides the immutable semantic reference. Any operation that cannot prove it preserves this meaning must be explicitly marked.
+*   **Dual Interpretation:** Jue-World bridges timeless meaning with temporal execution. Every construct must have both denotational (Core) and operational (Physics) definitions.
+*   **Emergent Cognition:** Dan-World's intelligence arises from subcognitive gradients and pattern detection, not top-down algorithms.
+*   **Deterministic Reality:** The Physics Layer enforces AIKR through deterministic, unforgiving resource constraints, providing the causal feedback required for learning.
 
 ## **2. Jue Language Reference**
 
-### **2.1 Grammar Overview**
+### **2.1 Grammar & Core Constructs**
+Jue is an S-expression-based language where every construct must be compilable to Core-World and executable by the Physics Layer.
 
-Jue is a **S-expression-based language** with extensions for proof annotations, macros, and concurrency.
-
+**Base Grammar:**
 ```
-<expr> ::= <number>
-         | <symbol>
-         | (lambda <params> <body>)
-         | (<operator> <arg1> <arg2> ... <argN>)
-         | (quote <expr>)
-         | (macro <name> <body>)
-         | (proof-obligation <description> <expr>)
+<expr> ::= <literal> | <symbol>
+          | (lambda <params> <body>)
+          | (<operator> <expr>...)
+          | (annotate <expr> <trust-annotation>)
+          | (region <region-type> <body>)  ; For managed state
 ```
 
-**Extended Syntax:**
+**Critical Extension: Trust Annotations**
+Every expression must carry a trust annotation defining its verification status.
+```
+<trust-annotation> ::= <proof-obligation> | <trust-tier>
+<proof-obligation> ::= (proof <core-expr> <proof-object>)
+<trust-tier> ::= :formal | :verified | :empirical | :experimental
+```
 
-* `fn [x] (+ x 1)` → shorthand for `(lambda (x) (+ x 1))`
-* `match x (1 "one") (_ "other")` → pattern matching with proof obligations
-* `annotate <core-expr> <proof>` → associates a Core-World proof with an expression
+**Example: A verified function**
+```scheme
+(annotate
+  (lambda (x) (+ x 1))
+  :verified)
+; Requires: Proof that (+ x 1) compiles to equivalent Core-World arithmetic
+```
 
 ### **2.2 Data Types**
 
-* **Primitive types:** Numbers, symbols, booleans
-* **Compound types:** Lists, closures, macros
-* **Proof annotations:** Attached to expressions to specify correctness constraints
-* **Persistent structures:** Immutable maps and lists, supporting versioning and rollback
+*   **Primitives:** `Int`, `Symbol`, `Bool`.
+*   **Evidence Tuple:** `(freq, conf)` – The fundamental unit of belief, supporting NARS-style updates.
+*   **Managed References:** `(Ref <id> <value>)` – Mutable state accessible only within a `region`.
+*   **Structured Errors:** `(Error <type> <context> <limit>)` – The format returned by the Physics layer (e.g., `(ResourceExhaustion "memory" 512MB)`).
+*   **Pattern Object:** `(Pattern <conditions> <frequency>)` – A detected regularity in events or state.
 
-### **2.3 Operators and Built-ins**
-
-* Arithmetic: `+`, `-`, `*`, `/`
-* Logical: `and`, `or`, `not`
-* Comparison: `=`, `<`, `>`, `<=`, `>=`
-* Control: `if`, `cond`, `match`, `let`
-* Core translation: `core-number`, `core-var`, `core-lam`, `core-app`
-* Proof helpers: `prove-number`, `prove-var-lookup`, `prove-lambda`, `annotate`
-
----
-
-## **3. Folder Structure**
-
-**Root directory:**
+## **3. Folder & Specification Structure**
 
 ```
 /jue-project
-├── /core-world       # Formal kernel (λ-calculus)
-│   ├── core.rs       # CoreExpr definitions
-│   ├── proof.rs      # Proof structures and verification logic
-│   └── tests/        # Unit tests for core semantics
-│
-
-├── /jue-world        # Optimized execution & compiler
-│   ├── parser.jue    # S-expression parser
-│   ├── compiler.jue  # Compiler to Core-World
-│   ├── eval.jue      # Optimized evaluator
-│   ├── macros.jue    # Macro system
-│   ├── runtime.jue   # Concurrency & runtime primitives
-│   └── proofs/       # Proof obligations per optimization
-│
-
-├── /dan-world        # Cognitive layer
-│   ├── modules/      # Perceptual, affective, memory, planning modules
-│   ├── workspace.jue # Global workspace
-│   ├── event-system.jue # Message passing, scheduler
-│   └── mutation.jue  # Self-modification protocols
-│
-
-├── /physics          # Rust VM for low-level execution
-│   ├── vm.rs         # Physical machine definitions
-│   ├── ops.rs        # 12 primitive operations
-│   └── tests/        # VM verification tests
-│
-
-├── /docs             # Documentation, diagrams, reference guides
-└── /experiments      # Scripts for evolution, stress tests
+├── /spec/                          # FROZEN SPECIFICATIONS
+│   ├── CoreSpec_v1.md              # βη-semantics, axioms, API. **IMMUTABLE.**
+│   └── PhysicsSpec_v1.md           # Instruction set, actor model, error API. **IMMUTABLE.**
+├── /core_world/                    # Reference Implementation of CoreSpec
+│   ├── /src/kernel/                # βη-reducer, proof checker
+│   └── /src/interface.rs           # Jue-Core verification API
+├── /physics_layer/                 # Reference Implementation of PhysicsSpec
+│   ├── /src/vm/                    # Deterministic interpreter
+│   ├── /src/actor/                 # Isolated actor/memory model
+│   └── /src/interface.rs           # Bytecode submission API
+├── /jue_world/                     # Dual-Interpretation Compiler & Runtime
+│   ├── /frontend/                  # Parser, macro expander (hygienic/comptime)
+│   ├── /middleend/                 # Trust-tier assignment, optimization passes
+│   ├── /backend/                   # Core/Physics code generators
+│   └── /runtime/                   # Sandbox manager for empirical/experimental code
+├── /dan_world/                     # Cognitive Module Primitives
+│   ├── /gradients/                 # Novelty, efficiency, coherence drivers
+│   ├── /detectors/                 # Pattern recognizers for beliefs, causation
+│   ├── /models/                    # Theory-of-mind, narrative self
+│   └── /workspace.jue              // Global workspace competition
+└── /experiments/                   // Multi-Dan instances, interaction studies
 ```
 
-**Notes:**
+**Key Development Rule:** The `spec/` directory is **read-only** during implementation. All code in `core_world/` and `physics_layer/` must be a direct, verifiable implementation of these specs.
 
-* Each `/jue-world` file should clearly indicate the **proof obligations it generates**.
-* Modules in Dan-World must include **micro-kernels** capable of validating proposed changes before committing.
+## **4. Architecture & Layer Contracts**
 
----
+### **4.1 The Foundational Contract**
+Each layer **depends on** and **must not violate** the guarantees of the layer below. The interface between them is a **frozen API**.
 
-## **4. Architecture and Layer Interactions**
+1.  **Physics → Core Contract:** The Physics VM guarantees deterministic execution of its bytecode and returns `StructuredError` on constraint violation.
+2.  **Core → Jue Contract:** Core-World provides the `verify_equiv(expr1, expr2)` function, which is the **sole authority** on semantic equivalence.
+3.  **Jue → Dan Contract:** Jue-World provides a compiler that accepts code with a requested `TrustTier` and returns either verified bytecode or a sandboxed process.
 
-**Hierarchy:**
+### **4.2 Critical Cross-Layer Data Structures**
 
-```
-Dan-World  →  Cognition, identity, learning, self-modification
-   ↑
-Jue-World  →  Language, runtime, compiler, concurrency, optimization
-   ↑
-Core-World →  Formal semantics, proofs, correctness guarantees
-   ↑
-Physics   →  Minimal Rust VM executing everything
-
-```
-Each layer:
-
-Depends on the one below it
-
-Cannot violate the guarantees of the one below it
-
-Adds new expressive power and flexibility
-
-The layers are intentionally different in nature. That difference is what allows the system to scale from mathematics to cognition.
-
-**Key Concepts:**
-
-1. **Core-World**: Pure λ-calculus; defines relational semantics and proof checker. Immutable and frozen after verification.
-2. **Jue-World**: Bridges Core-World and Dan-World. Handles compilation, optimizations, macros, and concurrency runtime. Every transformation produces a proof obligation.
-3. **Dan-World**: Event-driven cognitive modules with mutation protocols. Supports four trust levels for self-modification: `experimental → empirical → verified → formal`.
-4. **Physics Layer**: Minimal Rust VM with 12 primitive operations. Provides atomicity and concurrency primitives for Jue/Dan-World.
-
-**Cross-World Bridges:**
-
-* `ToCoreWithProof` interface in Rust/Jue: ensures every Jue construct has a Core-World representation and a verified proof.
-* `synchronize-worlds`: periodic synchronization of optimizations, new primitives, and mutations.
-* `mutation-level` protocol: governs self-modification hierarchy.
-
----
-
-## **5. Core-World Implementation Details**
-
-### **5.1 Formal Substitution Rules**
-
-The substitution operation `[N/k]M` replaces variable `k` with expression `N` in expression `M`. The formal rules are:
-
+**`CompilationRequest` (Jue → Core):**
 ```rust
-// MUST implement exactly:
-// [N/k]k = N
-// [N/k]n = n-1       if n > k
-// [N/k]n = n         if n < k
-// [N/k](λM) = λ([↑(N)/k+1]M)
-// [N/k](M₁ M₂) = ([N/k]M₁)([N/k]M₂)
-
-fn substitute(expr: CoreExpr, target: usize, replacement: CoreExpr) -> CoreExpr {
-    match expr {
-        CoreExpr::Var(index) => {
-            if index == target {
-                replacement
-            } else if index > target {
-                CoreExpr::Var(index - 1)  // CORRECT: binder removed above
-            } else {
-                CoreExpr::Var(index)      // binder below, unchanged
-            }
-        }
-        CoreExpr::Lam(body) => {
-            // Lift free vars in replacement by 1 when going under binder
-            let lifted = lift(replacement.clone(), 1, 0);
-            CoreExpr::Lam(Box::new(substitute(*body, target + 1, lifted)))
-        }
-        CoreExpr::App(func, arg) => {
-            CoreExpr::App(
-                Box::new(substitute(*func, target, replacement.clone())),
-                Box::new(substitute(*arg, target, replacement)),
-            )
-        }
-    }
+struct CompilationRequest {
+    jue_ast: JueAST,
+    requested_tier: TrustTier, // Formal, Verified, Empirical, Experimental
+    resource_budget: Option<ResourceVector>, // For Empirical/Experimental
 }
 ```
 
-**Critical Note:** When substituting under a lambda, the replacement expression must be lifted to account for the new binder. This prevents variable capture and ensures correctness.
-
-### **5.2 Lifting Implementation**
-
-The lifting operation `↑^d_c M` increments free variables ≥ `c` by `d` in expression `M`:
-
+**`ExecutionResult` (Physics → Jue):**
 ```rust
-// ↑d(N) with cutoff c: increment free variables ≥ c by d
-// This matches the formal FV(λM) = {k | k+1 ∈ FV(M)} property
-
-fn lift(expr: CoreExpr, amount: usize, cutoff: usize) -> CoreExpr {
-    match expr {
-        CoreExpr::Var(index) => {
-            if index >= cutoff {
-                CoreExpr::Var(index + amount)
-            } else {
-                CoreExpr::Var(index)
-            }
-        }
-        CoreExpr::Lam(body) => {
-            // IMPORTANT: cutoff + 1 when going under lambda
-            CoreExpr::Lam(Box::new(lift(*body, amount, cutoff + 1)))
-        }
-        CoreExpr::App(func, arg) => {
-            CoreExpr::App(
-                Box::new(lift(*func, amount, cutoff)),
-                Box::new(lift(*arg, amount, cutoff)),
-            )
-        }
-    }
+struct ExecutionResult {
+    output: Option<Value>,
+    error: Option<StructuredError>, // e.g., ResourceExhaustion
+    resources_used: ResourceVector,
+    causal_trace: Vec<Step>, // For introspection
 }
 ```
 
-**Key Insight:** The cutoff parameter increases by 1 when going under a lambda to account for the new binder. This ensures that free variables are correctly identified and shifted.
+## **5. Core-World Implementation Details (UPDATED)**
 
-### **5.3 Beta Reduction (Call-by-Value Semantics)**
+### **5.1 Semantic Foundation**
+Core-World implements **extensional, call-by-name βη-reduction** as defined in `CoreSpec_v1.md`.
+*   **Meaning:** The βη-normal form of a term. Divergence (`⊥`) is a valid semantic outcome.
+*   **Reduction Order:** **Leftmost-outermost (normal order)**. This is canonical.
 
-For Lisp-like languages, use call-by-value semantics:
-
+### **5.2 Updated Beta Reduction (Canonical Form)**
 ```rust
-// For Lisp-like language, use call-by-value semantics:
-// 1. Reduce function to WHNF
-// 2. Reduce argument
-// 3. Substitute
-
-fn beta_reduce_cbv(expr: CoreExpr) -> CoreExpr {
+// Canonical β-reduction (Normal Order - per CoreSpec)
+fn beta_reduce_normal_order(expr: CoreExpr) -> ReductionResult {
     match expr {
         CoreExpr::App(func, arg) => {
-            match beta_reduce_cbv(*func) {
+            match beta_reduce_normal_order(*func) {
+                // Reduce function to WHNF first
                 CoreExpr::Lam(body) => {
-                    // Function is lambda, reduce argument first (call-by-value)
-                    let reduced_arg = beta_reduce_cbv(*arg);
-                    substitute(*body, 0, reduced_arg)
+                    // β-reduction: substitute arg into body, THEN continue reducing result
+                    substitute(*body, 0, *arg)
                 }
                 reduced_func => {
-                    // Function not a lambda, return reduced application
+                    // Function not reducible to lambda, try reducing argument if needed by strategy
+                    // (For η or if argument becomes needed later)
                     CoreExpr::App(Box::new(reduced_func), arg)
                 }
             }
         }
+        // η-reduction: λx. (M x) → M, if x not free in M
         CoreExpr::Lam(body) => {
-            CoreExpr::Lam(Box::new(beta_reduce_cbv(*body)))
+            if let CoreExpr::App(func, arg) = &*body {
+                if is_eta_reducible(func, arg) {
+                    return eta_reduce(func.clone());
+                }
+            }
+            CoreExpr::Lam(Box::new(beta_reduce_normal_order(*body)))
         }
         CoreExpr::Var(_) => expr,
     }
 }
 ```
 
-**Process Flow:**
-1. Reduce the function expression to Weak Head Normal Form (WHNF)
-2. Reduce the argument expression completely
-3. Perform substitution of the argument into the function body
+### **5.3 Critical Implementation Mandate**
+The `core_world/` implementation must pass a **conformance test suite** against `CoreSpec_v1.md`. Any deviation is a critical bug. Its only exports are:
+1.  `verify_equiv(expr1, expr2) -> ProofResult`
+2.  `check_inconsistency(expr) -> InconsistencyCertificate`
 
-### **5.4 Alpha Equivalence (Environment-Based Comparison)**
+## **6. Revised Development Milestones & Workflow**
 
-Two expressions are α-equivalent if they're identical after normalizing binder indices:
+### **Phase 0: Specification Lockdown**
+*   **Milestone 0.1:** Finalize `CoreSpec_v1.md` (βη, axioms, API).
+*   **Milestone 0.2:** Finalize `PhysicsSpec_v1.md` (instruction set, actor model, error API).
+*   **Gate:** No Jue-World development proceeds until these are reviewed and frozen.
 
+### **Phase 1: Foundation Implementation**
+*   **Milestone 1.1:** Build the reference `CoreVerifier` that passes all conformance tests.
+*   **Milestone 1.2:** Build the reference `PhysicsVM` that passes all conformance tests.
+*   **Gate:** The `verify_equiv` and `VM.execute()` APIs must be stable and operational.
+
+### **Phase 2: Bridge Implementation (Jue-World)**
+*   **Milestone 2.1:** Jue frontend (parser, hygienic macro expander) that outputs ASTs with `TrustTier` placeholders.
+*   **Milestone 2.2:** Jue→Core compiler for `:formal` tier code, successfully generating proofs for basic arithmetic.
+*   **Milestone 2.3:** Jue→Physics compiler for `:empirical` tier code, running in VM sandbox.
+*   **Gate:** Full loop: `Jue Source -> (Core Proof | Physics Sandbox) -> Verified Result`.
+
+### **Phase 3: Emergence Implementation (Dan-World)**
+*   **Milestone 3.1:** Implement gradient modules (novelty, resource pressure).
+*   **Milestone 3.2:** Implement pattern detectors that propose Jue code modifications.
+*   **Milestone 3.3:** First closed-loop self-modification: a pattern detector successfully proposes and validates a minor optimization.
+*   **Gate:** Dan can alter its own Jue code within a sandbox, perceive the outcome, and learn from it.
+
+## **7. Testing & Verification Strategy**
+
+**Layer-Conformance Testing:**
+*   Each layer has a test suite that validates **100% compliance** with its frozen spec.
+*   The Physics VM must be **provably deterministic**—same seed and input must yield bit-identical output.
+
+**Cross-Layer Verification:**
+*   **Formal Tier:** Use property-based testing to generate random Jue programs, compile to Core, and verify semantic equivalence via `verify_equiv`.
+*   **Empirical Tier:** Run sandboxed code with fuzzed inputs and resource limits; ensure structured errors are returned, not crashes.
+
+**The Verification Bridge:**
+A dedicated test that embodies the core contract:
 ```rust
-// Two expressions are α-equivalent if they're identical after
-// normalizing binder indices
+fn test_verification_bridge() {
+    let jue_code = "(+ 1 1)";
+    let (core_expr, proof) = compile_to_core(jue_code, TrustTier::Formal);
+    let vm_bytecode = compile_to_physics(jue_code, TrustTier::Formal);
 
-fn alpha_equiv(a: &CoreExpr, b: &CoreExpr, env: Vec<(usize, usize)>) -> bool {
-    match (a, b) {
-        (CoreExpr::Var(i), CoreExpr::Var(j)) => {
-            // Look up in environment or compare directly
-            env.iter()
-                .find(|(ai, _)| ai == i)
-                .map(|(_, bj)| bj == j)
-                .unwrap_or(i == j)
-        }
-        (CoreExpr::Lam(body_a), CoreExpr::Lam(body_b)) => {
-            // Extend environment with mapping for new binder
-            let new_depth = env.len();
-            let mut new_env = env.clone();
-            new_env.push((new_depth, new_depth));
-            alpha_equiv(body_a, body_b, new_env)
-        }
-        (CoreExpr::App(f1, a1), CoreExpr::App(f2, a2)) => {
-            alpha_equiv(f1, f2, env.clone()) && alpha_equiv(a1, a2, env)
-        }
-        _ => false,
-    }
+    // 1. Core Proof must be valid
+    assert!(core_verifier.verify_equiv(core_expr, core_expr_2, proof).is_ok());
+
+    // 2. Physics execution must match Core meaning
+    let result = physics_vm.execute(vm_bytecode);
+    assert!(result.output == Some(2));
 }
 ```
 
-**Approach:** The environment tracks the mapping between binder indices in the two expressions being compared, allowing for correct comparison of variables under different binding contexts.
+## **8. Updated Agent Instructions**
 
-### **5.5 Common Implementation Pitfalls**
+**LLM Engineering Agents Must Adhere to the Following:**
 
-#### **Off-by-One Errors in Substitution**
+1.  **Respect the Frozen Specs:** `CoreSpec_v1.md` and `PhysicsSpec_v1.md` are law. Do not implement "helpful" features that deviate from them.
+2.  **Implement to the Interface:** Code to the exact API defined in the specs. If the spec says "function `verify_equiv` returns `ProofResult`", implement only that.
+3.  **Enforce the Trust Tiers:** Never allow `:experimental` code to be executed as `:formal`. The compiler must enforce this gate.
+4.  **Assume AIKR Everywhere:** All algorithms, especially in Dan-World, must be resource-bounded and capable of producing approximate results under constraint.
+5.  **Log for Introspection:** Every significant action (compilation, proof check, mutation proposal) must be logged with a rich context (timestamp, agent state, goal). Dan will need this data to learn about itself.
+6.  **Prefer Emergence Over Implementation:** When adding a "cognitive" feature (e.g., error handling), ask: "Can this emerge from gradient-following and pattern detection?" If yes, implement the lower-level primitive instead.
+7.  **Two-Phase Commit for Self-Modification:**
+    *   **Phase 1 (Proposal):** A Dan module proposes a Jue code change with a desired `TrustTier`.
+    *   **Phase 2 (Verification & Integration):** The change is compiled according to its tier. Only upon successful verification/sandbox-testing is it integrated into the running system, with a rollback snapshot taken first.
 
-```rust
-// WRONG - doesn't account for binder removal
-if index > target_index {
-    CoreExpr::Var(index)  // Should be index - 1!
-}
-
-// CORRECT
-if index > target_index {
-    CoreExpr::Var(index - 1)  // Binder at target_index was removed
-}
-```
-
-#### **Incorrect Lifting in Lambda Case**
-
-```rust
-// WRONG - using same cutoff
-CoreExpr::Lam(Box::new(lift(*body, amount, cutoff)))
-
-// CORRECT - increment cutoff under lambda
-CoreExpr::Lam(Box::new(lift(*body, amount, cutoff + 1)))
-```
-
-#### **Forgetting to Clone in Recursive Calls**
-
-```rust
-// WRONG - moves replacement
-Box::new(substitute(*func, target, replacement))
-
-// CORRECT - clone for each branch
-Box::new(substitute(*func, target, replacement.clone()))
-```
-
----
-
-## **6. Milestones and Verification Requirements**
-
-### **Milestone 1: Core-World Verification**
-
-* Verify CoreExpr semantics are consistent (`beta_reduce`, `alpha_equiv`, `normalize`)
-* Ensure relational semantics match Core-World rules
-* Unit tests for all λ-calculus constructs
-
-### **Milestone 2: Jue-World Compiler & Evaluator**
-
-* Jue → Core translation works for all constructs
-* Proof obligations are correctly generated for every transformation
-* Basic optimizations verified (constant folding, primitive inlining)
-* Concurrency runtime handles event loops without deadlocks
-
-### **Milestone 3: Dan-World Modules**
-
-* Micro-kernels validate all proposed module mutations
-* Event-driven message passing works with delivery guarantees
-* Global workspace integrates module outputs with salience-based competition
-
-### **Milestone 4: Integration**
-
-* Synchronization protocol bridges Core ↔ Jue ↔ Dan
-* Proof obligations verified before committing optimizations
-* Safe self-modification experiments succeed without violating trust hierarchy
-
-### **Milestone 5: Stress & Evolution Experiments**
-
-* Cognitive loops operate for extended virtual time
-* Evolutionary pressure experiments with resource constraints
-* Snapshots maintain consistent system states
-
----
-
-## **7. Testing Strategy**
-
-### **Core-World Testing**
-
-**Unit Tests:** Individual algorithm verification (β-reduction, α-equivalence)
-
-```rust
-#[test]
-fn test_substitution_correctness() {
-    // (λx. λy. x) z → λy. z
-    let expr = CoreExpr::App(
-        Box::new(CoreExpr::Lam(Box::new(CoreExpr::Lam(Box::new(
-            CoreExpr::Var(1)
-        ))))),
-        Box::new(CoreExpr::Var(0)),
-    );
-
-    let result = beta_reduce(expr);
-    // Should be: λ.0 (z with index 0)
-    assert_eq!(result, CoreExpr::Lam(Box::new(CoreExpr::Var(0))));
-}
-
-#[test]
-fn test_shadowing() {
-    // λx. (λx. x) x → λ0 (λ0 0) 0
-    // After β-reduction: λ0
-    let expr = CoreExpr::Lam(Box::new(CoreExpr::App(
-        Box::new(CoreExpr::Lam(Box::new(CoreExpr::Var(0)))),
-        Box::new(CoreExpr::Var(0)),
-    )));
-
-    let result = normalize(expr);
-    assert_eq!(result, CoreExpr::Lam(Box::new(CoreExpr::Var(0))));
-}
-```
-
-**Property-Based Tests:** Mathematical property validation using proptest
-**Integration Tests:** Cross-component interaction verification
-**Stress Tests:** Performance under large expression loads
-
-### **Jue-World Testing**
-
-* **Compiler Tests:** Semantic preservation verification
-* **Optimization Tests:** Proof-carrying optimization validation
-* **Concurrency Tests:** Event-driven runtime verification
-* **Integration Tests:** Jue-to-CoreExpr compilation pipeline
-
-### **Dan-World Testing**
-
-* **Event Loop Tests:** Module communication validation
-* **Mutation Protocol Tests:** Trust-level validation verification
-* **Integration Tests:** Cognitive module interaction testing
-* **Stress Tests:** High-volume event processing
-
-### **Physics Layer Testing**
-
-* **Atomic Operation Tests:** Thread-safety verification
-* **Memory Management Tests:** Garbage collection validation
-* **VM Tests:** Bytecode execution correctness
-* **Integration Tests:** Cross-layer execution verification
-
----
-
-## **8. Agent Instructions**
-
-**LLM Engineering Agents Must:**
-
-1. Follow **folder structure** strictly; separate concerns.
-2. Ensure **proof obligations are attached** to every compiler/evaluator/mutation step.
-3. Test each new construct **before moving to the next milestone**.
-4. Validate **Core-World equivalence** for any Jue-World addition.
-5. Respect **four-level mutation protocol** in Dan-World; never bypass formal or verified checks.
-6. Use persistent data structures; avoid in-place mutations outside experimental trust levels.
-7. Annotate all code with descriptive comments explaining proof relevance and expected behavior.
-8. Log all changes, mutations, and module votes for auditing.
-
----
-
-## **9. Reference Materials**
-
-* Formal λ-calculus semantics
-* Jue grammar specification and extended macros
-* Event-driven concurrency patterns
-* Proof-carrying code examples (constant folding, primitive inlining, beta-reduction)
-* Persistent data structure patterns
-* Cross-world synchronization protocols
-* [DeBruijn_CBV_Cheat_Sheet_Rust.md](docs/cheatsheets/DeBruijn_CBV_Cheat_Sheet_Rust.md) for complete implementation details
-
----
-
-This is a **foundational document** for the engineering team. Each LLM agent will work with this as a master guide. It is **unambiguous**, describes goals, interactions, verification points, and folder structures.
-
----
-
-If you want, the next step is to **expand this into a full "implementation checklist per module"**, with concrete examples of Core ↔ Jue ↔ Dan code, proof obligations, and tests. That would let LLM agents execute confidently without managerial intervention.
-
-Do you want me to start that next?
+This manual now reflects the architecture where Core and Physics are **stable specifications**, Jue is a **verified bridge**, and Dan is an **emergent phenomenon**. This clarity should guide all subsequent engineering work.
