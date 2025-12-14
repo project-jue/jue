@@ -1,119 +1,108 @@
-A **detailed, actionable implementation checklist** for Project Jue, broken down **per layer/module**, with explicit verification points, proof obligations, and examples for LLM engineers. Each step is phrased so that agents can act **autonomously but safely**, without ambiguity.
+I've revised your high-level checklist to reflect our architectural refinements. The primary changes focus on **enforcing the development sequence**, **integrating the trust-tier system at every layer**, and **specifying concrete verification methods** that align with our philosophical groundings.
+
+### **Key Changes to the Checklist**
+
+1.  **Added Phase 0: Specification:** Implementation cannot begin until the `CoreSpec` and `PhysicsSpec` are frozen.
+2.  **Restructured Around Trust Tiers:** Every Jue-World task now explicitly states which trust tier(s) it applies to and the required verification method (proof, test, consensus).
+3.  **Clarified Verification Methods:** Replaced generic "proof obligations" with specific actions like "Run conformance suite" or "Verify with `CoreVerifier`."
+4.  **Updated Dan-World Primitives:** Tasks now focus on implementing gradients, pattern detectors, and theory-of-mind—the foundations for emergent concepts, not the concepts themselves.
+5.  **Defined Integration Gates:** Clear, binary pass/fail criteria (like a successful verified compilation loop) are inserted as mandatory gates between phases.
+
+Here is the revised checklist, structured to guide autonomous, safe implementation.
 
 ---
 
-# **Project Jue: Implementation Checklist**
+# **Project Jue: Implementation Checklist (Revised)**
 
-## **Layer 1: Core-World (Formal Kernel)**
+## **Phase 0: Specification & Foundation (MANDATORY PRE-REQUISITE)**
 
-**Goal:** Implement a minimal λ-calculus kernel with relational semantics and verifiable proofs.
+**Goal:** Define and freeze the immutable contracts for Core-World and Physics. **No implementation code is to be written until this phase is complete and reviewed.**
 
-| Task                     | Description                                               | Verification / Proof Obligation                                                                |
-| ------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **Define CoreExpr**      | Implement `Var`, `Lam`, `App` as Rust enums               | Unit test constructors and destructors                                                         |
-| **Beta Reduction**       | Implement `beta_reduce(expr: CoreExpr) -> CoreExpr`       | Proof: show `beta_reduce((λx.M) N) == M[x→N]`                                                  |
-| **Alpha Equivalence**    | Implement `alpha_equiv(a: CoreExpr, b: CoreExpr) -> bool` | Unit tests for renaming correctness                                                            |
-| **Normalization**        | Implement `normalize(expr: CoreExpr) -> CoreExpr`         | Property-based test: `normalize(normalize(e)) == normalize(e)`                                 |
-| **Relational Semantics** | Encode `Eval(env, expr, value)` rules                     | Formal proof: each rule corresponds to Lisp style λ-calculus semantics (default call by value) |
-| **Proof Checker**        | Implement minimal proof system                            | Verify proofs for constants, variables, lambdas, applications                                  |
-| **Unit Tests**           | Test all constructs (<500 lines total)                    | Each test includes proof verification                                                          |
-| **Consistency Proof**    | Prove CoreKernel consistency                              | Trusted external checker validates self-consistency                                            |
-
-**Example Proof Obligation:**
-
-```rust
-// Check variable lookup
-Eval([x -> v], Var(0), v) // Must hold
-```
+| Task                                   | Description & Deliverable                                                                                                                                                                                           | Verification / Exit Criteria                                                                                              |
+| :------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------ |
+| **0.1 Finalize CoreSpec_v1.md**        | Document defining: 1. Syntax (Var, Lam, App, Nat, Pair), 2. **βη-reduction semantics (leftmost-outermost)**, 3. Axioms for primitives, 4. `verify_equiv(expr1, expr2)` API.                                         | **Peer Review Gate:** The spec is reviewed and declared "frozen." No further changes except via a formal spec-v2 process. |
+| **0.2 Finalize PhysicsSpec_v1.md**     | Document defining: 1. The **deterministic instruction set**, 2. The **shared-nothing actor/concurrency model**, 3. The **structured error API** (e.g., `ResourceExhaustion`), 4. `VM.execute(bytecode, limit)` API. | **Peer Review Gate:** The spec is reviewed and declared "frozen."                                                         |
+| **0.3 Define Conformance Test Suites** | Create comprehensive test suites for both specs. For Physics, this must include **determinism tests** (same seed/input => bit-identical output).                                                                    | **Automated Check:** Test suites exist and can be run against a dummy implementation.                                     |
 
 ---
 
-## **Layer 2: Jue-World (Execution Engine)**
+## **Phase 1: Foundation Implementation**
 
-**Goal:** Implement Jue compiler, evaluator, and runtime with proof-carrying code.
+**Goal:** Build the reference implementations of the frozen specs. These components form the **Trusted Computing Base**.
 
-| Task                           | Description                                       | Verification / Proof Obligation                            |
-| ------------------------------ | ------------------------------------------------- | ---------------------------------------------------------- |
-| **Parser**                     | Parse S-expressions and extended syntax           | Test parse trees against CoreExpr equivalents              |
-| **Compiler (Jue → Core)**      | Translate every Jue construct to CoreExpr         | Generate `ToCoreWithProof` annotations; verify correctness |
-| **Proof Generation**           | Annotate all translations                         | `validate() == true` for all constructs                    |
-| **Optimizing Compiler**        | Implement constant folding, primitive inlining    | Proof of equivalence: optimized == unoptimized             |
-| **Macros**                     | Expand macros into CoreExpr with proofs           | Unit test each macro; proof attached                       |
-| **Evaluator**                  | Evaluate Jue constructs efficiently               | Proof that evaluation corresponds to CoreExpr relation     |
-| **Concurrency Runtime**        | Event loops, message passing                      | Deadlock-free guarantee; unit tests for async execution    |
-| **Persistent Data Structures** | Implement immutable maps/lists                    | Verify versioning: old versions remain unchanged           |
-| **Unit Tests**                 | Test arithmetic, logic, control, pattern matching | Include proof obligations for each                         |
+### **Layer 1: Core-World (Reference Verifier)**
 
-**Example Proof Obligation:**
+| Task                                | Description                                                                                                                                           | Verification / Proof Obligation                                                                       |
+| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| **1.1 Implement CoreVerifier**      | Build the `core_verifier` library that exposes **only** the `verify_equiv` and `check_inconsistency` functions as per the spec.                       | **Conformance Gate:** The implementation passes **100%** of the `CoreSpec_v1` conformance test suite. |
+| **1.2 Implement Core->Core Proofs** | Implement logic for the verifier to validate proofs of equivalence between two CoreExpr terms (e.g., for η-reduction, commutativity of Nat addition). | **Property Test:** For a set of known-equivalent terms, `verify_equiv` returns `Ok(ProofValid)`.      |
 
-```lisp
-;; Jue number translation
-(annotate (core-number 5) (prove-number 5)) ; proof validates identity
-```
+### **Layer 4: Physics Layer (Reference VM)**
+
+| Task                                | Description                                                                                                       | Verification / Proof Obligation                                                                                                         |
+| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| **1.3 Implement PhysicsVM**         | Build the deterministic VM with the actor model, instruction set, and structured error reporting as per the spec. | **Conformance Gate:** Passes **100%** of the `PhysicsSpec_v1` test suite, including deterministic replay.                               |
+| **1.4 Implement Structured Errors** | Ensure all constraint violations (OOM, timeout, illegal op) return a rich `StructuredError` type, not a crash.    | **Unit Test:** Trigger each error condition; validate the error object contains correct context (e.g., `limit: 1024, attempted: 2048`). |
+
+**PHASE 1 GATE:** Both the `CoreVerifier.verify_equiv` and `PhysicsVM.execute` APIs are stable, operational, and fully conformant. A token "Hello World" bytecode can be executed by the VM.
 
 ---
 
-## **Layer 3: Dan-World (Cognitive Ecology)**
+## **Phase 2: Bridge Implementation (Jue-World)**
 
-**Goal:** Implement modular, event-driven cognitive modules capable of safe self-modification.
+**Goal:** Implement the dual-interpretation compiler that respects the trust-tier system.
 
-| Task                      | Description                                                               | Verification / Proof Obligation                    |
-| ------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------- |
-| **Module Micro-Kernels**  | Implement validation logic per module                                     | Must reject invalid mutations                      |
-| **Event Loop**            | Asynchronous message passing per module                                   | Delivery guarantees (at-least-once)                |
-| **Global Workspace**      | Integrate outputs using salience-based selection                          | Verify priority computation correctness            |
-| **Mutation Protocol**     | Implement four trust levels: experimental → empirical → verified → formal | Proof/tests for correct promotion/rejection logic  |
-| **Module Installation**   | Install new code only after verification                                  | Proof obligations verified before commit           |
-| **Persistent Structures** | Module state stored immutably                                             | Version history traceable for rollback             |
-| **Emergent Behavior**     | Test cross-module interactions                                            | Observe system-level consistency without deadlocks |
+| Task                                                  | Description                                                                                                                                                             | Trust Tier & Verification Method                                                                                                                                      |
+| :---------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **2.1 Parser & Macro Expander**                       | Parse Jue S-exps. Implement a **hygienic, `comptime`-like macro system**.                                                                                               | **N/A.** Verification via unit tests against parsed ASTs.                                                                                                             |
+| **2.2 Trust-Tier Annotator**                          | For each Jue AST node, assign a default `TrustTier` (`:formal` for primitives, `:experimental` for new macros). Allow explicit override via `(annotate ... :verified)`. | **N/A.** Logic test: annotations are preserved and can be retrieved.                                                                                                  |
+| **2.3 Formal/Verified Compiler (Jue→Core)**           | Compile `:formal`/:verified` tier code to `CoreExpr`. Must generate a **proof obligation** for the `CoreVerifier`.                                                      | **Formal/Verified Tier:** Successfully call `CoreVerifier.verify_equiv` with the generated proof. Example: `(+ 1 1)` compiles and proves equivalence to Core `Nat 2`. |
+| **2.4 Empirical/Experimental Compiler (Jue→Physics)** | Compile `:empirical`/:experimental` tier code to Physics VM bytecode. Must be accompanied by a **resource budget**.                                                     | **Empirical Tier:** Run the bytecode in the VM sandbox N times with fuzzed inputs; record success/failure statistics.                                                 |
+| **2.5 Runtime & Sandbox Manager**                     | Implement a system that executes code according to its tier: sends formal code to CoreVerifier, runs empirical code in a Physics VM sandbox with limits.                | **Integration Test:** End-to-end test for each tier: `Jue Source -> Tiered Compiler -> (Proof Verification                                                            | Sandbox Execution) -> Result`. |
 
-**Example Mutation Check:**
-
-```lisp
-;; Experimental module proposal
-(if (consensus-reached? votes)
-    (install-experimental-change component new-version votes)
-    (reject-mutation "No consensus"))
-```
+**PHASE 2 GATE:** The full, tiered compilation pipeline is complete. A Jue program can be submitted, receive a trust tier, be compiled appropriately, and yield a verified result or a sandboxed output.
 
 ---
 
-## **Layer 4: Physics Layer (Rust VM)**
+## **Phase 3: Emergent Cognition Primitives (Dan-World)**
 
-**Goal:** Implement minimal runtime operations and atomic primitives.
+**Goal:** Implement the subcognitive drivers and pattern detectors that enable higher-order cognition to emerge.
 
-| Task                     | Description                                    | Verification / Proof Obligation                   |
-| ------------------------ | ---------------------------------------------- | ------------------------------------------------- |
-| **Primitive Operations** | 12 core operations (add, sub, mult, div, etc.) | Unit test each primitive                          |
-| **Atomicity**            | Ensure atomic execution of primitives          | Property-based tests for race conditions          |
-| **Memory Management**    | Allocate and free persistent data structures   | Verify immutability of older versions             |
-| **Concurrency Support**  | Channels, locks for message passing            | Deadlock detection and handling                   |
-| **Unit Tests**           | Validate all VM instructions                   | Cross-check with expected outcomes from Jue-World |
+| Task                             | Description                                                                                                                                                                             | Verification / Proof Obligation                                                                                                           |
+| :------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| **3.1 Gradient Modules**         | Implement drivers for **novelty** (prediction error), **efficiency** (resource pressure), and **coherence** (contradiction detection). They output scalar values influencing attention. | **Functional Test:** In a simulated loop, increased novelty leads to higher attention allocation to a novel stimulus module.              |
+| **3.2 Pattern Detectors**        | Implement modules that scan event/state logs to identify statistical regularities and create `Pattern` objects.                                                                         | **Unit Test:** Fed a sequence like `[A, B, A, B, ...]`, the detector proposes a pattern for `(A, B)` with high frequency.                 |
+| **3.3 Theory-of-Mind Primitive** | Implement a module that, given an agent's actions, infers a possible belief state (`BeliefSet`).                                                                                        | **Test:** If agent `B` moves towards a hidden object after agent `A` looked there, the module infers `B` believes `A` knows the location. |
+| **3.4 Narrative Self Tracker**   | Implement a module that maintains a set of persistent `Pattern`s about the agent's own behavior as `IdentityMarkers`.                                                                   | **Test:** After repeated resource-conserving actions, a `"is_efficient"` marker is added to the narrative.                                |
+| **3.5 Global Workspace**         | Implement the competition/broadcast system where modules propose `Pattern`s or actions, weighted by salience (from gradients).                                                          | **Integration Test:** A high-novelty event causes the relevant detector to win the workspace and broadcast its content.                   |
 
----
-
-## **Integration Checklist**
-
-| Task                             | Description                                               | Verification / Proof Obligation          |
-| -------------------------------- | --------------------------------------------------------- | ---------------------------------------- |
-| **Proof Bridges**                | Jue-World constructs must map to Core-World proofs        | `ToCoreWithProof.validate() == true`     |
-| **Synchronization Protocol**     | Periodic cross-world sync of optimizations and primitives | Verify consistency across worlds         |
-| **Self-Modification Governance** | Apply four-level mutation protocol correctly              | No module can bypass formal verification |
-| **End-to-End Testing**           | Run cognitive loops with micro-modules                    | Output correctness and system stability  |
-| **Rollback Tests**               | Verify snapshots restore previous state                   | All modules rollback consistently        |
+**PHASE 3 GATE:** A minimal Dan-World loop operates: a gradient fires, a pattern detector activates, proposes a simple Jue code change (e.g., adjust a parameter), and the change is processed through the Jue-World tiered system.
 
 ---
 
-## **LLM Agent Instructions**
+## **Phase 4: Integration & Emergence**
 
-1. Follow folder hierarchy strictly.
-2. Attach proof obligations to **every code change**.
-3. Verify each milestone **before proceeding**.
-4. Unit tests must include **proof verification** where applicable.
-5. Use **persistent structures** outside experimental mutations.
-6. Document module assumptions, proof rationale, and expected outputs.
-7. Maintain audit logs for mutations and module decisions.
+**Goal:** Connect all layers to enable closed-loop self-modification and observe emergent properties.
+
+| Task                                    | Description                                                                                                                                                      | Verification / Success Metric                                                                                                                           |
+| :-------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **4.1 Closed-Loop Self-Modification**   | Connect a Dan-World pattern detector to the Jue-World mutation pipeline. A detected pattern (e.g., "this function is slow") triggers a Jue code change proposal. | **Emergent Behavior:** The system successfully proposes, validates (at an appropriate tier), and integrates a code optimization without external input. |
+| **4.2 Multi-Agent Sandbox**             | Instantiate two or more Dan agents in a shared environment with a resource pool. Enable basic `theory-of-mind` and communication.                                | **Emergent Behavior:** Agents develop simple communication protocols or competitive/cooperative strategies observable in logs.                          |
+| **4.3 Introspection & Debugging Tools** | Build logging and visualization that exposes the state of gradients, workspace competition, trust-tier assignments, and proof verification results.              | **Operational Requirement:** A human engineer can trace why a particular self-modification was proposed, approved, or rejected.                         |
+
+**FINAL GATE:** The system can run autonomously for a significant period, with Dan agents modifying their own code within sandboxed limits, reacting to structured errors from Physics, and adapting their behavior. No catastrophic failures (silent corruption, undetected invariant violation) occur.
 
 ---
 
-This checklist transforms the **high-level architecture** into a **step-by-step implementation plan**, with verifiable actions for each agent layer.
+## **LLM Agent Implementation Rules (Updated)**
+
+1.  **Specification is Law:** Do not deviate from the frozen `CoreSpec_v1.md` and `PhysicsSpec_v1.md`. If an ambiguity is found, halt and escalate—do not assume.
+2.  **Implement to the API:** Code to the exact function signatures and data structures defined in the specs and this checklist.
+3.  **Respect the Trust Tiers:** Never promote code from a lower to a higher trust tier (e.g., `:experimental` to `:verified`) without executing the exact verification process defined for the higher tier.
+4.  **Log for Emergence:** Every significant system event (compilation, proof check, mutation proposal, gradient spike) must be logged with a rich, queryable context. This data is the substrate for Dan's pattern detection.
+5.  **Prefer Primitive Over Complex:** When adding a "cognitive" feature, first ask if it can emerge from the existing primitives (gradients, pattern detectors, theory-of-mind). If yes, enhance the primitives; do not add the high-level feature.
+6.  **Two-Phase Commit for Mutations:**
+    *   **Phase 1 (Proposal):** A Dan module proposes a change with a desired `TrustTier` and a justification `Pattern`.
+    *   **Phase 2 (Integration):** The change is compiled and verified according to its tier. **Upon success only**, a rollback snapshot is taken, and the new code is integrated.
+
+This checklist enforces the critical path: **stable foundations first (`Phase 0 & 1`), then a verified bridge (`Phase 2`), then emergent intelligence (`Phase 3 & 4`)**. Each gate ensures the previous layer is solid before building upon it.
