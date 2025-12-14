@@ -103,15 +103,24 @@ Jue is a **S-expression-based language** with extensions for proof annotations, 
 **Hierarchy:**
 
 ```
-Core-World (Formal Kernel)
-      ↑ Proof Obligations
-Jue-World (Execution Engine)
-      ↑ Verified / annotated code
-Dan-World (Cognitive Ecology)
-      ↑ Emergent, experimental modules
-Physics Layer (Rust VM)
-      ↑ Executes all bytecode
+Dan-World  →  Cognition, identity, learning, self-modification
+   ↑
+Jue-World  →  Language, runtime, compiler, concurrency, optimization
+   ↑
+Core-World →  Formal semantics, proofs, correctness guarantees
+   ↑
+Physics   →  Minimal Rust VM executing everything
+
 ```
+Each layer:
+
+Depends on the one below it
+
+Cannot violate the guarantees of the one below it
+
+Adds new expressive power and flexibility
+
+The layers are intentionally different in nature. That difference is what allows the system to scale from mathematics to cognition.
 
 **Key Concepts:**
 
