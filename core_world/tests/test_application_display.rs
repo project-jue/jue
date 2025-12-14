@@ -1,5 +1,5 @@
 /// Test for application display functionality
-use core_world::core_expr::{app, lam, var, CoreExpr};
+use core_world::core_expr::{app, lam, var};
 
 #[test]
 fn test_application_display() {
@@ -47,7 +47,10 @@ fn test_complex_nested_applications() {
     let v2 = var(2);
 
     // ((identity v0) v1) v2
-    let nested_app = app(app(app(identity.clone(), v0.clone()), v1.clone()), v2.clone());
+    let nested_app = app(
+        app(app(identity.clone(), v0.clone()), v1.clone()),
+        v2.clone(),
+    );
     assert_eq!(format!("{}", nested_app), "(((λx.0) 0) 1) 2");
 
     // identity (identity v0)
@@ -67,7 +70,7 @@ fn test_applications_with_multiple_variables() {
     // Create a complex expression: ((identity v0) v1) applied to v2, then applied to v3
     let complex_expr = app(
         app(app(identity.clone(), v0.clone()), v1.clone()),
-        v2.clone()
+        v2.clone(),
     );
     let final_expr = app(complex_expr, v3.clone());
 
@@ -124,7 +127,7 @@ fn test_applications_with_different_lambda_combinations() {
     let compose = lam(lam(app(app(var(1), var(0)), var(2))));
 
     let v0 = var(0);
-    let v1 = var(1);
+    let _v1 = var(1);
 
     // Identity applied to self-application lambda
     let app1 = app(identity.clone(), self_apply.clone());
@@ -141,9 +144,12 @@ fn test_applications_with_different_lambda_combinations() {
     // Complex nested application with different lambdas
     let complex = app(
         app(identity.clone(), compose.clone()),
-        app(self_apply.clone(), v0.clone())
+        app(self_apply.clone(), v0.clone()),
     );
-    assert_eq!(format!("{}", complex), "((λx.0) λx.λx.((1 0) 2)) ((λx.(0 0)) 0)");
+    assert_eq!(
+        format!("{}", complex),
+        "((λx.0) λx.λx.((1 0) 2)) ((λx.(0 0)) 0)"
+    );
 }
 
 #[test]
@@ -166,9 +172,12 @@ fn test_application_display_with_complex_lambda_bodies() {
     // Very complex nested structure
     let app3 = app(
         app(complex_lambda2.clone(), v0.clone()),
-        app(complex_lambda1.clone(), v1.clone())
+        app(complex_lambda1.clone(), v1.clone()),
     );
-    assert_eq!(format!("{}", app3), "((λx.λx.((2 1) 0)) 0) ((λx.(0 (1 2))) 1)");
+    assert_eq!(
+        format!("{}", app3),
+        "((λx.λx.((2 1) 0)) 0) ((λx.(0 (1 2))) 1)"
+    );
 }
 
 #[test]
@@ -180,17 +189,23 @@ fn test_application_chains() {
     let v2 = var(2);
 
     // Create a chain: (((identity v0) v1) v2)
-    let chain = app(app(app(identity.clone(), v0.clone()), v1.clone()), v2.clone());
+    let chain = app(
+        app(app(identity.clone(), v0.clone()), v1.clone()),
+        v2.clone(),
+    );
     assert_eq!(format!("{}", chain), "(((λx.0) 0) 1) 2");
 
     // Another chain with different structure
-    let chain2 = app(identity.clone(), app(identity.clone(), app(v0.clone(), v1.clone())));
+    let chain2 = app(
+        identity.clone(),
+        app(identity.clone(), app(v0.clone(), v1.clone())),
+    );
     assert_eq!(format!("{}", chain2), "(λx.0) ((λx.0) (0 1))");
 
     // Complex chain with mixed lambdas and variables
     let complex_chain = app(
         app(identity.clone(), v0.clone()),
-        app(v1.clone(), v2.clone())
+        app(v1.clone(), v2.clone()),
     );
     assert_eq!(format!("{}", complex_chain), "((λx.0) 0) (1 2)");
 }
@@ -213,7 +228,10 @@ fn test_application_with_higher_order_functions() {
     // Nested higher-order application
     let nested = app(
         app(apply_twice.clone(), apply_twice.clone()),
-        identity.clone()
+        identity.clone(),
     );
-    assert_eq!(format!("{}", nested), "((λx.λx.((1 0) 0)) λx.λx.((1 0) 0)) λx.0");
+    assert_eq!(
+        format!("{}", nested),
+        "((λx.λx.((1 0) 0)) λx.λx.((1 0) 0)) λx.0"
+    );
 }

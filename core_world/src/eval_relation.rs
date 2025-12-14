@@ -57,7 +57,7 @@ fn substitute_in_body(body: CoreExpr, target_index: usize, replacement: CoreExpr
         }
         CoreExpr::Lam(body) => {
             // [N/k](λM) = λ([↑(N)/k+1]M) where ↑(N) increments all free variables in N by 1
-            let shifted_replacement = shift_indices(replacement.clone(), target_index + 1, 1);
+            let shifted_replacement = shift_indices(replacement.clone(), 0, 1);
             // When we go inside a lambda, we look for target_index + 1
             let new_body = substitute_in_body(*body, target_index + 1, shifted_replacement);
             CoreExpr::Lam(Box::new(new_body))
@@ -135,18 +135,20 @@ fn eval_with_limit(env: &Env, expr: CoreExpr, limit: usize) -> EvalResult {
     }
 }
 
-/// Apply a closure to an argument value using substitution semantics
+/// Apply a closure to an argument value using environment-based evaluation
 fn apply_closure_with_substitution(
     closure: Closure,
     arg_value: CoreExpr,
     limit: usize,
 ) -> EvalResult {
-    // Perform substitution: replace all free occurrences of variable 0 in body with arg_value
-    // This mimics the beta reduction substitution logic
-    let substituted_body = substitute_in_body(closure.body, 0, arg_value);
+    // Create a new environment by extending the closure's environment with the argument
+    let mut new_env = closure.env.clone();
 
-    // Evaluate the substituted body in the closure's environment
-    eval_with_limit(&closure.env, substituted_body, limit - 1)
+    // Insert the argument value at index 0 (bound variable)
+    new_env.insert(0, arg_value);
+
+    // Evaluate the body in the new environment
+    eval_with_limit(&new_env, closure.body, limit - 1)
 }
 
 /// Evaluate an expression in an empty environment (top-level evaluation)
