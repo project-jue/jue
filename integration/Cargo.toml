@@ -1,0 +1,12 @@
+[package]
+name = "integration"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core_world = { path = "../core_world" }
+physics_world = { path = "../physics_world" }
+
+[dev-dependencies]
+proptest = "1.0"
+criterion = "0.4"

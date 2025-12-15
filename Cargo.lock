@@ -329,6 +329,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "integration"
+version = "0.1.0"
+dependencies = [
+ "core_world",
+ "criterion",
+ "physics_world",
+ "proptest",
+]
+
+[[package]]
 name = "is-terminal"
 version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -472,6 +482,7 @@ dependencies = [
  "bincode",
  "log",
  "serde",
+ "serde_json",
  "thiserror",
 ]
 
