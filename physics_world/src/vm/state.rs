@@ -124,13 +124,14 @@ impl VmState {
                 }
                 let cdr = self.stack.pop().unwrap();
                 let car = self.stack.pop().unwrap();
-    
+
                 // Allocate pair on heap - 8 bytes for two HeapPtr values (car and cdr)
-                let pair_ptr = match self.memory.allocate(8, 1) { // Tag 1 for pairs
+                let pair_ptr = match self.memory.allocate(8, 1) {
+                    // Tag 1 for pairs
                     Ok(ptr) => ptr,
                     Err(_) => return Err(VmError::MemoryLimitExceeded),
                 };
-    
+
                 // Store the car and cdr values in the allocated memory
                 let data = unsafe { self.memory.get_data_mut(pair_ptr) };
                 let car_bytes = match car {
@@ -143,10 +144,10 @@ impl VmState {
                     Value::Closure(p) => p.get().to_le_bytes(),
                     _ => return Err(VmError::TypeMismatch),
                 };
-    
+
                 data[0..4].copy_from_slice(&car_bytes);
                 data[4..8].copy_from_slice(&cdr_bytes);
-    
+
                 self.stack.push(Value::Pair(pair_ptr));
                 self.ip += 1;
             }
@@ -269,18 +270,18 @@ impl VmState {
                 if self.stack.len() < 2 {
                     return Err(VmError::StackUnderflow);
                 }
-    
+
                 // Pop message and target actor ID
                 let message = self.stack.pop().unwrap();
                 let target_actor = match self.stack.pop().unwrap() {
                     Value::ActorId(id) => id,
                     _ => return Err(VmError::TypeMismatch),
                 };
-    
+
                 // In a real implementation, we would send the message to the scheduler
                 // For now, we'll just continue execution
                 // The scheduler would handle the actual message delivery
-    
+
                 self.ip += 1;
             }
             OpCode::Add => {
@@ -297,6 +298,7 @@ impl VmState {
                     }
                     _ => return Err(VmError::TypeMismatch),
                 }
+                self.ip += 1;
             }
 
             OpCode::Div => {
@@ -399,25 +401,27 @@ impl VmState {
                 if self.stack.len() < *capture_count {
                     return Err(VmError::StackUnderflow);
                 }
-    
+
                 // Calculate size needed: 4 bytes for code index + 4 bytes per captured value
                 let size = 4 + (*capture_count as u32 * 4);
-                let closure_ptr = match self.memory.allocate(size, 2) { // Tag 2 for closures
+                let closure_ptr = match self.memory.allocate(size, 2) {
+                    // Tag 2 for closures
                     Ok(ptr) => ptr,
                     Err(_) => return Err(VmError::MemoryLimitExceeded),
                 };
-    
+
                 // Store the code index and capture environment
                 let data = unsafe { self.memory.get_data_mut(closure_ptr) };
-    
+
                 // Store code index (first 4 bytes)
                 let code_idx_bytes = (*code_idx as u32).to_le_bytes();
                 data[0..4].copy_from_slice(&code_idx_bytes);
-    
+
                 // Capture environment from stack (next capture_count * 4 bytes)
                 // Pop the captured values from stack in reverse order
                 for i in 0..*capture_count as usize {
-                    let value = self.stack[self.stack.len() - (*capture_count as usize - i)].clone();
+                    let value =
+                        self.stack[self.stack.len() - (*capture_count as usize - i)].clone();
                     let value_bytes = match value {
                         Value::Pair(p) => p.get().to_le_bytes(),
                         Value::Closure(p) => p.get().to_le_bytes(),
@@ -427,12 +431,12 @@ impl VmState {
                     let start = 4 + (i * 4);
                     data[start..start + 4].copy_from_slice(&value_bytes);
                 }
-    
+
                 // Remove captured values from stack
                 for _ in 0..*capture_count as usize {
                     self.stack.pop();
                 }
-    
+
                 self.stack.push(Value::Closure(closure_ptr));
                 self.ip += 1;
             }
@@ -446,6 +450,18 @@ impl VmState {
         }
 
         Ok(InstructionResult::Continue)
+    }
+
+    /// Executes the VM until completion or error.
+    /// Returns the final result value or an error.
+    pub fn run(&mut self) -> Result<Value, VmError> {
+        loop {
+            match self.step()? {
+                InstructionResult::Continue => continue,
+                InstructionResult::Yield => return Ok(Value::Nil), // Yield returns Nil for now
+                InstructionResult::Finished(result) => return Ok(result),
+            }
+        }
     }
 }
 

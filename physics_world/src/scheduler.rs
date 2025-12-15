@@ -207,20 +207,10 @@ mod tests {
     fn test_message_passing() {
         let mut scheduler = PhysicsScheduler::new();
 
-        // Create actor 1 that sends a message
+        // Create actor 1 that yields
         let actor1 = Actor {
             id: 1,
-            vm: VmState::new(
-                vec![
-                    OpCode::Int(42),
-                    OpCode::Int(2), // Target actor ID
-                    OpCode::Send, // This will pop the message and target actor ID and "send" it
-                    OpCode::Yield,
-                ],
-                vec![],
-                100,
-                1024,
-            ),
+            vm: VmState::new(vec![OpCode::Yield], vec![], 100, 1024),
             mailbox: Vec::new(),
             is_waiting: false,
         };
@@ -236,13 +226,35 @@ mod tests {
         scheduler.add_actor(actor1);
         scheduler.add_actor(actor2);
 
-        // Execute actor 1 (it will send a message but our Send implementation just pops it)
+        // Send a message to actor 2 using the scheduler's message passing API
+        scheduler.send_message(2, Value::Int(42));
+
+        // Check message queue before delivery
+        assert_eq!(scheduler.message_queues.len(), 1);
+        assert_eq!(scheduler.message_queues.get(&2).unwrap().len(), 1);
+
+        // Deliver the message
+        scheduler.deliver_external_messages();
+
+        // Check message queue after delivery (should be empty)
+        assert_eq!(scheduler.message_queues.len(), 0);
+
+        // Verify the message was delivered to actor 2's mailbox BEFORE execution
+        let actor2_before = &scheduler.actors[1]; // Actor 2 is at index 1
+        assert_eq!(actor2_before.mailbox.len(), 1);
+        assert_eq!(actor2_before.mailbox[0], Value::Int(42));
+
+        // Execute actor 1
         let result1 = scheduler.tick();
         assert!(matches!(result1, Ok(TickResult::ActorYielded(1))));
 
-        // Execute actor 2
+        // Execute actor 2 - it should now have the message in its mailbox
         let result2 = scheduler.tick();
         assert!(matches!(result2, Ok(TickResult::ActorYielded(2))));
+
+        // After execution, actor 2's mailbox should be empty (messages moved to stack)
+        let actor2_after = &scheduler.actors[1];
+        assert_eq!(actor2_after.mailbox.len(), 0);
     }
 
     #[test]
