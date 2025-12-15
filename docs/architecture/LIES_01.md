@@ -2,7 +2,7 @@
 
 ## 16 The meta-ambiguity (the quiet one)
 
-You are building:
+The project involves building:
 • a calculus of meaning
 • a language of thought
 • an embodied agent
@@ -66,7 +66,7 @@ record CommunicationOperator {
 
 ### **Why This Architecture Allows Immoral Behavior**
 
-You're absolutely right: **immorality emerges at the Dan level**, not because we program it, but because:
+**Immorality emerges at the Dan level**, not because we program it, but because:
 
 1. **Goal Conflicts:** Different Dan modules can want incompatible things
 2. **Theory of Mind:** Dan learns that deception can resolve conflicts

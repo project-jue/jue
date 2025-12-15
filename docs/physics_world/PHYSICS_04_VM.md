@@ -1,6 +1,6 @@
-You've hit on a **critical and correct insight**. For Project Jue, you **do not need** a VM that imitates a physical computer (with MMUs, motherboards, etc.). You need a *semantic* VM—a minimal runtime that directly executes the high-level concepts of Jue (lambda application, closure management, message passing).
+The critical insight is that Project Jue does not need a VM imitating physical hardware (MMUs, motherboards). Instead, it requires a *semantic* VM—a minimal runtime executing Jue's high-level concepts (lambda application, closure management, message passing).
 
-Given this, writing a custom semantic VM is **not only feasible but likely the cleanest path forward**. The complexity of V8/JVM comes from supporting complex languages on real hardware. Your task is smaller: implement a **simple, stack-based or register-based interpreter for a designed-for-purpose instruction set**.
+Writing a custom semantic VM is the cleanest approach. The complexity of V8/JVM stems from supporting complex languages on real hardware. This task is more focused: implement a simple, stack-based or register-based interpreter for a purpose-designed instruction set.
 
 Let's outline what this would look like.
 
@@ -153,7 +153,7 @@ flowchart TD
 
 ### 🎯 Why the VM *Must* Live in Physics
 
-1.  **It is the "Physics" in "Physics-World":** Just as physics in our universe defines the fundamental rules of matter, energy, and time, your VM defines the fundamental rules of computation, state, and resource consumption for Dan. It is the **simulated substrate** on which its consciousness runs.
+1.  **It is the "Physics" in "Physics-World":** Just as physics in our universe defines the fundamental rules of matter, energy, and time, the VM defines the fundamental rules of computation, state, and resource consumption for Dan. It is the **simulated substrate** on which its consciousness runs.
 
 2.  **It Enforces the Foundational Contract:** The Physics-World's contract is to provide **deterministic execution** and enforce **AIKR**. The VM is the mechanism that fulfills this contract.
     *   **Determinism** is implemented in its interpreter loop.

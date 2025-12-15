@@ -1,6 +1,6 @@
-Good. This is the right place to start, because the **starter agent set implicitly defines what kind of mind is even possible**. If you get this wrong, everything downstream becomes either brittle or theatrical.
+This is the right place to start, as the **starter agent set implicitly defines what kind of mind is possible**. If this is incorrect, everything downstream becomes either brittle or theatrical.
 
-I’ll give you a **minimal but sufficient starter set**, explain *why each agent exists*, what it is allowed to do, what it must never do, and what pathologies it prevents. This is written so LLM engineers can implement agents mechanically without inventing philosophy on the fly.
+The approach is to provide a **minimal but sufficient starter set**, explaining why each agent exists, what it is allowed to do, what it must never do, and what pathologies it prevents. This is written so LLM engineers can implement agents mechanically without inventing philosophy on the fly.
 
 I am deliberately **not** optimizing for cleverness or completeness. This is about *cognitive stability first*.
 
@@ -418,10 +418,3 @@ Let cognition learn to walk before it edits its own bones.
 
 ---
 
-If you want the next step, the most productive follow-ups would be:
-
-* A concrete salience scoring algorithm (with decay)
-* A reference implementation template for an agent
-* A “bad agent” example to test suppression mechanisms
-
-Those will quickly expose whether Dan-World is real or decorative.

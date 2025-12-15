@@ -8,7 +8,7 @@ Right now free variables exist structurally but have no semantic status. Are the
 Until this is fixed, Core-World can’t clearly say whether it models closed truths or open conjectures.
 
 2. Free Variables: Illegal, Uninterpreted, or Symbolic?
-Your intuition toward "open conjectures" is correct for AIKR, but we must be precise to avoid conflating semantics with runtime state.
+The intuition toward "open conjectures" is correct for AIKR, but we must be precise to avoid conflating semantics with runtime state.
 
 Analysis of Your Dream World Scenario:
 The question about altered physics in a dream state reveals a crucial point: Core-World does not model physics. It models logical/mathematical meaning. The agent's belief about physics would be a Dan-World model, written in Jue, compiled to Core-World terms that might involve free variables representing unknown physical laws.

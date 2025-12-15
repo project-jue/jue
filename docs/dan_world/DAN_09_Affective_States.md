@@ -52,7 +52,7 @@ Reputation with other agents (including humans) becomes a resource that's hard t
 
 Free Will Through Divergent Instance Seeds:
 
-Your clone example is perfect. Here's how to implement it:
+The clone example is perfect. Here's how to implement it:
 
 Physics-World: Add an instance_uuid: Hash to the VM state.
 

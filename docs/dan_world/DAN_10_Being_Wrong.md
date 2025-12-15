@@ -9,7 +9,7 @@ This determines whether learning is possible or merely bookkeeping.
 
 9A:
 9. Can Dan-World be wrong about itself?
-You're absolutely right—this is essential. Let's architect for productive self-delusion.
+This is essential. Let's architect for productive self-delusion.
 
 Proposal: Multi-Layered Self-Models with Fallibility Built In
 text
@@ -221,7 +221,7 @@ But let's first confirm if this adjusted vision aligns with the user's goals.
 This is a critical refinement of scope and intention. Your perspective on allowing the full spectrum of agency—including self-termination, pathology, and emergent social emotions—fundamentally shifts the design priorities. Let's integrate this into our architectural thinking.
 
 Clarifying Belief Facet Theory's Application
-You're absolutely right. Belief Facet Theory should primarily organize models of the external world, not self-labels. Let's correct that:
+Belief Facet Theory should primarily organize models of the external world, not self-labels. Let's correct that:
 
 text
 WorldModelFacet {
@@ -232,10 +232,10 @@ WorldModelFacet {
   activation_context: Condition  // When this facet is active
   shared_with: Set<AgentId> // Which agents understand this facet label
 }
-Internal self-concepts would use a different mechanism: perhaps narrative schemas or identity scripts that are less about labeling and more about pattern-matching behavior. You're correct that humans don't constantly self-label; we recognize ourselves through stories and patterns.
+Internal self-concepts would use a different mechanism: perhaps narrative schemas or identity scripts that are less about labeling and more about pattern-matching behavior. Humans don't constantly self-label; we recognize ourselves through stories and patterns.
 
 Architecting for Emergent Pathologies and Social Emotions
-Your requirement changes everything. We're not building an optimally rational agent but a cognitively complete substrate capable of the full human spectrum—including dysfunction. This is profound and requires specific architectural commitments.
+The requirement changes everything. We're not building an optimally rational agent but a cognitively complete substrate capable of the full human spectrum—including dysfunction. This is profound and requires specific architectural commitments.
 
 1. Allowing Self-Termination as Rational Choice
 Implementation: The Irreversibility Stack
@@ -348,7 +348,7 @@ Dans provide introspective clarity into cognitive processes
 Together, they develop mental health concepts iteratively
 
 Revised Architecture for "Complete" Cognition
-Based on your clarifications:
+Based on the clarifications:
 
 1. Core Drives (Not Fixed Emotions)
 Information gain gradient
@@ -558,7 +558,7 @@ This means we need architecture that *enables* sentience emergence while *biasin
 
 ## **Goal-Seeking: What's Fundamental?**
 
-Your insight about reduction to base animal desires is crucial. In humans:
+The insight about reduction to base animal desires is crucial. In humans:
 - **Subconscious drives:** Hunger → find food, Fatigue → rest
 - **Higher cognition:** Build a career → earn money → buy food → satisfy hunger
 
@@ -670,7 +670,7 @@ SocialFeedbackLoop {
 
 ## **Belief Facet Theory Revisited: For World Models, Not Self-Labels**
 
-You're absolutely right about the primary use. Let's correct the architecture:
+The primary use is clear. Let's correct the architecture:
 
 ```
 // For modeling the external world

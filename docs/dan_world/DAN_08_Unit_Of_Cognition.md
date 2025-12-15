@@ -12,7 +12,7 @@ Earlier you insisted on coarse-grained agent actions. Good. But what exactly is 
 If Dan-World reasons *about* Core-World, it must not be reducible *to* Core-World.
 7A:
 7. What is the unit of cognition?
-Your intuition about avoiding over-specification of inspectability is correct. Over-commitment leads to either magical thinking or crippling regress. Let's build a framework that allows many cognitive theories to be implemented, rather than prescribing one.
+The intuition about avoiding over-specification of inspectability is correct. Over-commitment leads to either magical thinking or crippling regress. Let's build a framework that allows many cognitive theories to be implemented, rather than prescribing one.
 
 The Proposed Architecture: Layered Cognitive Tokens
 A "thought" in Dan-World should be a hierarchical bundle with representations at different levels of abstraction:

@@ -194,5 +194,3 @@ Examples should be easy for LLMs to load into context.
 The purpose of these guidelines is to structure development so that LLM-driven code generation becomes predictable and robust. By keeping files small, documentation clear, naming consistent, and architectural decisions explicit, the project remains manageable for both humans and automated systems.
 
 ---
-
-If you want, I can also generate the companion folder structure and placeholder files for `/docs/` so that the repo starts with a complete, ready-to-expand documentation skeleton.

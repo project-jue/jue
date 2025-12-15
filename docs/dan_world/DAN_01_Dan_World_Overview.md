@@ -1,5 +1,5 @@
 Below is a **deliberately exhaustive, engineering-grade overview of Dan-World**.
-This is written as something you can hand directly to LLM engineers and expect consistent implementation behavior, while still being honest about what is *not yet fixed*.
+This document can be handed directly to LLM engineers to achieve consistent implementation behavior, while remaining honest about what is not yet fixed.
 
 I will **not assume Dan-World is “obviously correct”**; where the design still has tension or open questions, I call them out explicitly.
 
@@ -455,10 +455,3 @@ That distinction matters.
 
 ---
 
-If you want, next good steps would be:
-
-* A concrete workspace arbitration algorithm
-* A minimal “starter agent set”
-* A failure taxonomy for Dan-World behaviors
-
-All three will materially affect downstream success.

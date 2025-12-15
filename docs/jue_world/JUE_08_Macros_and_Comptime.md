@@ -92,7 +92,7 @@ If you'd like to explore how this tiered system could be technically implemented
 
 # Unified Trust Idea for Macros and FFI
 
-You've hit on a profound insight. The macro and FFI questions **are deeply connected**. They both represent **points where Jue code can break the formal guarantees of the system**. A macro can generate arbitrary code; an FFI can execute arbitrary host operations. An elegant solution treats them as two faces of the same problem: **Capability Escalation**.
+The macro and FFI questions are deeply connected. They both represent points where Jue code can break the formal guarantees of the system. A macro can generate arbitrary code; an FFI can execute arbitrary host operations. An elegant solution treats them as two faces of the same problem: **Capability Escalation**.
 
 ### 🔗 The Common Root: The "Unsafe" Boundary
 Both macros and FFI are **trust boundaries**. Inside the boundary is Jue's formally grounded world. Outside is the unverified, powerful host environment (Rust). The core question is: *How does code earn the right to cross this boundary?*
@@ -226,7 +226,7 @@ Should we revise the Physics World and Jue World specs to incorporate this capab
 
 
 
-You're asking the right question: **is this architectural elegance worth the performance and complexity cost?** Let's analyze this brutally.
+The key question is: **is this architectural elegance worth the performance and complexity cost?** Let's analyze this brutally.
 
 ### ⚡ Performance Impact: Negligible
 The capability system would add **almost zero** runtime overhead to the Physics World's hot path.
@@ -238,7 +238,7 @@ The capability system would add **almost zero** runtime overhead to the Physics 
 **Verdict:** Performance is not a valid objection.
 
 ### 🧩 Flexibility vs. Chaos: The Real Trade-off
-This is the core of your question. Let's compare the three architectural stances on a spectrum:
+This is the core question. Let's compare the three architectural stances on a spectrum:
 
 | Approach                | Philosophy                                                                             | Flexibility                                                                                 | Danger                                                                                                                  | Impact on Dan's Cognition                                                                                                                                |
 | :---------------------- | :------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -282,7 +282,7 @@ The human is the **architect** and **first teacher**.
       (letrec ((loop (lambda () (loop))))
         (loop)))
     ```
-*   **Purpose:** This isn't just making code run. It's **instilling values**. You are defining the initial **ontology of power**: what actions exist, which are dangerous, and what they're called (`'io-write`, `'unsafe-control`).
+*   **Purpose:** This isn't just making code run. It's **instilling values**. This defines the initial **ontology of power**: what actions exist, which are dangerous, and what they're called (`'io-write`, `'unsafe-control`).
 
 ### **Phase 2: Dan as Apprentice (Imitation & Error)**
 Dan's early modules are **pattern matchers**. They see the human's `stdlib.jue` and start to imitate.
@@ -455,7 +455,7 @@ Now, macros, FFI, types, and errors are all part of one coherent model:
       (err msg) (log-and-retry msg)))) ; Needs IO_WRITE
 ```
 
-### ✅ Revised Answers to Your Priority Questions
+### ✅ Revised Answers to Priority Questions
 1.  **Type System Semantics:** **Unified.** Types are capability/contract declarations. Proofs for `:formal`, runtime guards for `:empirical`.
 2.  **Error Handling:** **Capability-gated.** Errors are values that can only be inspected by code holding `ERROR_HANDLING`. This makes error flow explicit and safe.
 3.  **Macro/FFI Trust:** **Capability-gated.** Unified under the same model.

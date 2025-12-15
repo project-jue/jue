@@ -15,7 +15,7 @@ Without this, “learning” becomes mere accumulation.
 15A:
 ## **15. What is truth versus belief?**
 
-Your analysis is profound and correct. Let's operationalize it.
+The analysis is profound and correct. Let's operationalize it.
 
 ### **Proposal: Abandon "Truth" as a Primitive**
 
