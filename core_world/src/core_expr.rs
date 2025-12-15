@@ -11,6 +11,8 @@ pub enum CoreExpr {
     Lam(Box<CoreExpr>),
     /// Function application
     App(Box<CoreExpr>, Box<CoreExpr>),
+    Nat(u64),
+    Pair(Box<CoreExpr>, Box<CoreExpr>),
 }
 
 impl fmt::Display for CoreExpr {
@@ -45,6 +47,30 @@ impl fmt::Display for CoreExpr {
                     write!(f, "{}", arg)
                 }
             }
+            CoreExpr::Nat(n) => write!(f, "{}", n),
+            CoreExpr::Pair(first, second) => {
+                // Add parentheses only for applications to avoid over-parenthesizing
+                let first_needs_parens = matches!(**first, CoreExpr::App(..));
+                let second_needs_parens = matches!(**second, CoreExpr::App(..));
+
+                write!(f, "(")?;
+
+                if first_needs_parens {
+                    write!(f, "({})", first)?;
+                } else {
+                    write!(f, "{}", first)?;
+                }
+
+                write!(f, ", ")?;
+
+                if second_needs_parens {
+                    write!(f, "({})", second)?;
+                } else {
+                    write!(f, "{}", second)?;
+                }
+
+                write!(f, ")")
+            }
         }
     }
 }
@@ -62,6 +88,16 @@ pub fn lam(body: CoreExpr) -> CoreExpr {
 /// Helper function to create a function application
 pub fn app(func: CoreExpr, arg: CoreExpr) -> CoreExpr {
     CoreExpr::App(Box::new(func), Box::new(arg))
+}
+
+/// Helper function to create a natural number expression
+pub fn nat(value: u64) -> CoreExpr {
+    CoreExpr::Nat(value)
+}
+
+/// Helper function to create a pair expression
+pub fn pair(first: CoreExpr, second: CoreExpr) -> CoreExpr {
+    CoreExpr::Pair(Box::new(first), Box::new(second))
 }
 
 #[cfg(test)]
@@ -116,5 +152,46 @@ mod tests {
         let nested = app(lam(app(var(1), var(0))), lam(var(0)));
         // Updated expectation to match the new display logic
         assert_eq!(format!("{}", nested), "(λx.(1 0)) λx.0");
+    }
+
+    #[test]
+    fn test_nat_creation() {
+        let n = nat(42);
+        assert!(matches!(n, CoreExpr::Nat(42)));
+    }
+
+    #[test]
+    fn test_nat_display() {
+        let n = nat(42);
+        assert_eq!(format!("{}", n), "42");
+    }
+
+    #[test]
+    fn test_pair_creation() {
+        let p = pair(var(0), var(1));
+        assert!(matches!(p, CoreExpr::Pair(..)));
+        if let CoreExpr::Pair(first, second) = p {
+            assert!(matches!(*first, CoreExpr::Var(0)));
+            assert!(matches!(*second, CoreExpr::Var(1)));
+        }
+    }
+
+    #[test]
+    fn test_pair_display() {
+        let p = pair(var(0), var(1));
+        assert_eq!(format!("{}", p), "(0, 1)");
+    }
+
+    #[test]
+    fn test_nested_pair_display() {
+        let inner = pair(var(0), var(1));
+        let outer = pair(inner, var(2));
+        assert_eq!(format!("{}", outer), "((0, 1), 2)");
+    }
+
+    #[test]
+    fn test_complex_expression_with_nat_and_pair() {
+        let expr = app(lam(pair(var(0), nat(5))), nat(10));
+        assert_eq!(format!("{}", expr), "(λx.(0, 5)) 10");
     }
 }

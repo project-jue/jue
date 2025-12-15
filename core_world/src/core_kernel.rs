@@ -46,6 +46,21 @@ fn beta_reduce_with_depth(expr: CoreExpr, current_depth: usize, max_depth: usize
             }
         }
         CoreExpr::Var(_) => expr, // Variables can't be reduced
+        CoreExpr::Nat(_) => expr, // Natural numbers can't be reduced
+        CoreExpr::Pair(first, second) => {
+            // Pairs can't be reduced, but their components might be
+            let first_expr = (*first).clone();
+            let second_expr = (*second).clone();
+            let reduced_first =
+                beta_reduce_with_depth(first_expr.clone(), current_depth + 1, max_depth);
+            let reduced_second =
+                beta_reduce_with_depth(second_expr.clone(), current_depth + 1, max_depth);
+            if reduced_first != first_expr || reduced_second != second_expr {
+                CoreExpr::Pair(Box::new(reduced_first), Box::new(reduced_second))
+            } else {
+                CoreExpr::Pair(Box::new(first_expr), Box::new(second_expr))
+            }
+        }
     }
 }
 
@@ -76,6 +91,11 @@ fn lift_with_cutoff(expr: CoreExpr, amount: usize, cutoff: usize) -> CoreExpr {
         CoreExpr::App(func, arg) => CoreExpr::App(
             Box::new(lift_with_cutoff(*func, amount, cutoff)),
             Box::new(lift_with_cutoff(*arg, amount, cutoff)),
+        ),
+        CoreExpr::Nat(n) => CoreExpr::Nat(n), // Natural numbers don't have variables to lift
+        CoreExpr::Pair(first, second) => CoreExpr::Pair(
+            Box::new(lift_with_cutoff(*first, amount, cutoff)),
+            Box::new(lift_with_cutoff(*second, amount, cutoff)),
         ),
     }
 }
@@ -147,6 +167,23 @@ fn substitute_with_depth(
                 )),
             )
         }
+        CoreExpr::Nat(_) => expr, // Natural numbers can't be substituted
+        CoreExpr::Pair(first, second) => CoreExpr::Pair(
+            Box::new(substitute_with_depth(
+                *first,
+                target_index,
+                replacement.clone(),
+                current_depth + 1,
+                max_depth,
+            )),
+            Box::new(substitute_with_depth(
+                *second,
+                target_index,
+                replacement,
+                current_depth + 1,
+                max_depth,
+            )),
+        ),
     }
 }
 
@@ -170,6 +207,15 @@ fn alpha_equiv_helper(a: &CoreExpr, b: &CoreExpr, depth: usize) -> bool {
         (CoreExpr::App(func_a, arg_a), CoreExpr::App(func_b, arg_b)) => {
             // For applications, both function and argument must be equivalent
             alpha_equiv_helper(func_a, func_b, depth) && alpha_equiv_helper(arg_a, arg_b, depth)
+        }
+        (CoreExpr::Nat(n_a), CoreExpr::Nat(n_b)) => {
+            // Natural numbers are equivalent if they have the same value
+            n_a == n_b
+        }
+        (CoreExpr::Pair(first_a, second_a), CoreExpr::Pair(first_b, second_b)) => {
+            // Pairs are equivalent if both components are equivalent
+            alpha_equiv_helper(first_a, first_b, depth)
+                && alpha_equiv_helper(second_a, second_b, depth)
         }
         _ => false, // Different variants are not equivalent
     }
@@ -230,6 +276,19 @@ fn beta_reduce_step_inner(expr: CoreExpr, depth: usize) -> CoreExpr {
             }
         }
         CoreExpr::Var(_) => expr,
+        CoreExpr::Nat(_) => expr, // Natural numbers can't be reduced
+        CoreExpr::Pair(first, second) => {
+            // Pairs can't be reduced, but their components might be
+            let first_expr = (*first).clone();
+            let second_expr = (*second).clone();
+            let reduced_first = beta_reduce_step_inner(first_expr.clone(), depth + 1);
+            let reduced_second = beta_reduce_step_inner(second_expr.clone(), depth + 1);
+            if reduced_first != first_expr || reduced_second != second_expr {
+                CoreExpr::Pair(Box::new(reduced_first), Box::new(reduced_second))
+            } else {
+                CoreExpr::Pair(Box::new(first_expr), Box::new(second_expr))
+            }
+        }
     }
 }
 
@@ -289,6 +348,26 @@ fn beta_reduce_step_any_inner(expr: CoreExpr, depth: usize) -> Option<(CoreExpr,
             })
         }
         CoreExpr::Var(_) => None,
+        CoreExpr::Nat(_) => None, // Natural numbers can't be reduced
+        CoreExpr::Pair(first, second) => {
+            // Check if either component can be reduced
+            let first_expr = (*first).clone();
+            let second_expr = (*second).clone();
+            if let Some((orig_first, reduced_first)) = beta_reduce_step_any_inner(first_expr.clone(), depth + 1)
+            {
+                let new_pair = CoreExpr::Pair(Box::new(reduced_first), Box::new(second_expr.clone()));
+                let orig_pair = CoreExpr::Pair(Box::new(orig_first), Box::new(second_expr));
+                Some((orig_pair, new_pair))
+            } else if let Some((orig_second, reduced_second)) =
+                beta_reduce_step_any_inner(second_expr.clone(), depth + 1)
+            {
+                let new_pair = CoreExpr::Pair(Box::new(first_expr.clone()), Box::new(reduced_second));
+                let orig_pair = CoreExpr::Pair(Box::new(first_expr), Box::new(orig_second));
+                Some((orig_pair, new_pair))
+            } else {
+                None
+            }
+        }
     }
 }
 
@@ -304,6 +383,8 @@ pub fn is_normal_form(expr: &CoreExpr) -> bool {
                 _ => is_normal_form(func) && is_normal_form(arg),
             }
         }
+        CoreExpr::Nat(_) => true, // Natural numbers are always in normal form
+        CoreExpr::Pair(first, second) => is_normal_form(first) && is_normal_form(second),
     }
 }
 
@@ -322,6 +403,8 @@ pub fn count_redexes(expr: &CoreExpr) -> usize {
             };
             func_redexes + arg_redexes + current_redex
         }
+        CoreExpr::Nat(_) => 0, // Natural numbers have no redexes
+        CoreExpr::Pair(first, second) => count_redexes(first) + count_redexes(second),
     }
 }
 
@@ -384,6 +467,19 @@ fn eta_reduce_with_depth(expr: CoreExpr, current_depth: usize, max_depth: usize)
             }
         }
         CoreExpr::Var(_) => expr, // Variables can't be η-reduced
+        CoreExpr::Nat(_) => expr, // Natural numbers can't be η-reduced
+        CoreExpr::Pair(first, second) => {
+            // Try η-reduction on both components
+            let reduced_first =
+                eta_reduce_with_depth((*first).clone(), current_depth + 1, max_depth);
+            let reduced_second =
+                eta_reduce_with_depth((*second).clone(), current_depth + 1, max_depth);
+            if reduced_first != *first || reduced_second != *second {
+                CoreExpr::Pair(Box::new(reduced_first), Box::new(reduced_second))
+            } else {
+                CoreExpr::Pair(first, second)
+            }
+        }
     }
 }
 
@@ -394,6 +490,10 @@ fn contains_free_var(expr: &CoreExpr, target_index: usize) -> bool {
         CoreExpr::Lam(body) => contains_free_var(body, target_index + 1),
         CoreExpr::App(func, arg) => {
             contains_free_var(func, target_index) || contains_free_var(arg, target_index)
+        }
+        CoreExpr::Nat(_) => false, // Natural numbers don't contain variables
+        CoreExpr::Pair(first, second) => {
+            contains_free_var(first, target_index) || contains_free_var(second, target_index)
         }
     }
 }
