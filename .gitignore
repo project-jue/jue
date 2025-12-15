@@ -13,3 +13,4 @@
 *.out
 *.o
 *.a
+/.kilocode/mcp.json
