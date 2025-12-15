@@ -4,7 +4,7 @@
 **The Problem:**
 - Core-World is **purely functional** (no side effects)
 - Cognition needs **state, mutation, identity over time**
-- Physics layer provides **mutable memory cells**
+- Physics-World provides **mutable memory cells**
 
 **Options:**
 

@@ -37,7 +37,7 @@ Here is the revised checklist, structured to guide autonomous, safe implementati
 | **1.1 Implement CoreVerifier**      | Build the `core_verifier` library that exposes **only** the `verify_equiv` and `check_inconsistency` functions as per the spec.                       | **Conformance Gate:** The implementation passes **100%** of the `CoreSpec_v1` conformance test suite. |
 | **1.2 Implement Core->Core Proofs** | Implement logic for the verifier to validate proofs of equivalence between two CoreExpr terms (e.g., for η-reduction, commutativity of Nat addition). | **Property Test:** For a set of known-equivalent terms, `verify_equiv` returns `Ok(ProofValid)`.      |
 
-### **Layer 4: Physics Layer (Reference VM)**
+### **Layer 4: Physics-World (Reference VM)**
 
 | Task                                | Description                                                                                                       | Verification / Proof Obligation                                                                                                         |
 | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------- |

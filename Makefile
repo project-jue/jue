@@ -14,7 +14,7 @@ help:
 	@echo "  all                - Show this help message"
 	@echo "  test               - Run all tests (default)"
 	@echo "  test-core          - Run Core-World tests"
-	@echo "  test-physics       - Run Physics Layer tests"
+	@echo "  test-physics       - Run Physics-World tests"
 	@echo "  test-dan           - Run Dan-World tests"
 	@echo "  test-jue           - Run Jue-World tests"
 	@echo "  test-integration   - Run integration tests"
@@ -50,10 +50,10 @@ test-core:
 	@echo "Running Core-World tests..."
 	cargo test -p core_world
 
-# Physics Layer tests
+# Physics-World tests
 test-physics:
-	@echo "Running Physics Layer tests..."
-	cargo test -p physics_layer
+	@echo "Running Physics-World tests..."
+	cargo test -p physics_world
 
 # Dan-World tests
 test-dan:

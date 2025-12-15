@@ -1,12 +1,12 @@
-# Physics Layer Comprehensive Testing Plan
+# Physics-World Comprehensive Testing Plan
 
 ## Current Test Coverage Analysis
 
 ### Existing Tests
-- `physics_layer/src/atomic_ops.rs` - Contains 7 tests for atomic operations
-- `physics_layer/src/memory_manager.rs` - Contains 7 tests for memory management
-- `physics_layer/src/primitives.rs` - Contains 9 tests for arithmetic operations
-- `tests/physics_layer_tests.rs` - Existing integration tests
+- `physics_world/src/atomic_ops.rs` - Contains 7 tests for atomic operations
+- `physics_world/src/memory_manager.rs` - Contains 7 tests for memory management
+- `physics_world/src/primitives.rs` - Contains 9 tests for arithmetic operations
+- `tests/physics_world_tests.rs` - Existing integration tests
 
 ### Coverage Gaps Identified
 1. **Atomic Operations** - Needs additional tests for error handling and edge cases
@@ -53,7 +53,7 @@
 - Arithmetic properties (associativity, distributivity)
 - Performance benchmarks
 
-#### 4. Integration Tests (`tests/physics_layer_integration_tests.rs`)
+#### 4. Integration Tests (`tests/physics_world_integration_tests.rs`)
 - Atomic operations with memory management
 - Primitive operations in memory contexts
 - Thread-safe memory with atomic operations
@@ -74,7 +74,7 @@
 3. Add overflow/underflow tests to primitive operations
 
 ### Phase 3: Integration Tests
-1. Create `tests/physics_layer_integration_tests.rs` for cross-component testing
+1. Create `tests/physics_world_integration_tests.rs` for cross-component testing
 2. Add performance benchmarks
 
 ## Test Quality Standards
@@ -96,7 +96,7 @@
 
 ## Expected Outcomes
 
-- Full unit test coverage of all physics layer components
+- Full unit test coverage of all physics world components
 - Comprehensive integration testing
 - Performance benchmarks for critical operations
 - Clear documentation of test coverage

@@ -17,9 +17,9 @@ Reduction order: We choose a deterministic reduction strategy, such as leftmost-
 
 Rewrite rules: We fix the set of rewrite rules (β and possibly η) and any other rules (like for primitives) and specify their order of application.
 
-Handling of non-termination: We accept that for non-terminating terms, the evaluation does not produce a normal form. We can represent this as ⊥ (bottom) in the semantic domain, but operationally, the evaluator would run forever (or until resource limits). In the Physics layer, we will have resource limits that stop evaluation, but that is outside Core-World.
+Handling of non-termination: We accept that for non-terminating terms, the evaluation does not produce a normal form. We can represent this as ⊥ (bottom) in the semantic domain, but operationally, the evaluator would run forever (or until resource limits). In the Physics-World, we will have resource limits that stop evaluation, but that is outside Core-World.
 
-So, Core-World evaluation is deterministic by decree. The Physics layer will implement this deterministic evaluation (up to resource limits) and will also be deterministic in its own right (as per previous discussions).
+So, Core-World evaluation is deterministic by decree. The Physics-World will implement this deterministic evaluation (up to resource limits) and will also be deterministic in its own right (as per previous discussions).
 
 
 

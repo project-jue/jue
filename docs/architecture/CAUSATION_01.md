@@ -78,7 +78,7 @@ Physics      ────────────────▶           ◀�
 
 **The "Causation" That Dan Experiences:**
 
-Dan doesn't experience Physics-layer causation. It experiences:
+Dan doesn't experience Physics-World causation. It experiences:
 
 ```jue
 // Dan's subjective causation:

@@ -2,7 +2,7 @@
 ## **6. The Resource Accounting: Precise vs. Approximate**
 
 **The Problem:**
-- Physics layer knows **exact resource usage**
+- Physics-World knows **exact resource usage**
 - Jue programs should **plan within budgets**
 - Dan needs to **learn resource consumption patterns**
 

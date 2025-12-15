@@ -3,7 +3,7 @@
 use std::fmt;
 
 /// Core expression enum representing λ-calculus terms
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CoreExpr {
     /// Variable expression with De Bruijn index
     Var(usize),

@@ -144,7 +144,7 @@ Jue-World answers:
 It bridges:
 
 * Mathematical meaning (Core-World)
-* Real execution (Physics layer)
+* Real execution (Physics-World)
 * Cognitive processes (Dan-World)
 
 ---
@@ -197,7 +197,7 @@ This prevents runaway self-modification while still allowing growth.
 
 ---
 
-## **4. Physics Layer (Rust VM)**
+## **4. Physics-World (Rust VM)**
 
 ### **What It Is**
 
@@ -212,7 +212,7 @@ It provides:
 
 ### **Why It Exists**
 
-The Physics layer:
+The Physics-World:
 
 * Prevents “cheating” via host language features
 * Makes performance characteristics explicit

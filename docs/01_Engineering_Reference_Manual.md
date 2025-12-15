@@ -8,12 +8,12 @@
 *   **Formal Grounding:** Core-World provides the immutable semantic reference. Any operation that cannot prove it preserves this meaning must be explicitly marked.
 *   **Dual Interpretation:** Jue-World bridges timeless meaning with temporal execution. Every construct must have both denotational (Core) and operational (Physics) definitions.
 *   **Emergent Cognition:** Dan-World's intelligence arises from subcognitive gradients and pattern detection, not top-down algorithms.
-*   **Deterministic Reality:** The Physics Layer enforces AIKR through deterministic, unforgiving resource constraints, providing the causal feedback required for learning.
+*   **Deterministic Reality:** The Physics-World enforces AIKR through deterministic, unforgiving resource constraints, providing the causal feedback required for learning.
 
 ## **2. Jue Language Reference**
 
 ### **2.1 Grammar & Core Constructs**
-Jue is an S-expression-based language where every construct must be compilable to Core-World and executable by the Physics Layer.
+Jue is an S-expression-based language where every construct must be compilable to Core-World and executable by the Physics-World.
 
 **Base Grammar:**
 ```
@@ -45,7 +45,7 @@ Every expression must carry a trust annotation defining its verification status.
 *   **Primitives:** `Int`, `Symbol`, `Bool`.
 *   **Evidence Tuple:** `(freq, conf)` – The fundamental unit of belief, supporting NARS-style updates.
 *   **Managed References:** `(Ref <id> <value>)` – Mutable state accessible only within a `region`.
-*   **Structured Errors:** `(Error <type> <context> <limit>)` – The format returned by the Physics layer (e.g., `(ResourceExhaustion "memory" 512MB)`).
+*   **Structured Errors:** `(Error <type> <context> <limit>)` – The format returned by the Physics-World (e.g., `(ResourceExhaustion "memory" 512MB)`).
 *   **Pattern Object:** `(Pattern <conditions> <frequency>)` – A detected regularity in events or state.
 
 ## **3. Folder & Specification Structure**
@@ -58,7 +58,7 @@ Every expression must carry a trust annotation defining its verification status.
 ├── /core_world/                    # Reference Implementation of CoreSpec
 │   ├── /src/kernel/                # βη-reducer, proof checker
 │   └── /src/interface.rs           # Jue-Core verification API
-├── /physics_layer/                 # Reference Implementation of PhysicsSpec
+├── /physics_world/                 # Reference Implementation of PhysicsSpec
 │   ├── /src/vm/                    # Deterministic interpreter
 │   ├── /src/actor/                 # Isolated actor/memory model
 │   └── /src/interface.rs           # Bytecode submission API
@@ -75,7 +75,7 @@ Every expression must carry a trust annotation defining its verification status.
 └── /experiments/                   // Multi-Dan instances, interaction studies
 ```
 
-**Key Development Rule:** The `spec/` directory is **read-only** during implementation. All code in `core_world/` and `physics_layer/` must be a direct, verifiable implementation of these specs.
+**Key Development Rule:** The `spec/` directory is **read-only** during implementation. All code in `core_world/` and `physics_world/` must be a direct, verifiable implementation of these specs.
 
 ## **4. Architecture & Layer Contracts**
 

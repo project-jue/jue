@@ -7,13 +7,13 @@ use core_world::eval_relation::{eval_empty, EvalResult};
 use core_world::proof_checker::{
     prove_beta_reduction, prove_evaluation, prove_normalization, verify_proof, Proof,
 };
-use physics_layer::memory_manager::MemoryManager;
-use physics_layer::primitives::{add, mul};
+use physics_world::memory_manager::MemoryManager;
+use physics_world::primitives::{add, mul};
 #[test]
 fn test_complete_system_workflow() {
     // Test a complete workflow from physics primitives to core proofs
 
-    // Step 1: Physics layer provides arithmetic
+    // Step 1: Physics-World provides arithmetic
     let sum = add(15, 25).unwrap();
     assert_eq!(sum, 40);
 

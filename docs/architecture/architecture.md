@@ -26,7 +26,7 @@ graph TD
     A[Dan-World: Cognitive Ecology] -->|Jue Code / Proposals| B[Jue-World: Execution & Language]
     B -->|CoreExpr + Proof| C[Core-World: Formal Kernel]
     C -->|Verification Request| B
-    B -->|Bytecode + Budget| D[Physics Layer: Deterministic VM]
+    B -->|Bytecode + Budget| D[Physics-World: Deterministic VM]
     D -->|Structured Result| B
 ```
 
@@ -87,7 +87,7 @@ Physics Event → Gradient Update → Module Activation
     → [Loop] → Narrative Self-Update
 ```
 
-### 4. Physics Layer Architecture
+### 4. Physics-World Architecture
 **Purpose**: Minimal, deterministic virtual machine that enforces the constraints of reality (AIKR). It provides the unyielding causal feedback necessary for learning.
 
 **Key Components**: <!-- SIGNIFICANTLY EXPANDED -->
@@ -114,7 +114,7 @@ sequenceDiagram
     participant D as Dan-World
     participant J as Jue-World
     participant C as Core-World
-    participant P as Physics Layer
+    participant P as Physics-World
 
     D->>J: Cognitive Proposal + Context
     J->>J: Assign Trust Tier, Apply Macros
@@ -157,7 +157,7 @@ project_jue/
 ├── core_world/                 # Formal kernel
 │   ├── src/kernel/             # βη-reduction, proof checking
 │   └── src/interface.rs        # Jue-Core API (frozen)
-├── physics_layer/              # Deterministic VM
+├── physics_world/              # Deterministic VM
 │   ├── src/vm/                 # Interpreter & scheduler
 │   ├── src/actor/              # Memory-isolated actors
 │   └── src/interface.rs        # Bytecode/result API (frozen)

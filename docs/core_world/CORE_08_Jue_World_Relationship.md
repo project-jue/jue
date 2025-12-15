@@ -18,19 +18,19 @@ Core-World is the formal semantics for the sequential, deterministic subset of J
 
 For concurrency and other non-deterministic features, we use a deterministic abstraction in Core-World (like representing all possible traces) and then prove properties over that abstraction.
 
-But note: the Physics layer is deterministic, so the concurrency in Jue-World is actually implemented deterministically (by the scheduler). Therefore, we can model concurrency in Core-World as a deterministic scheduler that interleaves threads. This would be complex, but possible.
+But note: the Physics-World is deterministic, so the concurrency in Jue-World is actually implemented deterministically (by the scheduler). Therefore, we can model concurrency in Core-World as a deterministic scheduler that interleaves threads. This would be complex, but possible.
 
-Alternatively, we can have two layers of semantics in Jue-World: a denotational semantics in Core-World for sequential parts, and an operational semantics for concurrency that is implemented in the Physics layer and is deterministic. Then, we don't try to model concurrency in Core-World, but we prove properties about the concurrency implementation in the Physics layer.
+Alternatively, we can have two layers of semantics in Jue-World: a denotational semantics in Core-World for sequential parts, and an operational semantics for concurrency that is implemented in the Physics-World and is deterministic. Then, we don't try to model concurrency in Core-World, but we prove properties about the concurrency implementation in the Physics-World.
 
-Given the complexity, it might be better to have Core-World as the semantics for the sequential part, and then have the Physics layer define the concurrency semantics. Then, the compilation from Jue to Core would handle sequential parts, and the concurrency primitives would be handled by the Physics layer.
+Given the complexity, it might be better to have Core-World as the semantics for the sequential part, and then have the Physics-World define the concurrency semantics. Then, the compilation from Jue to Core would handle sequential parts, and the concurrency primitives would be handled by the Physics-World.
 
 So, to summarize:
 
 Core-World is a formal semantics for the sequential, deterministic part of Jue.
 
-Jue-World extends this with concurrency and other features, which are implemented in the Physics layer and have their own semantics (which is deterministic but more complex).
+Jue-World extends this with concurrency and other features, which are implemented in the Physics-World and have their own semantics (which is deterministic but more complex).
 
-Thus, the relationship is that Core-World is the foundation of meaning for Jue, but not all of Jue's behavior is directly captured in Core-World; some is captured in the Physics layer.
+Thus, the relationship is that Core-World is the foundation of meaning for Jue, but not all of Jue's behavior is directly captured in Core-World; some is captured in the Physics-World.
 
 Synthesis
 Given the above, here are the answers:
@@ -43,7 +43,7 @@ Grounded in Jue: The mapping from Jue to Core is explicit and invertible for the
 
 Consistency: Core-World is consistent by design. If we extend it with logical axioms, we must do so carefully.
 
-Relationship: Core-World is the formal semantics for the sequential, deterministic part of Jue. Concurrency and other features are handled by the Physics layer and have their own semantics.
+Relationship: Core-World is the formal semantics for the sequential, deterministic part of Jue. Concurrency and other features are handled by the Physics-World and have their own semantics.
 
 
 

@@ -34,7 +34,7 @@ The Jue term boolean is not a primitive. It's a Jue-world type defined as a mapp
 
 The Jue term 7 is not just the Core-World symbol 7. It's a cognitive package containing: the axiomatic symbol 7, a set of proven properties (prime(7), odd(7)), and potentially empirical associations (like a sensory prototype).
 
-Sensors/Actions: These are opaque atoms at the Physics layer, but they are wrapped in Jue by interface types whose denotational meaning is a predicate about world-state changes. The agent's belief about what a sensor means is a Jue-world model that can be wrong, incomplete, or context-dependent.
+Sensors/Actions: These are opaque atoms at the Physics-World, but they are wrapped in Jue by interface types whose denotational meaning is a predicate about world-state changes. The agent's belief about what a sensor means is a Jue-world model that can be wrong, incomplete, or context-dependent.
 
 Why This Works for Dan-World:
 
@@ -57,7 +57,7 @@ But you’ve also mentioned that Core-World should be minimal. How do you reconc
 If Core-World is minimal, what are the non-λ primitives? Are they:
 • axiomatic symbols with rewrite rules (e.g., +(2,3) -> 5)
 • opaque atoms with no formal semantics
-• symbolic placeholders for physics-layer operations
+• symbolic placeholders for physics world operations
 
 If they’re axiomatic, you’re expanding the trusted core.
 If they’re opaque, you’re losing formal grounding.

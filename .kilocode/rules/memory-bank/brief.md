@@ -38,7 +38,7 @@ The system is designed to support safe self-modification, proof-driven optimizat
 - Micro-kernels for validating proposed mutations
 - Persistent data structures with versioning and rollback
 
-### Physics Layer
+### Physics-World
 - Minimal Rust VM with 12 primitive operations
 - Atomic concurrency primitives
 - Memory management for all layers
@@ -47,7 +47,7 @@ The system is designed to support safe self-modification, proof-driven optimizat
 ## Technologies Used
 
 ### Programming Languages
-- **Rust**: Core implementation language for formal kernel and physics layer
+- **Rust**: Core implementation language for formal kernel and physics world
 - **Jue**: Custom S-expression-based language for cognitive layer
 
 ### Key Dependencies

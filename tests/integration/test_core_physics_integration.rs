@@ -5,13 +5,13 @@ use core_world::eval_relation::eval_empty;
 use core_world::proof_checker::{
     prove_beta_reduction, prove_evaluation, prove_normalization, verify_proof,
 };
-use physics_layer::primitives::{add, div_i32, mul};
+use physics_world::primitives::{add, div_i32, mul};
 
 #[test]
 fn test_core_physics_integration() {
     // Test that core expressions can use physics primitives
     // This would involve creating core expressions that represent arithmetic operations
-    // and verifying they work correctly with physics layer primitives
+    // and verifying they work correctly with physics world primitives
 
     // Test basic arithmetic that could be represented in core expressions
     assert_eq!(add(5, 3), Ok(8));

@@ -5,18 +5,18 @@ use core_world::eval_relation::eval_empty;
 use core_world::proof_checker::{
     prove_beta_reduction, prove_evaluation, prove_normalization, verify_proof, Proof,
 };
-use physics_layer::memory_manager::MemoryManager;
-use physics_layer::primitives::add;
+use physics_world::memory_manager::MemoryManager;
+use physics_world::primitives::add;
 
 #[test]
 fn test_complete_system_integration() {
     // This test simulates a complete workflow through all layers:
-    // 1. Physics layer provides primitives
+    // 1. Physics-World provides primitives
     // 2. Core layer provides formal semantics
     // 3. Jue layer compiles and optimizes
     // 4. Dan layer manages modules and events
 
-    // Step 1: Physics layer operations
+    // Step 1: Physics-World operations
     let arithmetic_result = add(10, 20).unwrap();
     assert_eq!(arithmetic_result, 30);
 

@@ -1,99 +1,47 @@
+# **Project Jue: Current Context**
 
-# Project Jue: Current Context
+## **Current Work Focus**
 
-## Current Work Focus
+### **Active Development Priority: Physics World**
+All development is now directed by the **Physics World Specification v1.0**. The immediate, highest-priority task is implementing a **custom, stack-based semantic virtual machine** that will serve as the deterministic execution substrate for the entire Jue system.
 
-### Active Development Areas
-- **Core-World**: Finalizing β-reduction and normalization algorithms with comprehensive test coverage
-- **Jue-World**: Implementing compiler optimizations and proof generation
-- **Dan-World**: Developing event-driven cognitive modules and mutation protocols
-- **Physics Layer**: Building atomic operations and memory management
+### **Recent Strategic Decision**
+The architecture has converged on a purpose-built VM. This clean-slate approach is optimal for Jue's needs, providing perfect introspection for debugging, deterministic enforcement of AIKR, and minimal technical complexity.
 
-### Recent Changes
-- Completed initial implementation of Core-World kernel with β-reduction, α-equivalence, and normalization
-- Added comprehensive test suite for Core-World with property-based testing
-- Implemented Jue compiler skeleton with basic compilation pipeline
-- Created Dan-World event loop architecture with mailbox system
-- Established Physics Layer foundation with atomic primitives
+### **Next Immediate Steps**
+1.  **Finalize & Freeze `PhysicsSpec_v1.0.md`.** This spec defines the VM's instruction set, memory model, and API.
+2.  **Implement the VM Core.** Build the `VmState`, `OpCode` interpreter, and `ObjectArena` allocator according to the spec.
+3.  **Update Jue-World Compiler Backend.** Retarget the compiler to generate the new VM bytecode and integrate the trust-tier pipeline.
+4.  **Create First Cross-Layer Test.** Establish a test where a simple Jue expression is compiled to bytecode and correctly executed by the new VM.
 
-### Next Steps
-1. **Core-World**: Complete formal proof checker and verify kernel consistency
-2. **Jue-World**: Implement full compiler with optimization passes and proof generation
-3. **Dan-World**: Develop cognitive modules (perceptual, affective, memory, planning)
-4. **Physics Layer**: Implement complete VM with all 12 atomic operations
-5. **Integration**: Create comprehensive integration tests across all layers
+## **Key Challenges**
 
-## Current State Analysis
+### **Technical Challenges**
+1.  **VM Implementation Correctness:** The interpreter and memory allocator form the Trusted Computing Base and must be bug-free.
+2.  **Deterministic Execution:** Ensuring identical VM behavior across different host platforms (x86, ARM).
+3.  **Efficient Bytecode & State Design:** Designing the instruction set and serializable state for both performance and deep introspection.
 
-### Core-World Status
-- ✅ Basic λ-calculus implementation with De Bruijn indices
-- ✅ β-reduction, α-equivalence, and normalization algorithms
-- ✅ Comprehensive test suite with edge case coverage
-- ⏳ Formal proof checker (in development)
-- ⏳ Kernel consistency verification (in development)
+### **Integration Challenges**
+1.  **Trust-Tier Pipeline:** Cleanly routing `:formal` code for proof verification and `:empirical` code for sandboxed execution.
+2.  **Actor State Management:** Implementing efficient serialization and scheduling for Dan-World actors within the Physics World.
 
-### Jue-World Status
-- ✅ Compiler skeleton with basic structure
-- ✅ Bytecode instruction set definition
-- ✅ Optimization framework (constant folding, inlining)
-- ⏳ Full compilation pipeline with proof generation
-- ⏳ Macro system implementation
+## **Architectural Insights**
 
-### Dan-World Status
-- ✅ Event loop architecture with mailbox system
-- ✅ Module communication protocols
-- ✅ Error handling and recovery mechanisms
-- ⏳ Cognitive module implementations
-- ⏳ Mutation protocol with trust levels
+### **Core Design Pillars**
+- **Semantic VM:** The Physics World executes high-level Jue operations (like `Cons` or `Call`), not low-level hardware instructions.
+- **Stack-Based & Introspectable:** A stack model was chosen for implementation simplicity and superior state visibility.
+- **Arena Allocation:** A "per-thought" memory arena provides deterministic, fast allocation and cleanup aligned with AIKR.
+- **Actor Isolation:** Each Dan-World actor has a dedicated, isolated VM state managed by a central scheduler.
 
-### Physics Layer Status
-- ✅ Basic atomic operations framework
-- ✅ Memory management foundation
-- ⏳ Complete VM implementation
-- ⏳ Concurrency primitives
-- ⏳ Execution engine
+## **Upcoming Milestones**
+1.  **Physics Specification Finalized.** (`PhysicsSpec_v1.0.md` locked)
+2.  **VM Core Operational.** Basic interpreter can execute a sequence of `OpCode` instructions.
+3.  **First Compiled Execution.** Jue-World successfully compiles a test program to the new VM, which runs it correctly.
+4.  **Scheduler Operational.** Physics World can manage multiple actor states with round-robin execution.
 
-## Key Challenges
+## **Current Absolute Priorities**
+1.  **Implement the Physics World VM.** This is the critical path. The `physics_world/vm/` module must be built first.
+2.  **Align Jue-World Backend.** Update the compiler to target the new VM bytecode specification.
+3.  **Design Dan-World Primitives.** Begin work on gradient and pattern-detection modules that will use the Physics World API.
 
-### Technical Challenges
-1. **Formal Verification**: Ensuring all transformations maintain mathematical correctness
-2. **Layer Integration**: Seamless communication between layers while maintaining isolation
-3. **Performance Optimization**: Balancing formal guarantees with practical execution speed
-4. **Concurrency Safety**: Thread-safe operations across all layers
-5. **Self-Modification**: Safe mutation protocols with trust-level validation
-
-### Testing Challenges
-1. **Comprehensive Coverage**: Ensuring all edge cases are tested
-2. **Property-Based Testing**: Generating meaningful test cases for complex scenarios
-3. **Integration Testing**: Validating cross-layer interactions
-4. **Performance Benchmarking**: Establishing baseline metrics
-
-## Recent Insights
-
-### Architecture Insights
-- The layered approach successfully separates concerns while enabling integration
-- De Bruijn indices provide robust variable handling in λ-calculus
-- Event-driven architecture enables modular cognitive processing
-- Proof-carrying code approach balances safety and performance
-
-### Implementation Insights
-- Rust's type system provides excellent safety guarantees for core operations
-- S-expression language offers flexibility for cognitive operations
-- Mailbox system enables reliable inter-module communication
-- Atomic operations provide foundation for thread-safe execution
-
-## Upcoming Milestones
-
-1. **Core-World Completion**: Formal proof checker and kernel verification
-2. **Jue-World Completion**: Full compiler with optimization and proof generation
-3. **Dan-World Completion**: Cognitive modules and mutation protocols
-4. **Physics Layer Completion**: Complete VM with all atomic operations
-5. **Integration Testing**: Comprehensive cross-layer validation
-6. **Performance Optimization**: Benchmarking and tuning
-
-## Current Priorities
-
-1. **Core-World**: Complete formal verification components
-2. **Jue-World**: Implement full compilation pipeline
-3. **Dan-World**: Develop cognitive module implementations
-4. **Physics Layer**: Complete VM implementation
+**All development follows the Physics World Specification v1.0. This custom semantic VM is the established and singular path forward.**

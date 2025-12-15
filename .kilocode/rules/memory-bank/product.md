@@ -30,7 +30,7 @@ Project Jue aims to create a safe, verifiable, and scalable Artificial General I
 graph TD
     A[Dan-World: Cognitive Layer] -->|Compiles to| B[Jue-World: Execution Engine]
     B -->|Translates to| C[Core-World: Formal Kernel]
-    C -->|Executes on| D[Physics Layer: Runtime]
+    C -->|Executes on| D[Physics-World: Runtime]
     D -->|Provides primitives for| C
     C -->|Verified semantics for| B
     B -->|Optimized execution for| A
@@ -41,7 +41,7 @@ graph TD
 1. **Cognitive Processing**: Dan-World modules (perceptual, affective, memory, planning) process events and generate cognitive operations.
 2. **Compilation**: Jue-World compiles cognitive operations to CoreExpr with proof annotations.
 3. **Formal Verification**: Core-World verifies all transformations maintain correctness.
-4. **Execution**: Physics Layer executes verified bytecode with atomic primitives.
+4. **Execution**: Physics-World executes verified bytecode with atomic primitives.
 5. **Feedback Loop**: Results feed back to cognitive modules for continuous learning.
 
 ## User Experience Goals
@@ -87,7 +87,7 @@ graph TD
 - **Persistent structures** with versioning and rollback
 - **Micro-kernels** for safe self-modification
 
-### Physics Layer
+### Physics-World
 - **Minimal Rust VM** with 12 atomic operations
 - **Concurrency primitives** for parallel execution
 - **Memory management** for all layers

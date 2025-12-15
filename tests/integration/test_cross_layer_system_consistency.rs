@@ -1,5 +1,4 @@
-
-use physics_layer::memory_manager::MemoryManager;
+use physics_world::memory_manager::MemoryManager;
 
 use core_world::proof_checker::prove_normalization;
 
@@ -45,7 +44,7 @@ pub(crate) fn test_cross_layer_system_consistency() {
     assert!(verify_proof(&eval_proof, &expr));
     assert!(verify_proof(&norm_proof, &expr));
 
-    // Test physics layer consistency
+    // Test physics world consistency
     assert_eq!(add(5, 3), Ok(8));
     assert_eq!(mul(2, 4), Ok(8));
     assert_eq!(div_i32(10, 2), Ok(5));

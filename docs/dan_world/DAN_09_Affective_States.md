@@ -54,7 +54,7 @@ Free Will Through Divergent Instance Seeds:
 
 Your clone example is perfect. Here's how to implement it:
 
-Physics Layer: Add an instance_uuid: Hash to the VM state.
+Physics-World: Add an instance_uuid: Hash to the VM state.
 
 Jue-World: Make all "random" choices seed-based: choice = hash(instance_uuid || step_count || context).
 

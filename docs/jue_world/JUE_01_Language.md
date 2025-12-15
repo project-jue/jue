@@ -33,7 +33,7 @@ Every Jue construct must have two clear, related interpretations:
 
 A Denotational Interpretation (The "What"): A translation to Core-World that answers "What does this mean?" This is static, timeless, and about truth.
 
-An Operational Interpretation (The "How"): A compilation to Physics-layer bytecode that answers "How is this executed?" This is dynamic, sequential, and about process.
+An Operational Interpretation (The "How"): A compilation to Physics-World bytecode that answers "How is this executed?" This is dynamic, sequential, and about process.
 
 The Golden Rule of Jue: For any Jue expression, its operational behavior must be a refinement of its denotational meaning. The execution cannot violate the core semantics, but it can be more specific (e.g., choose an order, run out of resources).
 

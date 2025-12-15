@@ -1,12 +1,12 @@
 /// Jue-Physics Integration Tests
-use physics_layer::memory_manager::MemoryManager;
-use physics_layer::primitives::{add, div_i32, mul};
+use physics_world::memory_manager::MemoryManager;
+use physics_world::primitives::{add, div_i32, mul};
 
 #[test]
 fn test_jue_physics_integration() {
     // This test would involve:
     // 1. Creating Jue expressions that use physics primitives
-    // 2. Evaluating them using physics layer operations
+    // 2. Evaluating them using physics world operations
     // 3. Verifying the results
 
     // For now, we'll test physics operations that Jue would use

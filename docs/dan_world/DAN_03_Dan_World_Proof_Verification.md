@@ -321,13 +321,13 @@ Given Jue's design goals (self-hosting, agent-driven AST mutation, formal semant
 - Hybrid testing approach
 
 #### Phase 4: Hybrid Testing
-- Rust tests for VM and physics layer
+- Rust tests for VM and physics world
 - Jue tests for runtime layers
 - Unified test reporting
 
 #### Phase 5: Jue-First Testing
 - Jue tests for most functionality
-- Rust tests only for physics layer
+- Rust tests only for physics world
 - Self-hosting test environment
 
 ### Practical Implementation for Current Situation

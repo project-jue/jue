@@ -12,23 +12,18 @@ pub fn beta_reduce(expr: CoreExpr) -> CoreExpr {
 /// Beta reduce with recursion depth tracking
 fn beta_reduce_with_depth(expr: CoreExpr, current_depth: usize, max_depth: usize) -> CoreExpr {
     if current_depth >= max_depth {
-        println!(
-            "WARNING: Beta reduction recursion limit reached at depth {}",
-            current_depth
-        );
         return expr;
     }
 
     match expr {
         CoreExpr::App(func, arg) => {
-            // Call-by-Value: First reduce function to WHNF
+            // Call-by-Name: First reduce function to WHNF, then substitute argument without evaluation
             let reduced_func = beta_reduce_with_depth(*func, current_depth + 1, max_depth);
 
             match reduced_func {
                 CoreExpr::Lam(body) => {
-                    // Function is lambda, reduce argument first (call-by-value)
-                    let reduced_arg = beta_reduce_with_depth(*arg, current_depth + 1, max_depth);
-                    substitute_with_depth(*body, 0, reduced_arg, current_depth + 1, max_depth)
+                    // Function is lambda, substitute argument without evaluating it (call-by-name)
+                    substitute_with_depth(*body, 0, *arg, current_depth + 1, max_depth)
                 }
                 reduced_func_expr => {
                     // Function not a lambda, return reduced application
@@ -105,10 +100,6 @@ fn substitute_with_depth(
     max_depth: usize,
 ) -> CoreExpr {
     if current_depth >= max_depth {
-        println!(
-            "WARNING: Substitution recursion limit reached at depth {}",
-            current_depth
-        );
         return expr;
     }
 
@@ -183,25 +174,250 @@ fn alpha_equiv_helper(a: &CoreExpr, b: &CoreExpr, depth: usize) -> bool {
         _ => false, // Different variants are not equivalent
     }
 }
+/// Performs exactly one β-reduction step at the leftmost-outermost redex.
+/// Returns the reduced expression, or the original if no redex exists.
+pub fn beta_reduce_step(expr: CoreExpr) -> CoreExpr {
+    beta_reduce_step_inner(expr, 0)
+}
+
+/// Inner recursive function with depth tracking for safety
+fn beta_reduce_step_inner(expr: CoreExpr, depth: usize) -> CoreExpr {
+    const MAX_DEPTH: usize = 1000;
+
+    if depth >= MAX_DEPTH {
+        // Safety: return original to avoid stack overflow
+        return expr;
+    }
+
+    match expr {
+        CoreExpr::App(func, arg) => {
+            // Check if this is a redex (function is a lambda)
+            if let CoreExpr::Lam(body) = &*func {
+                // Found a redex! (λ.M) N - Perform the β-reduction: [arg/0]body
+                let func_body = body.clone();
+                let arg_expr = (*arg).clone();
+                substitute(*func_body, 0, arg_expr)
+            } else {
+                // Application where function might contain a redex
+                // Try to reduce the function first (leftmost-outermost)
+                let func_clone = (*func).clone();
+                let reduced_func = beta_reduce_step_inner(func_clone.clone(), depth + 1);
+
+                if reduced_func != func_clone {
+                    // Function was reduced, rebuild application
+                    CoreExpr::App(Box::new(reduced_func), arg.clone())
+                } else {
+                    // Function didn't reduce, try the argument
+                    let arg_clone = (*arg).clone();
+                    let reduced_arg = beta_reduce_step_inner(arg_clone.clone(), depth + 1);
+                    if reduced_arg != arg_clone {
+                        CoreExpr::App(Box::new(func_clone), Box::new(reduced_arg))
+                    } else {
+                        // Neither could be reduced
+                        CoreExpr::App(func.clone(), arg.clone())
+                    }
+                }
+            }
+        }
+        CoreExpr::Lam(body) => {
+            // Lambda abstraction - reduce the body
+            let body_clone = (*body).clone();
+            let reduced_body = beta_reduce_step_inner(*body, depth + 1);
+            if reduced_body != body_clone {
+                CoreExpr::Lam(Box::new(reduced_body))
+            } else {
+                CoreExpr::Lam(Box::new(body_clone))
+            }
+        }
+        CoreExpr::Var(_) => expr,
+    }
+}
+
+/// Alternative: A version that finds ANY redex (not just leftmost-outermost)
+/// This can be useful for different proof strategies
+pub fn beta_reduce_step_any(expr: CoreExpr) -> Option<(CoreExpr, CoreExpr)> {
+    beta_reduce_step_any_inner(expr, 0)
+}
+
+/// Finds any redex and returns (original, reduced)
+fn beta_reduce_step_any_inner(expr: CoreExpr, depth: usize) -> Option<(CoreExpr, CoreExpr)> {
+    const MAX_DEPTH: usize = 1000;
+
+    if depth >= MAX_DEPTH {
+        return None;
+    }
+
+    match expr {
+        CoreExpr::App(func, arg) => {
+            // Check if this is a redex (function is a lambda)
+            if let CoreExpr::Lam(body) = &*func {
+                // Found a redex at current position
+                let reduced = substitute(*body.clone(), 0, (*arg).clone());
+                let expr_clone = CoreExpr::App(func.clone(), arg.clone());
+                Some((expr_clone, reduced))
+            } else {
+                // Check function part
+                // First check if function contains a redex
+                let func_clone = func.clone();
+                if let Some((orig_func, reduced_func)) =
+                    beta_reduce_step_any_inner(*func_clone.clone(), depth + 1)
+                {
+                    let new_app = CoreExpr::App(Box::new(reduced_func), arg.clone());
+                    let orig_app = CoreExpr::App(Box::new(orig_func), arg.clone());
+                    Some((orig_app, new_app))
+                }
+                // Then check argument
+                else if let Some((orig_arg, reduced_arg)) =
+                    beta_reduce_step_any_inner(*arg.clone(), depth + 1)
+                {
+                    let func_clone = func.clone();
+                    let new_app =
+                        CoreExpr::App(Box::new(*func_clone.clone()), Box::new(reduced_arg));
+                    let orig_app = CoreExpr::App(Box::new(*func_clone), Box::new(orig_arg));
+                    Some((orig_app, new_app))
+                } else {
+                    None
+                }
+            }
+        }
+        CoreExpr::Lam(body) => {
+            // Check lambda body
+            beta_reduce_step_any_inner(*body, depth + 1).map(|(orig_body, reduced_body)| {
+                let orig_lam = CoreExpr::Lam(Box::new(orig_body));
+                let reduced_lam = CoreExpr::Lam(Box::new(reduced_body));
+                (orig_lam, reduced_lam)
+            })
+        }
+        CoreExpr::Var(_) => None,
+    }
+}
+
+/// Helper: Check if an expression is in normal form (no redexes)
+pub fn is_normal_form(expr: &CoreExpr) -> bool {
+    match expr {
+        CoreExpr::Var(_) => true,
+        CoreExpr::Lam(body) => is_normal_form(body),
+        CoreExpr::App(func, arg) => {
+            // Check if it's a redex
+            match &**func {
+                CoreExpr::Lam(_) => false, // This is a redex!
+                _ => is_normal_form(func) && is_normal_form(arg),
+            }
+        }
+    }
+}
+
+/// Helper: Count the number of redexes in an expression
+pub fn count_redexes(expr: &CoreExpr) -> usize {
+    match expr {
+        CoreExpr::Var(_) => 0,
+        CoreExpr::Lam(body) => count_redexes(body),
+        CoreExpr::App(func, arg) => {
+            let func_redexes = count_redexes(func);
+            let arg_redexes = count_redexes(arg);
+            let current_redex = if matches!(&**func, CoreExpr::Lam(_)) {
+                1
+            } else {
+                0
+            };
+            func_redexes + arg_redexes + current_redex
+        }
+    }
+}
 
 /// Normalize an expression by performing β-reduction until no more reductions are possible
 pub fn normalize(expr: CoreExpr) -> CoreExpr {
     normalize_with_depth(expr, 0, 100)
 }
 
+/// Normalize an expression with a step limit, returning Result for API compatibility
+pub fn normalize_with_limit(
+    expr: CoreExpr,
+    step_limit: usize,
+) -> Result<CoreExpr, crate::NormalizationError> {
+    let result = normalize_with_depth(expr, 0, step_limit);
+    Ok(result)
+}
+
+/// Perform η-reduction on a CoreExpr
+/// η-reduction: λx.(f x) →η f (when x is not free in f)
+pub fn eta_reduce(expr: CoreExpr) -> CoreExpr {
+    eta_reduce_with_depth(expr, 0, 100)
+}
+
+/// η-reduction with recursion depth tracking
+fn eta_reduce_with_depth(expr: CoreExpr, current_depth: usize, max_depth: usize) -> CoreExpr {
+    if current_depth >= max_depth {
+        return expr;
+    }
+
+    match expr {
+        CoreExpr::Lam(body) => {
+            // Check for η-reduction pattern without moving the body
+            if let CoreExpr::App(ref func, ref arg) = *body {
+                // Check if the argument is a variable that refers to the lambda parameter (index 0)
+                if let CoreExpr::Var(0) = **arg {
+                    // Check if the function doesn't contain the parameter variable (index 0)
+                    if !contains_free_var(func, 0) {
+                        // η-reduction: λx.(f x) → f
+                        return (**func).clone();
+                    }
+                }
+            }
+
+            // If no η-reduction possible, try to reduce the body
+            let reduced_body = eta_reduce_with_depth((*body).clone(), current_depth + 1, max_depth);
+            if reduced_body != *body {
+                CoreExpr::Lam(Box::new(reduced_body))
+            } else {
+                CoreExpr::Lam(body)
+            }
+        }
+        CoreExpr::App(func, arg) => {
+            // Try η-reduction on both function and argument
+            let reduced_func = eta_reduce_with_depth((*func).clone(), current_depth + 1, max_depth);
+            let reduced_arg = eta_reduce_with_depth((*arg).clone(), current_depth + 1, max_depth);
+            if reduced_func != *func || reduced_arg != *arg {
+                CoreExpr::App(Box::new(reduced_func), Box::new(reduced_arg))
+            } else {
+                CoreExpr::App(func, arg)
+            }
+        }
+        CoreExpr::Var(_) => expr, // Variables can't be η-reduced
+    }
+}
+
+/// Helper function to check if an expression contains a free variable with the given index
+fn contains_free_var(expr: &CoreExpr, target_index: usize) -> bool {
+    match expr {
+        CoreExpr::Var(index) => *index == target_index,
+        CoreExpr::Lam(body) => contains_free_var(body, target_index + 1),
+        CoreExpr::App(func, arg) => {
+            contains_free_var(func, target_index) || contains_free_var(arg, target_index)
+        }
+    }
+}
+
 /// Normalize with recursion depth tracking
 fn normalize_with_depth(expr: CoreExpr, current_depth: usize, max_depth: usize) -> CoreExpr {
     if current_depth >= max_depth {
-        println!(
-            "WARNING: Normalization recursion limit reached at depth {}",
-            current_depth
-        );
         return expr;
     }
 
     let reduced = beta_reduce(expr.clone());
     if reduced == expr {
-        expr // Already in normal form
+        // If β-reduction doesn't change the expression, check if it's actually in normal form
+        if is_normal_form(&expr) {
+            expr // Already in normal form
+        } else {
+            // Only try η-reduction if the expression is not in normal form
+            let eta_reduced = eta_reduce(expr.clone());
+            if eta_reduced == expr {
+                expr // η-reduction didn't change it, so it's in normal form
+            } else {
+                normalize_with_depth(eta_reduced, current_depth + 1, max_depth) // Continue normalizing
+            }
+        }
     } else {
         normalize_with_depth(reduced, current_depth + 1, max_depth) // Continue normalizing
     }
@@ -241,13 +457,6 @@ pub fn prove_kernel_consistency() -> bool {
         && alpha_equiv(beta_reduce(expr1), beta_reduce(expr2))
 }
 
-/// Check recursion health for higher-level attention/patience mechanisms
-pub fn check_recursion_health(expr: &CoreExpr, current_depth: usize, max_depth: usize) -> f64 {
-    let depth_ratio = current_depth as f64 / max_depth as f64;
-    // Simple linear depletion model
-    1.0 - depth_ratio
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -255,38 +464,38 @@ mod tests {
 
     #[test]
     fn test_beta_reduce_identity() {
-        // Test Call-by-Value: (λx.x) y → y
+        // Test Call-by-Name: (λx.x) y → y
         // In De Bruijn: (λ.0) 1 → 1
-        // Call-by-Value: function is reduced to WHNF first, then argument is evaluated
+        // Call-by-Name: function is reduced to WHNF first, then argument is substituted without evaluation
         let identity = lam(var(0));
         let y = var(1);
         let app_expr = app(identity, y);
         let reduced = beta_reduce(app_expr);
 
-        // With Call-by-Value, the identity function is reduced to WHNF first
-        // Then the argument y (var(1)) is evaluated and substituted
+        // With Call-by-Name, the identity function is reduced to WHNF first
+        // Then the argument y (var(1)) is substituted without evaluation
         assert_eq!(reduced, var(1));
     }
 
     #[test]
     fn test_beta_reduce_complex() {
-        // Test Call-by-Value: (λx.λy.x) a → λy.x
+        // Test Call-by-Name: (λx.λy.x) a → λy.x
         // In De Bruijn: (λ.λ.1) 0 → λ.1 (x is still the outer variable, now at index 1)
-        // Call-by-Value: function is reduced to WHNF first, then argument is evaluated
+        // Call-by-Name: function is reduced to WHNF first, then argument is substituted without evaluation
         let outer_lam = lam(lam(var(1)));
         let a = var(0);
         let app_expr = app(outer_lam.clone(), a.clone());
 
         // Expected: λy.x where x is still the outer variable (index 1)
-        // With Call-by-Value, the outer lambda is reduced to WHNF first
+        // With Call-by-Name, the outer lambda is reduced to WHNF first
         let expected_first_step = lam(var(1));
         assert_eq!(beta_reduce(app_expr), expected_first_step);
 
-        // Test full reduction with Call-by-Value: ((λx.λy.x) a) b → a
+        // Test full reduction with Call-by-Name: ((λx.λy.x) a) b → a
         // In De Bruijn: ((λ.λ.1) 0) 1 → 0 (after proper substitution)
-        // Call-by-Value evaluation order:
+        // Call-by-Name evaluation order:
         // 1. Reduce ((λ.λ.1) 0) to WHNF: (λ.1)
-        // 2. Reduce argument 1 to WHNF: 1 (already in WHNF)
+        // 2. Substitute argument 0 without evaluation
         // 3. Apply: (λ.1) 1 → 0 (after substitution)
         let outer_lam2 = lam(lam(var(1)));
         let a2 = var(0);
@@ -295,7 +504,7 @@ mod tests {
         let normalized = normalize(full_expr);
         // The result should be var(0) after normalization because:
         // ((λ.λ.1) 0) 1 → (λ.1) 1 → 0 (after substitution)
-        // This demonstrates Call-by-Value: arguments are evaluated before substitution
+        // This demonstrates Call-by-Name: arguments are substituted without evaluation
         assert_eq!(normalized, var(0));
     }
 
@@ -331,16 +540,16 @@ mod tests {
 
     #[test]
     fn test_normalize_complex() {
-        // Test Call-by-Value normalization: ((λx.λy.x) a) b → a
+        // Test Call-by-Name normalization: ((λx.λy.x) a) b → a
         // In De Bruijn: ((λ.λ.1) 0) 1 → 0 (not 1)
-        // Call-by-Value evaluation order:
+        // Call-by-Name evaluation order:
         // 1. Reduce ((λ.λ.1) 0) to WHNF: (λ.1)
-        // 2. Reduce argument 1 to WHNF: 1 (already in WHNF)
+        // 2. Substitute argument 0 without evaluation
         // 3. Apply: (λ.1) 1 → 0 (after substitution)
         // The outer variable 'a' is at index 0, and after substitution it becomes the result
         let expr = app(app(lam(lam(var(1))), var(0)), var(1));
         let normalized = normalize(expr);
-        // This demonstrates Call-by-Value: arguments are evaluated before substitution
+        // This demonstrates Call-by-Name: arguments are substituted without evaluation
         assert_eq!(normalized, var(0));
     }
 
@@ -350,13 +559,13 @@ mod tests {
     }
 
     #[test]
-    fn test_call_by_value_semantics() {
-        // Test that demonstrates Call-by-Value behavior
+    fn test_call_by_name_semantics() {
+        // Test that demonstrates Call-by-Name behavior
         // Expression: (λf.(f (λx.x))) (λy.y)
         // In De Bruijn: (λ.0 (λ.0)) (λ.0)
-        // Call-by-Value evaluation:
+        // Call-by-Name evaluation:
         // 1. Reduce function to WHNF: (λ.0 (λ.0)) is already in WHNF
-        // 2. Reduce argument to WHNF: (λ.0) is already in WHNF
+        // 2. Substitute argument without evaluation
         // 3. Apply: substitute (λ.0) for index 0 in (0 (λ.0))
         // 4. Result: (λ.0) (λ.0) → λ.0 (after beta reduction)
 
@@ -368,18 +577,18 @@ mod tests {
         let result = normalize(expr);
 
         // The result should be the identity function
-        // This demonstrates Call-by-Value: both function and argument are evaluated before substitution
+        // This demonstrates Call-by-Name: function is evaluated to WHNF, argument is substituted without evaluation
         assert_eq!(result, identity);
     }
 
     #[test]
-    fn test_call_by_value_nested_application() {
-        // Test nested application with Call-by-Value
+    fn test_call_by_name_nested_application() {
+        // Test nested application with Call-by-Name
         // Expression: ((λx.λy.x) (λz.z)) (λw.w)
         // In De Bruijn: ((λ.λ.1) (λ.0)) (λ.0)
-        // Call-by-Value evaluation:
+        // Call-by-Name evaluation:
         // 1. Reduce ((λ.λ.1) (λ.0)) to WHNF: (λ.1)
-        // 2. Reduce argument (λ.0) to WHNF: (λ.0) (already in WHNF)
+        // 2. Substitute argument (λ.0) without evaluation
         // 3. Apply: (λ.1) (λ.0) → λ.0 (after substitution)
 
         let outer_identity = lam(var(0));
@@ -391,7 +600,7 @@ mod tests {
         let result = normalize(expr);
 
         // The result should be the inner identity function
-        // This demonstrates Call-by-Value: arguments are evaluated before substitution
+        // This demonstrates Call-by-Name: arguments are substituted without evaluation
         assert_eq!(result, inner_identity);
     }
 
@@ -721,16 +930,52 @@ mod tests {
     }
 
     #[test]
-    fn test_recursion_health() {
-        // Test the recursion health function
-        let expr = lam(var(0));
-        let health = check_recursion_health(&expr, 0, 100);
-        assert_eq!(health, 1.0);
+    fn test_beta_reduce_step_simple() {
+        // (λx. x) y → y
+        let expr = app(lam(var(0)), var(1));
+        let reduced = beta_reduce_step(expr.clone());
 
-        let health = check_recursion_health(&expr, 50, 100);
-        assert_eq!(health, 0.5);
+        assert_eq!(reduced, var(1));
+        assert!(!is_normal_form(&expr));
+        assert!(is_normal_form(&reduced));
+    }
 
-        let health = check_recursion_health(&expr, 100, 100);
-        assert_eq!(health, 0.0);
+    #[test]
+    fn test_beta_reduce_step_nested() {
+        // (λx. x x) (λy. y) → (λy. y) (λy. y)
+        let identity = lam(var(0));
+        let expr = app(lam(app(var(0), var(0))), identity.clone());
+        let reduced = beta_reduce_step(expr.clone());
+
+        let expected = app(identity.clone(), identity);
+        assert_eq!(reduced, expected);
+    }
+
+    #[test]
+    fn test_beta_reduce_step_leftmost() {
+        // (λx. x) ((λy. y) z) → (λy. y) z  (leftmost redex first)
+        let inner = app(lam(var(0)), var(1)); // (λy. y) z
+        let expr = app(lam(var(0)), inner.clone());
+        let reduced = beta_reduce_step(expr.clone());
+
+        // Should reduce the outer redex first
+        assert_eq!(reduced.clone(), inner);
+    }
+
+    #[test]
+    fn test_is_normal_form() {
+        assert!(is_normal_form(&var(0)));
+        assert!(is_normal_form(&lam(var(0))));
+        assert!(!is_normal_form(&app(lam(var(0)), var(1))));
+    }
+
+    #[test]
+    fn test_count_redexes() {
+        assert_eq!(count_redexes(&var(0)), 0);
+        assert_eq!(count_redexes(&app(lam(var(0)), var(1))), 1);
+
+        // (λx. x) ((λy. y) z) has 2 redexes
+        let expr = app(lam(var(0)), app(lam(var(0)), var(1)));
+        assert_eq!(count_redexes(&expr), 2);
     }
 }

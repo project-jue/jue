@@ -73,7 +73,7 @@ This document summarizes the comprehensive unit test coverage implemented for th
   - Edge case integration
   - Performance integration
 
-### Physics Layer Module (physics_layer)
+### Physics-World Module (physics_world)
 
 #### 7. Atomic Operations Tests (`tests/atomic_ops_tests.rs`)
 - **Tests**: 12
@@ -115,7 +115,7 @@ This document summarizes the comprehensive unit test coverage implemented for th
 | Module        | Test Files | Total Tests | Passing  | Status          |
 | ------------- | ---------- | ----------- | -------- | --------------- |
 | Core World    | 6          | 65          | 65 ✓     | All Passing     |
-| Physics Layer | 3          | 34          | 34 ✓     | All Passing     |
+| Physics-World | 3          | 34          | 34 ✓     | All Passing     |
 | **Total**     | **9**      | **99**      | **99 ✓** | **All Passing** |
 
 ## Testing Approach
@@ -162,7 +162,7 @@ These pre-existing failures are in the comprehensive test suite and need to be a
 - ✓ Cross-component integration
 - ✓ Performance benchmarks
 
-### Physics Layer Coverage
+### Physics-World Coverage
 - ✓ Thread-safe atomic operations
 - ✓ Memory allocation and management
 - ✓ Snapshot and rollback functionality
@@ -172,4 +172,4 @@ These pre-existing failures are in the comprehensive test suite and need to be a
 
 ## Conclusion
 
-The unit test coverage successfully implements comprehensive testing for both the Core World and Physics Layer modules. All 99 tests pass, providing strong validation of the system's functionality, error handling, and performance characteristics.
+The unit test coverage successfully implements comprehensive testing for both the Core World and Physics-World modules. All 99 tests pass, providing strong validation of the system's functionality, error handling, and performance characteristics.

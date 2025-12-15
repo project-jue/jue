@@ -29,7 +29,7 @@ Core-World: Semantically deterministic (leftmost-outermost reduction). This is t
 
 Jue-World Compiler/Evaluator: Deterministic. Given the same Jue source, it produces the same Core-World translation and Physics bytecode.
 
-Physics Layer VM: Deterministic Execution Core. The VM's instruction cycle, memory allocation (using a deterministic arena/seed), and scheduler are fully deterministic. Concurrency is achieved via cooperative multitasking or deterministic time-slicing (e.g., every agent gets N instructions in a fixed round-robin). There is no true parallelism within the VM.
+Physics-World VM: Deterministic Execution Core. The VM's instruction cycle, memory allocation (using a deterministic arena/seed), and scheduler are fully deterministic. Concurrency is achieved via cooperative multitasking or deterministic time-slicing (e.g., every agent gets N instructions in a fixed round-robin). There is no true parallelism within the VM.
 
 The Source of Non-Determinism: A single, explicit Event Stream. All external inputs (sensor data, user commands, network packets) are placed onto this stream by a separate, non-deterministic host interface. The order of events on this stream is the only non-deterministic input to the otherwise deterministic VM.
 

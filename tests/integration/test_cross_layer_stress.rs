@@ -4,8 +4,8 @@
 use core_world::core_expr::{app, lam, var};
 use core_world::core_kernel::beta_reduce;
 use core_world::proof_checker::{prove_beta_reduction, prove_evaluation, prove_normalization};
-use physics_layer::memory_manager::MemoryManager;
-use physics_layer::primitives::{add, mul};
+use physics_world::memory_manager::MemoryManager;
+use physics_world::primitives::{add, mul};
 #[test]
 fn test_high_volume_cross_layer_operations() {
     // Test high volume operations across all layers

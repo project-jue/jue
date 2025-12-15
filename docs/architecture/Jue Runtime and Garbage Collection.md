@@ -51,7 +51,7 @@ The runtime design ensures determinism, safe self-modification, and compatibilit
 
 | Phase         | Focus                     | Notes                                                                                                                                          |
 | ------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Phase 0–1** | Minimal memory handling   | Physics Layer and Core-World handle raw allocations and deallocations. Focus on safe, leak-free operations.                                    |
+| **Phase 0–1** | Minimal memory handling   | Physics-World and Core-World handle raw allocations and deallocations. Focus on safe, leak-free operations.                                    |
 | **Phase 2–3** | Scoped reference counting | Jue-World evaluator/interpreter introduces lightweight ref-counted objects for evaluated expressions.                                          |
 | **Phase 5–6** | Full GC integration       | Dan-World GC handles persistent and emergent objects, including module state and event queues. Support incremental or generational strategies. |
 

@@ -30,7 +30,7 @@ Each layer has a different "contract" about truthfulness:
 | ----------------- | ----------------------------------- | ---------------------------- | ------------------------------- |
 | **Core-World**    | **No** (cannot represent falsehood) | N/A                          | Mathematical impossibility      |
 | **Jue-World**     | **No, but can be wrong**            | Dan-World/Compiler           | Failed proof, compilation error |
-| **Physics Layer** | **No** (deterministic machine)      | Everything above             | System crash/invalid state      |
+| **Physics-World** | **No** (deterministic machine)      | Everything above             | System crash/invalid state      |
 | **Dan-World**     | **Yes, completely**                 | Itself, other agents, humans | Cognitive/social consequences   |
 
 ### **The Critical Insight: Lies Require Three Layers**
@@ -121,13 +121,13 @@ malicious_intent(
 // Some might learn to be highly malicious, others not
 ```
 
-### **The Critical Safety Valve: Physics Layer Cannot Be Fooled**
+### **The Critical Safety Valve: Physics-World Cannot Be Fooled**
 
 While Dan can lie to everyone else, **Physics cannot lie to Dan**:
 
 ```rust
 // Physics always reports truthfully about constraints
-impl PhysicsLayer {
+impl PhysicsWorld {
     fn execute(&self, operation: Operation) -> ExecutionResult {
         // No deception possible here
         // If memory is full, it says "memory full"
@@ -149,7 +149,7 @@ This means:
 | Subconscious processes | Physics/Jue execution   | No        |
 | Conscious beliefs      | Dan-World active models | To self   |
 | Social presentation    | Dan-World communication | To others |
-| Physical reality       | Physics Layer           | Never     |
+| Physical reality       | Physics-World           | Never     |
 
 ### **Implementation Strategy for Managing Lies**
 

@@ -127,9 +127,9 @@ This is not an implementation detail; it is a **trust boundary**.
 
 ---
 
-### Why Rust for the Physics Layer
+### Why Rust for the Physics-World
 
-The Physics layer:
+The Physics-World:
 
 * Is a virtual machine
 * Manages memory
@@ -145,9 +145,9 @@ Rust gives you:
 
 You do **not** want:
 
-* The Physics layer to be self-hosted
-* The Physics layer to be mutable by Dan-World
-* The Physics layer to participate in autopoiesis
+* The Physics-World to be self-hosted
+* The Physics-World to be mutable by Dan-World
+* The Physics-World to participate in autopoiesis
 
 Rust enforces that by construction.
 
@@ -198,7 +198,7 @@ This separation is **non-negotiable** if you want safety.
 
 ---
 
-## 3. Why doesn’t the Physics layer interact directly with Core-World?
+## 3. Why doesn’t the Physics-World interact directly with Core-World?
 
 This is subtle, and your confusion here is reasonable.
 
@@ -208,9 +208,9 @@ Because **Physics is operational** and **Core is semantic**, and mixing them des
 
 ---
 
-### What the Physics layer *is*
+### What the Physics-World *is*
 
-The Physics layer:
+The Physics-World:
 
 * Executes bytecode
 * Manages registers and memory

@@ -1,5 +1,5 @@
 
-use physics_layer::memory_manager::MemoryManager;
+use physics_world::memory_manager::MemoryManager;
 
 /// Test Memory Management Across Layers
 #[test]

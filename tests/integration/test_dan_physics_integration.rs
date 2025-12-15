@@ -1,7 +1,6 @@
+use physics_world::memory_manager::MemoryManager;
 
-use physics_layer::memory_manager::MemoryManager;
-
-/// Test Dan-World ↔ Physics Layer Integration
+/// Test Dan-World ↔ Physics-World Integration
 #[test]
 pub(crate) fn test_dan_physics_integration() {
     // This test would involve:

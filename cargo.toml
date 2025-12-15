@@ -3,13 +3,13 @@ name = "project_jue"
 version = "0.1.0"
 edition = "2021"
 authors = ["Project Jue Team"]
-description = "AGI stack: Core-World, Jue-World, Dan-World, Physics Layer"
+description = "AGI stack: Core-World, Jue-World, Dan-World, Physics-World"
 license = "MIT"
 
 [workspace]
 members = [
     "core_world",
-    "physics_layer"
+    "physics_world"
 ]
 
 
@@ -33,7 +33,7 @@ num-traits = "0.2"
 
 # Local dependencies
 core_world = { path = "core_world" }
-physics_layer = { path = "physics_layer" }
+physics_world = { path = "physics_world" }
 [features]
 core_world_tests = []
 

@@ -3,7 +3,7 @@
 ## **4. The Concurrency Model: Determinism vs. Parallelism**
 
 **The Problem:**
-- Physics layer is **deterministic single-threaded**
+- Physics-World is **deterministic single-threaded**
 - Cognition needs **concurrent modules**
 - Real time requires **responsiveness**
 
@@ -42,7 +42,7 @@ receive(pid) -> response;
 1. Each Dan module runs as a separate "process"
 2. Processes communicate via immutable messages
 3. Scheduler is deterministic (round-robin)
-4. Physics layer enforces fairness
+4. Physics-World enforces fairness
 
 ```jue
 -- Jue's concurrency primitives

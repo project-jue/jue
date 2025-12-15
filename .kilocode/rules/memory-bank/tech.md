@@ -6,7 +6,7 @@
 
 **Rust** (Core Implementation)
 - Version: 2021 Edition
-- Purpose: Formal kernel and physics layer implementation
+- Purpose: Formal kernel and physics world implementation
 - Key Features:
   - Strong type system for safety guarantees
   - Zero-cost abstractions for performance
@@ -92,12 +92,12 @@
 [workspace]
 members = [
     "core_world",
-    "physics_layer"
+    "physics_world"
 ]
 
 [dependencies]
 core_world = { path = "core_world" }
-physics_layer = { path = "physics_layer" }
+physics_world = { path = "physics_world" }
 
 [dev-dependencies]
 proptest = "1.0"
@@ -114,7 +114,7 @@ criterion = "0.4"
 - **Core-World**: Mathematical correctness > execution speed
 - **Jue-World**: Balanced optimization with proof preservation
 - **Dan-World**: Real-time event processing capabilities
-- **Physics Layer**: Minimal overhead for primitive operations
+- **Physics-World**: Minimal overhead for primitive operations
 
 ### Memory Constraints
 - Efficient memory management for long-running processes
@@ -136,7 +136,7 @@ project_jue (root)
 │   ├── serde (1.0)
 │   ├── anyhow (1.0)
 │   └── thiserror (1.0)
-├── physics_layer
+├── physics_world
 │   ├── serde (1.0)
 │   ├── tokio (1.30)
 │   └── num-traits (0.2)
@@ -205,7 +205,7 @@ cargo bench
 1. **Core-World**: Complete formal proof checker implementation
 2. **Jue-World**: Full compiler with optimization passes
 3. **Dan-World**: Cognitive module implementations
-4. **Physics Layer**: Complete VM with all atomic operations
+4. **Physics-World**: Complete VM with all atomic operations
 
 ### Debt Reduction Strategy
 - Prioritize based on critical path analysis

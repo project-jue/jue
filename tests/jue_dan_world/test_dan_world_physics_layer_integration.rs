@@ -1,10 +1,10 @@
-/// Test for Dan World physics layer integration
+/// Test for Dan World physics world integration
 use core_world::core_expr::{app, lam, var};
 use core_world::eval_relation::{eval_empty, EvalResult};
-use physics_layer::primitives::{add, mul};
+use physics_world::primitives::{add, mul};
 
 #[test]
-fn test_dan_world_physics_layer_integration() {
+fn test_dan_world_physics_world_integration() {
     // Test that Dan World can work with physics primitives
 
     // Physics operations that Dan World might use
