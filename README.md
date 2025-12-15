@@ -6,7 +6,7 @@ Project Jue is a self-evolving cognitive system whose behavior is formally groun
 
 [![Rust](https://img.shields.io/badge/rust-2021-orange.svg)](https://www.rust-lang.org/)
 [![Lisp](https://img.shields.io/badge/lisp-Jue-blue.svg)](docs/jue_world/JUE_01_Language.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 
 ---
 
