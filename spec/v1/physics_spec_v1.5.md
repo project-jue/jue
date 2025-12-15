@@ -1,4 +1,4 @@
-# **Project Jue: Physics World Specification v2.0**
+# **Project Jue: Physics World Specification v1.5**
 ## **The Capability-Enforced Deterministic VM**
 
 ### **1. Core Architectural Shift**
