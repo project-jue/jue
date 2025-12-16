@@ -5,7 +5,7 @@
 Project Jue is a self-evolving cognitive system whose behavior is formally grounded, practically executable, introspective, and safe under self-modification. It implements a multi-layer computational architecture where each layer provides different guarantees and capabilities.
 
 [![Rust](https://img.shields.io/badge/rust-2021-orange.svg)](https://www.rust-lang.org/)
-[![Lisp](https://img.shields.io/badge/lisp-Jue-blue.svg)](docs/jue_world/JUE_01_Language.md)
+[![Lisp](https://img.shields.io/badge/lisp-Jue-blue.svg)](docs/jue_world/jue_01_language.md)
 [![Rust](https://github.com/project-jue/jue/actions/workflows/rust.yml/badge.svg)](https://github.com/project-jue/jue/actions/workflows/rust.yml)
 
 
@@ -148,7 +148,7 @@ project_jue/
 ├── integration/          # Cross-layer integration tests
 │
 ├── docs/                 # Documentation
-│   ├── 00_Introduction.md
+│   ├── 00_introduction.md
 │   ├── architecture/
 │   ├── core_world/
 │   ├── physics_world/
@@ -170,8 +170,8 @@ project_jue/
 
 | Document                                                         | Description                         |
 | ---------------------------------------------------------------- | ----------------------------------- |
-| [Introduction](docs/00_Introduction.md)                          | System overview and core concepts   |
-| [Engineering Reference](docs/01_Engineering_Reference_Manual.md) | Technical reference for developers  |
+| [Introduction](docs/00_introduction.md)                          | System overview and core concepts   |
+| [Engineering Reference](docs/01_engineering_reference_manual.md) | Technical reference for developers  |
 | [Implementation Checklist](docs/02_High_Level_Checklist.md)      | Phase-by-phase implementation guide |
 
 ### Specifications (V2 - Current)
@@ -196,15 +196,15 @@ project_jue/
 
 | Document                                                                            | Topic               |
 | ----------------------------------------------------------------------------------- | ------------------- |
-| [CORE_00_Questions](docs/core_world/CORE_00_Questions.md)                           | Design questions    |
-| [CORE_01_Equivalence](docs/core_world/CORE_01_Equivalence.md)                       | βη-equivalence      |
-| [CORE_02_Free_Variables](docs/core_world/CORE_02_Free_Variables.md)                 | Variable handling   |
-| [CORE_03_Divergence](docs/core_world/CORE_03_Divergence.md)                         | Non-termination     |
-| [CORE_04_Meaning](docs/core_world/CORE_04_Meaning.md)                               | Semantic definition |
-| [CORE_05_Evaluation](docs/core_world/CORE_05_Evaluation.md)                         | Evaluation relation |
-| [CORE_06_Grounding](docs/core_world/CORE_06_Grounding.md)                           | Ground truth        |
-| [CORE_07_Consistency](docs/core_world/CORE_07_Consistency.md)                       | Logical consistency |
-| [CORE_08_Jue_World_Relationship](docs/core_world/CORE_08_Jue_World_Relationship.md) | Layer interaction   |
+| [CORE_00_Questions](docs/core_world/core_00_questions.md)                           | Design questions    |
+| [CORE_01_Equivalence](docs/core_world/core_01_equivalence.md)                       | βη-equivalence      |
+| [CORE_02_Free_Variables](docs/core_world/core_02_free_variables.md)                 | Variable handling   |
+| [CORE_03_Divergence](docs/core_world/core_03_divergence.md)                         | Non-termination     |
+| [CORE_04_Meaning](docs/core_world/core_04_meaning.md)                               | Semantic definition |
+| [CORE_05_Evaluation](docs/core_world/core_05_evaluation.md)                         | Evaluation relation |
+| [CORE_06_Grounding](docs/core_world/core_06_grounding.md)                           | Ground truth        |
+| [CORE_07_Consistency](docs/core_world/core_07_consistency.md)                       | Logical consistency |
+| [CORE_08_Jue_World_Relationship](docs/core_world/core_08_jue_world_relationship.md) | Layer interaction   |
 
 </details>
 
@@ -213,12 +213,12 @@ project_jue/
 
 | Document                                                                       | Topic                  |
 | ------------------------------------------------------------------------------ | ---------------------- |
-| [PHYSICS_00_Questions](docs/physics_world/PHYSICS_00_Questions.md)             | Design questions       |
-| [PHYSICS_01](docs/physics_world/PHYSICS_01.md)                                 | Overview               |
-| [PHYSICS_02_Limits](docs/physics_world/PHYSICS_02_Limits.md)                   | Resource limits (AIKR) |
-| [PHYSICS_03_Time](docs/physics_world/PHYSICS_03_Time.md)                       | Time model             |
-| [PHYSICS_04_VM](docs/physics_world/PHYSICS_04_VM.md)                           | VM architecture        |
-| [Engineering Plan](docs/physics_world/PHYSICS_Engineering_Plan.md)             | Implementation plan    |
+| [PHYSICS_00_Questions](docs/physics_world/physics_00_questions.md)             | Design questions       |
+| [PHYSICS_01](docs/physics_world/physics_01.md)                                 | Overview               |
+| [PHYSICS_02_Limits](docs/physics_world/physics_02_limits.md)                   | Resource limits (AIKR) |
+| [PHYSICS_03_Time](docs/physics_world/physics_03_time.md)                       | Time model             |
+| [PHYSICS_04_VM](docs/physics_world/physics_04_vm.md)                           | VM architecture        |
+| [Engineering Plan](docs/physics_world/physics_engineering_plan.md)             | Implementation plan    |
 | [Implementation Plan](docs/physics_world/physics_world_implementation_plan.md) | Detailed plan          |
 
 </details>
@@ -228,54 +228,54 @@ project_jue/
 
 | Document                                                                       | Topic               |
 | ------------------------------------------------------------------------------ | ------------------- |
-| [JUE_00_Questions](docs/jue_world/JUE_00_Questions.md)                         | Design questions    |
-| [JUE_01_Language](docs/jue_world/JUE_01_Language.md)                           | Language overview   |
-| [JUE_02_Non-Lambda_Primitives](docs/jue_world/JUE_02_Non-Lambda_Primitives.md) | Built-in primitives |
-| [JUE_03_Evaluation](docs/jue_world/JUE_03_Evaluation.md)                       | Evaluation strategy |
-| [JUE_04_Evaluation_Paradox](docs/jue_world/JUE_04_Evaluation_Paradox.md)       | CBN vs CBV          |
-| [JUE_05_Type_System](docs/jue_world/JUE_05_Type_System.md)                     | Type system         |
-| [JUE_06_State](docs/jue_world/JUE_06_State.md)                                 | State management    |
-| [JUE_07_Concurrency](docs/jue_world/JUE_07_Concurrency.md)                     | Concurrency model   |
-| [JUE_08_Macros_and_Comptime](docs/jue_world/JUE_08_Macros_and_Comptime.md)     | Macro system        |
-| [JUE_09_Resource_Accounting](docs/jue_world/JUE_09_Resource_Accounting.md)     | Resource tracking   |
-| [JUE_10_Error_Handling](docs/jue_world/JUE_10_Error_Handling.md)               | Error handling      |
+| [JUE_00_Questions](docs/jue_world/jue_00_questions.md)                         | Design questions    |
+| [JUE_01_Language](docs/jue_world/jue_01_language.md)                           | Language overview   |
+| [JUE_02_Non-Lambda_Primitives](docs/jue_world/jue_02_non_lambda_primitives.md) | Built-in primitives |
+| [JUE_03_Evaluation](docs/jue_world/jue_03_evaluation.md)                       | Evaluation strategy |
+| [JUE_04_Evaluation_Paradox](docs/jue_world/jue_04_evaluation_paradox.md)       | CBN vs CBV          |
+| [JUE_05_Type_System](docs/jue_world/jue_05_type_system.md)                     | Type system         |
+| [JUE_06_State](docs/jue_world/jue_06_state.md)                                 | State management    |
+| [JUE_07_Concurrency](docs/jue_world/jue_07_concurrency.md)                     | Concurrency model   |
+| [JUE_08_Macros_and_Comptime](docs/jue_world/jue_08_macros_and_comptime.md)     | Macro system        |
+| [JUE_09_Resource_Accounting](docs/jue_world/jue_09_resource_accounting.md)     | Resource tracking   |
+| [JUE_10_Error_Handling](docs/jue_world/jue_10_error_handling.md)               | Error handling      |
 
 </details>
 
 <details>
 <summary><strong>Dan-World</strong> - Cognitive Layer</summary>
 
-| Document                                                                           | Topic                 |
-| ---------------------------------------------------------------------------------- | --------------------- |
-| [DAN_00_Questions](docs/dan_world/DAN_00_Questions.md)                             | Design questions      |
-| [DAN_01_Overview](docs/dan_world/DAN_01_Dan_World_Overview.md)                     | Architecture overview |
-| [DAN_02_Agents](docs/dan_world/DAN_02_Dan_World_Agents.md)                         | Agent model           |
-| [DAN_03_Proof_Verification](docs/dan_world/DAN_03_Dan_World_Proof_Verification.md) | Verification          |
-| [DAN_04_State_Access](docs/dan_world/DAN_04_State_Access.md)                       | State management      |
-| [DAN_05_Jue_World_Relationship](docs/dan_world/DAN_05_Jue_World_Relationship.md)   | Layer interaction     |
-| [DAN_06_Module_Structure](docs/dan_world/DAN_06_Module_Structure.md)               | Module design         |
-| [DAN_08_Unit_Of_Cognition](docs/dan_world/DAN_08_Unit_Of_Cognition.md)             | Cognitive units       |
-| [DAN_09_Affective_States](docs/dan_world/DAN_09_Affective_States.md)               | Affect system         |
-| [DAN_10_Being_Wrong](docs/dan_world/DAN_10_Being_Wrong.md)                         | Error handling        |
-| [DAN_11_Salience_Example](docs/dan_world/DAN_11_Salience_Example.md)               | Worked example        |
-| [DAN_15_Starter_Agents](docs/dan_world/DAN_15_Starter_Agents.md)                   | Initial agents        |
-| [DAN_16_Moral_Primitives](docs/dan_world/DAN_16_Moral_Primitives.md)               | Emergent morality     |
-| [DAN_17_Emergence](docs/dan_world/DAN_17_Emergence.md)                             | Emergence patterns    |
+| Document                                                                         | Topic                 |
+| -------------------------------------------------------------------------------- | --------------------- |
+| [DAN_00_Questions](docs/dan_world/dan_00_questions.md)                           | Design questions      |
+| [DAN_01_Overview](docs/dan_world/dan_01_overview.md)                             | Architecture overview |
+| [DAN_02_Agents](docs/dan_world/dan_02_agents.md)                                 | Agent model           |
+| [DAN_03_Proof_Verification](docs/dan_world/dan_03_proof_verification.md)         | Verification          |
+| [DAN_04_State_Access](docs/dan_world/dan_04_state_access.md)                     | State management      |
+| [DAN_05_Jue_World_Relationship](docs/dan_world/dan_05_jue_world_relationship.md) | Layer interaction     |
+| [DAN_06_Module_Structure](docs/dan_world/dan_06_module_structure.md)             | Module design         |
+| [DAN_08_Unit_Of_Cognition](docs/dan_world/dan_08_unit_of_cognition.md)           | Cognitive units       |
+| [DAN_09_Affective_States](docs/dan_world/dan_09_affective_states.md)             | Affect system         |
+| [DAN_10_Being_Wrong](docs/dan_world/dan_10_being_wrong.md)                       | Error handling        |
+| [DAN_11_Salience_Example](docs/dan_world/dan_11_salience_example.md)             | Worked example        |
+| [DAN_15_Starter_Agents](docs/dan_world/dan_15_starter_agents.md)                 | Initial agents        |
+| [DAN_16_Moral_Primitives](docs/dan_world/dan_16_moral_primitives.md)             | Emergent morality     |
+| [DAN_17_Emergence](docs/dan_world/dan_17_emergence.md)                           | Emergence patterns    |
 
 </details>
 
 ### Architecture & Design
 
-| Document                                                                        | Description         |
-| ------------------------------------------------------------------------------- | ------------------- |
-| [Architecture](docs/architecture/architecture.md)                               | System architecture |
-| [Layer FAQ](docs/architecture/Layer_FAQ.md)                                     | Common questions    |
-| [Jue Language Design](docs/architecture/jue-language-design.md)                 | Language design     |
-| [Runtime & GC](docs/architecture/Jue%20Runtime%20and%20Garbage%20Collection.md) | Memory management   |
-| [Causation](docs/architecture/CAUSATION_01.md)                                  | Causal reasoning    |
-| [Truth](docs/architecture/TRUTH_01.md)                                          | Truth handling      |
-| [Lies](docs/architecture/LIES_01.md)                                            | Deception detection |
-| [Mutation](docs/architecture/MUTATION_01.md)                                    | Self-modification   |
+| Document                                                                | Description         |
+| ----------------------------------------------------------------------- | ------------------- |
+| [Architecture](docs/architecture/architecture.md)                       | System architecture |
+| [Layer FAQ](docs/architecture/Layer_FAQ.md)                             | Common questions    |
+| [Jue Language Design](docs/architecture/jue-language-design.md)         | Language design     |
+| [Runtime & GC](docs/architecture/jue_runtime_and_garbage_collection.md) | Memory management   |
+| [Causation](docs/architecture/causation_01.md)                          | Causal reasoning    |
+| [Truth](docs/architecture/truth_01.md)                                  | Truth handling      |
+| [Lies](docs/architecture/lies_01.md)                                    | Deception detection |
+| [Mutation](docs/architecture/mutation_01.md)                            | Self-modification   |
 
 ### Testing
 

@@ -31,11 +31,11 @@
 
 | Ambiguity Document              | Status     | Resolution                                                          |
 | ------------------------------- | ---------- | ------------------------------------------------------------------- |
-| `JUE_08_Macros_and_Comptime.md` | ✅ Resolved | Capability system unifies macros, FFI, and self-modification        |
-| `CORE_00_Questions.md`          | ✅ Resolved | Core-World boundary clarified, serialization added                  |
-| `PHYSICS_00_Questions.md`       | ✅ Resolved | Capability system answers memory model, determinism, error handling |
-| `JUE_00_Questions.md`           | ✅ Resolved | Type system, error handling, macros unified under capabilities      |
-| `DAN_00_Questions.md`           | ✅ Resolved | Dan-World completely specified around capability management         |
+| `jue_08_macros_and_comptime.md` | ✅ Resolved | Capability system unifies macros, FFI, and self-modification        |
+| `core_00_questions.md`          | ✅ Resolved | Core-World boundary clarified, serialization added                  |
+| `physics_00_questions.md`       | ✅ Resolved | Capability system answers memory model, determinism, error handling |
+| `jue_00_questions.md`           | ✅ Resolved | Type system, error handling, macros unified under capabilities      |
+| `dan_00_questions.md`           | ✅ Resolved | Dan-World completely specified around capability management         |
 
 **All documented ambiguities have been addressed.**
 

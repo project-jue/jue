@@ -88,7 +88,7 @@ pub enum OpCode {
 - Physics-World: Add sensor/actuator opcodes that return opaque values
 - Dan-World: Build belief management system using cognitive packages
 
-**References**: [`docs/jue_world/JUE_02_Non-Lambda_Primitives.md`](docs/jue_world/JUE_02_Non-Lambda_Primitives.md:27-47)
+**References**: [`docs/jue_world/jue_02_non_lambda_primitives.md`](docs/jue_world/jue_02_non_lambda_primitives.md:27-47)
 
 ---
 
@@ -160,7 +160,7 @@ sequenceDiagram
 - Dan-World: Build experiential time from event sequences and resource consumption patterns
 - Core-World: Ensure no time references in reduction rules or proofs
 
-**References**: [`docs/physics_world/PHYSICS_03_Time.md`](docs/physics_world/PHYSICS_03_Time.md:1-136)
+**References**: [`docs/physics_world/physics_03_time.md`](docs/physics_world/physics_03_time.md:1-136)
 
 ---
 
@@ -217,7 +217,7 @@ Validation burden scales with requested capabilities:
 - Implement consensus voting for high-risk capabilities
 - Log all validation attempts for Dan-World learning
 
-**References**: [`docs/jue_world/JUE_00_Questions.md`](docs/jue_world/JUE_00_Questions.md:157-163)
+**References**: [`docs/jue_world/jue_00_questions.md`](docs/jue_world/jue_00_questions.md:157-163)
 
 ---
 
@@ -308,7 +308,7 @@ impl HostInterface for MyRobotHardware {
 - Dan-World: Build sensor models that track reliability and confidence
 - Security: All FFI calls require explicit capability grants
 
-**References**: [`docs/jue_world/JUE_00_Questions.md`](docs/jue_world/JUE_00_Questions.md:173-179), [`docs/jue_world/JUE_08_Macros_and_Comptime.md`](docs/jue_world/JUE_08_Macros_and_Comptime.md:155-161)
+**References**: [`docs/jue_world/jue_00_questions.md`](docs/jue_world/jue_00_questions.md:173-179), [`docs/jue_world/jue_08_macros_and_comptime.md`](docs/jue_world/jue_08_macros_and_comptime.md:155-161)
 
 ---
 
@@ -373,7 +373,7 @@ For each Jue form, the compiler must produce:
 - Physics-World: Execute bytecode without semantic concerns
 - Dan-World: Reason about both meaning and performance
 
-**References**: [`docs/jue_world/JUE_01_Language.md`](docs/jue_world/JUE_01_Language.md:30-53)
+**References**: [`docs/jue_world/jue_01_language.md`](docs/jue_world/jue_01_language.md:30-53)
 
 ---
 
@@ -423,7 +423,7 @@ When compiler cannot prove CBV ≡ normal order:
 - Physics-World: Support multiple evaluation strategies in bytecode
 - Dan-World: Learn which strategies work best for which patterns
 
-**References**: [`docs/jue_world/JUE_04_Evaluation_Paradox.md`](docs/jue_world/JUE_04_Evaluation_Paradox.md:1-39)
+**References**: [`docs/jue_world/jue_04_evaluation_paradox.md`](docs/jue_world/jue_04_evaluation_paradox.md:1-39)
 
 ---
 
@@ -497,7 +497,7 @@ Add to [`spec/v2/jue/jue_spec_v2.0.md`](spec/v2/jue/jue_spec_v2.0.md):
 - Dan-World: Build predictive models from observed usage
 - Core-World: Verify formal bounds when provided
 
-**References**: [`docs/jue_world/JUE_09_Resource_Accounting.md`](docs/jue_world/JUE_09_Resource_Accounting.md:1-49)
+**References**: [`docs/jue_world/jue_09_resource_accounting.md`](docs/jue_world/jue_09_resource_accounting.md:1-49)
 
 ---
 
@@ -575,7 +575,7 @@ project/
 - Dan-World: Propose new modules, request their capabilities
 - Core-World: Verify module exports preserve meaning
 
-**References**: [`docs/jue_world/JUE_00_Questions.md`](docs/jue_world/JUE_00_Questions.md:149-155), [`docs/jue_world/JUE_08_Macros_and_Comptime.md`](docs/jue_world/JUE_08_Macros_and_Comptime.md:507-517)
+**References**: [`docs/jue_world/jue_00_questions.md`](docs/jue_world/jue_00_questions.md:149-155), [`docs/jue_world/jue_08_macros_and_comptime.md`](docs/jue_world/jue_08_macros_and_comptime.md:507-517)
 
 ---
 
@@ -639,7 +639,7 @@ Add to [`spec/v2/jue/jue_spec_v2.0.md`](spec/v2/jue/jue_spec_v2.0.md):
 - Scheduler: Enforce deterministic message ordering
 - Dan-World: Most modules won't have `actor-spawn` - use pre-created actors
 
-**References**: [`docs/jue_world/JUE_07_Concurrency.md`](docs/jue_world/JUE_07_Concurrency.md:1-57)
+**References**: [`docs/jue_world/jue_07_concurrency.md`](docs/jue_world/jue_07_concurrency.md:1-57)
 
 ---
 
@@ -716,7 +716,7 @@ Error at bytecode:45
 - Dan-World: Use traces for self-diagnosis and learning
 - Tools: Build debugger that uses source maps
 
-**References**: [`docs/jue_world/JUE_00_Questions.md`](docs/jue_world/JUE_00_Questions.md:188-194)
+**References**: [`docs/jue_world/jue_00_questions.md`](docs/jue_world/jue_00_questions.md:188-194)
 
 ---
 
@@ -766,7 +766,7 @@ impl PhysicsWorld {
 
 **Implementation Note**: Add in v2.1 - not required for v2.0 MVP
 
-**References**: [`docs/physics_world/PHYSICS_00_Questions.md`](docs/physics_world/PHYSICS_00_Questions.md:22-23)
+**References**: [`docs/physics_world/physics_00_questions.md`](docs/physics_world/physics_00_questions.md:22-23)
 
 ---
 
@@ -811,7 +811,7 @@ impl EnergyModel {
 
 **Implementation Note**: Pure add-on for embodied cognition research - not in core trust base
 
-**References**: [`docs/physics_world/PHYSICS_00_Questions.md`](docs/physics_world/PHYSICS_00_Questions.md:24)
+**References**: [`docs/physics_world/physics_00_questions.md`](docs/physics_world/physics_00_questions.md:24)
 
 ---
 

@@ -1,4 +1,4 @@
-[On Morality and Lies](DAN_16_Moral_Primitives.md)
+[On Morality and Lies](dan_16_moral_primitives.md)
 
 Summary: The goal is to describe which behaviours we expect to be emergent, and then work backwards to a common set of primitives that can actually be measured.  These primitives in certain values and combinations would give rise to the labeled concepts like love, morality, hatred, etc. 
 
