@@ -10,7 +10,8 @@ license = "MIT"
 members = [
     "core_world",
     "physics_world",
-    "integration"
+    "integration",
+    "jue_world"
 ]
 
 
