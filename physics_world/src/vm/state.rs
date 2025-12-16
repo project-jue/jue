@@ -447,6 +447,34 @@ impl VmState {
                 }
                 self.ip += 1;
             }
+            // Capability instructions - placeholder implementations for now
+            OpCode::HasCap(_) => {
+                // Placeholder: push false for now
+                self.stack.push(Value::Bool(false));
+                self.ip += 1;
+            }
+            OpCode::RequestCap(_, _) => {
+                // Placeholder: capability requests not implemented yet
+                // In real implementation, this would yield to scheduler
+                self.ip += 1;
+            }
+            OpCode::GrantCap(_, _) => {
+                // Placeholder: capability granting not implemented yet
+                self.ip += 1;
+            }
+            OpCode::RevokeCap(_, _) => {
+                // Placeholder: capability revocation not implemented yet
+                self.ip += 1;
+            }
+            OpCode::HostCall {
+                cap_idx: _,
+                func_id: _,
+                args: _,
+            } => {
+                // Placeholder: host calls not implemented yet
+                // In real implementation, this would require capability check
+                self.ip += 1;
+            }
         }
 
         Ok(InstructionResult::Continue)

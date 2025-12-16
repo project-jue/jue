@@ -1,10 +1,13 @@
+#![allow(warnings)]
 pub mod memory;
 pub mod scheduler;
 pub mod types;
 pub mod vm;
 
+// Re-export commonly used types for easier access
+pub use types::{Capability, HostFunction, OpCode, Value};
+
 use crate::scheduler::{Actor, PhysicsScheduler};
-use crate::types::{OpCode, Value};
 use crate::vm::state::VmState;
 use serde::Serialize;
 
