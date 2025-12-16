@@ -15,6 +15,105 @@ pub enum CoreExpr {
     Pair(Box<CoreExpr>, Box<CoreExpr>),
 }
 
+/// Binary serialization format for CoreExpr
+/// Format specification:
+/// - Little-endian encoding
+/// - Var(n): [0x01, n as u64]
+/// - Lam(body): [0x02, body_bytes...]
+/// - App(f, a): [0x03, f_bytes..., a_bytes...]
+/// - Nat(n): [0x04, n as u64]
+/// - Pair(f, s): [0x05, f_bytes..., s_bytes...]
+
+pub fn serialize_core_expr(expr: &CoreExpr) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    match expr {
+        CoreExpr::Var(index) => {
+            bytes.push(0x01);
+            bytes.extend_from_slice(&(*index as u64).to_le_bytes());
+        }
+        CoreExpr::Lam(body) => {
+            bytes.push(0x02);
+            bytes.extend_from_slice(&serialize_core_expr(body));
+        }
+        CoreExpr::App(func, arg) => {
+            bytes.push(0x03);
+            bytes.extend_from_slice(&serialize_core_expr(func));
+            bytes.extend_from_slice(&serialize_core_expr(arg));
+        }
+        CoreExpr::Nat(n) => {
+            bytes.push(0x04);
+            bytes.extend_from_slice(&n.to_le_bytes());
+        }
+        CoreExpr::Pair(first, second) => {
+            bytes.push(0x05);
+            bytes.extend_from_slice(&serialize_core_expr(first));
+            bytes.extend_from_slice(&serialize_core_expr(second));
+        }
+    }
+    bytes
+}
+
+pub fn deserialize_core_expr(bytes: &[u8]) -> Result<CoreExpr, ParseError> {
+    if bytes.is_empty() {
+        return Err(ParseError::EmptyInput);
+    }
+
+    let mut cursor = 0;
+    let tag = bytes[cursor];
+    cursor += 1;
+
+    match tag {
+        0x01 => {
+            // Var
+            if cursor + 8 > bytes.len() {
+                return Err(ParseError::IncompleteData);
+            }
+            let index_bytes = &bytes[cursor..cursor + 8];
+            let index = u64::from_le_bytes(index_bytes.try_into().unwrap());
+            Ok(CoreExpr::Var(index as usize))
+        }
+        0x02 => {
+            // Lam
+            let body = deserialize_core_expr(&bytes[cursor..])?;
+            Ok(CoreExpr::Lam(Box::new(body)))
+        }
+        0x03 => {
+            // App
+            let func = deserialize_core_expr(&bytes[cursor..])?;
+            let func_serialized = serialize_core_expr(&func);
+            let func_len = func_serialized.len();
+            let arg = deserialize_core_expr(&bytes[cursor + func_len..])?;
+            Ok(CoreExpr::App(Box::new(func), Box::new(arg)))
+        }
+        0x04 => {
+            // Nat
+            if cursor + 8 > bytes.len() {
+                return Err(ParseError::IncompleteData);
+            }
+            let n_bytes = &bytes[cursor..cursor + 8];
+            let n = u64::from_le_bytes(n_bytes.try_into().unwrap());
+            Ok(CoreExpr::Nat(n))
+        }
+        0x05 => {
+            // Pair
+            let first = deserialize_core_expr(&bytes[cursor..])?;
+            let first_serialized = serialize_core_expr(&first);
+            let first_len = first_serialized.len();
+            let second = deserialize_core_expr(&bytes[cursor + first_len..])?;
+            Ok(CoreExpr::Pair(Box::new(first), Box::new(second)))
+        }
+        _ => Err(ParseError::InvalidTag(tag)),
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ParseError {
+    EmptyInput,
+    IncompleteData,
+    InvalidTag(u8),
+    Overflow,
+}
+
 impl fmt::Display for CoreExpr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -193,5 +292,92 @@ mod tests {
     fn test_complex_expression_with_nat_and_pair() {
         let expr = app(lam(pair(var(0), nat(5))), nat(10));
         assert_eq!(format!("{}", expr), "(λx.(0, 5)) 10");
+    }
+}
+
+#[cfg(test)]
+mod serialization_tests {
+    use super::*;
+
+    #[test]
+    fn test_var_serialization() {
+        let expr = var(42);
+        let serialized = serialize_core_expr(&expr);
+        let deserialized = deserialize_core_expr(&serialized).unwrap();
+        assert_eq!(expr, deserialized);
+    }
+
+    #[test]
+    fn test_lam_serialization() {
+        let expr = lam(var(0));
+        let serialized = serialize_core_expr(&expr);
+        let deserialized = deserialize_core_expr(&serialized).unwrap();
+        assert_eq!(expr, deserialized);
+    }
+
+    #[test]
+    fn test_app_serialization() {
+        let expr = app(lam(var(0)), var(1));
+        let serialized = serialize_core_expr(&expr);
+        let deserialized = deserialize_core_expr(&serialized).unwrap();
+        assert_eq!(expr, deserialized);
+    }
+
+    #[test]
+    fn test_nat_serialization() {
+        let expr = nat(12345);
+        let serialized = serialize_core_expr(&expr);
+        let deserialized = deserialize_core_expr(&serialized).unwrap();
+        assert_eq!(expr, deserialized);
+    }
+
+    #[test]
+    fn test_pair_serialization() {
+        let expr = pair(var(0), var(1));
+        let serialized = serialize_core_expr(&expr);
+        let deserialized = deserialize_core_expr(&serialized).unwrap();
+        assert_eq!(expr, deserialized);
+    }
+
+    #[test]
+    fn test_complex_serialization() {
+        let expr = app(lam(pair(var(0), nat(5))), nat(10));
+        let serialized = serialize_core_expr(&expr);
+        let deserialized = deserialize_core_expr(&serialized).unwrap();
+        assert_eq!(expr, deserialized);
+    }
+
+    #[test]
+    fn test_serialization_roundtrip() {
+        let expr = app(lam(var(0)), var(42));
+        let serialized = serialize_core_expr(&expr);
+        let deserialized = deserialize_core_expr(&serialized).unwrap();
+        assert_eq!(expr, deserialized);
+    }
+
+    #[test]
+    fn test_empty_input_error() {
+        let result = deserialize_core_expr(&[]);
+        assert!(matches!(result, Err(ParseError::EmptyInput)));
+    }
+
+    #[test]
+    fn test_incomplete_data_error() {
+        // Incomplete Var - only tag, no data
+        let incomplete_var = vec![0x01];
+        let result = deserialize_core_expr(&incomplete_var);
+        assert!(matches!(result, Err(ParseError::IncompleteData)));
+
+        // Incomplete Nat - only tag, no data
+        let incomplete_nat = vec![0x04];
+        let result = deserialize_core_expr(&incomplete_nat);
+        assert!(matches!(result, Err(ParseError::IncompleteData)));
+    }
+
+    #[test]
+    fn test_invalid_tag_error() {
+        let invalid_tag = vec![0xFF];
+        let result = deserialize_core_expr(&invalid_tag);
+        assert!(matches!(result, Err(ParseError::InvalidTag(0xFF))));
     }
 }
