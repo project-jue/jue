@@ -172,7 +172,7 @@ project_jue/
 | ---------------------------------------------------------------- | ----------------------------------- |
 | [Introduction](docs/00_introduction.md)                          | System overview and core concepts   |
 | [Engineering Reference](docs/01_engineering_reference_manual.md) | Technical reference for developers  |
-| [Implementation Checklist](docs/02_High_Level_Checklist.md)      | Phase-by-phase implementation guide |
+| [Implementation Checklist](docs/02_high_level_checklist.md)      | Phase-by-phase implementation guide |
 
 ### Specifications (V2 - Current)
 
@@ -269,7 +269,6 @@ project_jue/
 | Document                                                                | Description         |
 | ----------------------------------------------------------------------- | ------------------- |
 | [Architecture](docs/architecture/architecture.md)                       | System architecture |
-| [Layer FAQ](docs/architecture/Layer_FAQ.md)                             | Common questions    |
 | [Jue Language Design](docs/architecture/jue-language-design.md)         | Language design     |
 | [Runtime & GC](docs/architecture/jue_runtime_and_garbage_collection.md) | Memory management   |
 | [Causation](docs/architecture/causation_01.md)                          | Causal reasoning    |
@@ -288,13 +287,13 @@ project_jue/
 
 ### Cheatsheets
 
-| Document                                                                                             | Topic          |
-| ---------------------------------------------------------------------------------------------------- | -------------- |
-| [De Bruijn Indices](docs/cheatsheets/core_world_De_Bruijn_Call_by_name_Specification.md)             | Index notation |
-| [Call-By-Name Semantics](docs/cheatsheets/De%20Bruijn%20Indices%20and%20Call‑By‑Name%20Semantics.md) | Evaluation     |
-| [Homoiconicity](docs/cheatsheets/Homoiconicity.md)                                                   | Code as data   |
-| [Logic Cheat Sheet](docs/cheatsheets/Logic%20Cheat%20Sheet.md)                                       | Basic logic    |
-| [Logic Advanced](docs/cheatsheets/Logic%20Cheat%20Sheet%20Advanced.md)                               | Advanced logic |
+| Document                                                                                   | Topic          |
+| ------------------------------------------------------------------------------------------ | -------------- |
+| [De Bruijn Indices](docs/cheatsheets/core_world_de_bruijn_call_by_name_specification.md)   | Index notation |
+| [Call-By-Name Semantics](docs/cheatsheets/de_bruijn_indices_and_call_by_name_semantics.md) | Evaluation     |
+| [Homoiconicity](docs/cheatsheets/homoiconicity.md)                                         | Code as data   |
+| [Logic Cheat Sheet](docs/cheatsheets/logic_cheat_sheet.md)                                 | Basic logic    |
+| [Logic Advanced](docs/cheatsheets/logic_cheat_sheet_advanced.md)                           | Advanced logic |
 
 ### Legacy Specifications (V1)
 
