@@ -1,4 +1,4 @@
-#![allow(warnings)]
+//#![allow(warnings)]
 pub mod memory;
 pub mod scheduler;
 pub mod types;
@@ -59,11 +59,11 @@ impl PhysicsWorld {
         self.scheduler.add_actor(actor);
 
         // Execute the actor until completion or error
-        let mut messages_sent = Vec::new();
+        let messages_sent = Vec::new();
         let mut output = None;
         let mut error = None;
         let mut steps_used = 0;
-        let mut memory_used = 0;
+        let memory_used = 0;
 
         loop {
             match self.scheduler.tick() {

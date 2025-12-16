@@ -37,13 +37,17 @@ pub enum Type {
 
     /// Function type
     Function {
+        /// Parameter types
         parameters: Vec<Type>,
+        /// Return type
         return_type: Box<Type>,
     },
 
     /// Capability-annotated type
     CapabilityType {
+        /// Base type being annotated
         base_type: Box<Type>,
+        /// Required capabilities
         capabilities: Vec<Capability>,
     },
 
@@ -52,7 +56,9 @@ pub enum Type {
 
     /// Result type for error handling
     Result {
+        /// Success type
         ok_type: Box<Type>,
+        /// Error type
         err_type: Box<Type>,
     },
 }

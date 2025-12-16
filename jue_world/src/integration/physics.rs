@@ -2,7 +2,7 @@
 use crate::ast::AstNode;
 use crate::error::{CompilationError, SourceLocation};
 use crate::trust_tier::TrustTier;
-use physics_world::types::{Capability, OpCode, Value};
+use physics_world::types::{Capability, OpCode};
 
 /// Physics-World compiler for Empirical/Experimental tiers
 pub struct PhysicsWorldCompiler {
@@ -72,7 +72,7 @@ impl PhysicsWorldCompiler {
                 // TODO: Handle float literals properly
                 OpCode::Int(*f as i64)
             }
-            crate::ast::Literal::String(s) => {
+            crate::ast::Literal::String(_s) => {
                 // TODO: Handle string literals properly
                 OpCode::Nil
             }
@@ -82,7 +82,7 @@ impl PhysicsWorldCompiler {
     }
 
     /// Compile variable to bytecode
-    fn compile_variable(&self, name: &str) -> Result<Vec<OpCode>, CompilationError> {
+    fn compile_variable(&self, _name: &str) -> Result<Vec<OpCode>, CompilationError> {
         // TODO: Implement variable lookup and loading
         // For now, just push a placeholder value
         Ok(vec![OpCode::Nil])

@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::comptime::{execute_comptime, ComptimeEnv, ComptimeExecutor};
     use crate::error::CompilationError;
     use crate::trust_tier::TrustTier;

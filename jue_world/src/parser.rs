@@ -1,5 +1,5 @@
 /// Parser for Jue language with capability syntax
-use crate::ast::{AstNode, Literal};
+use crate::ast::AstNode;
 use crate::error::{CompilationError, SourceLocation};
 use crate::expression_parser::ExpressionParser;
 use crate::test_timeout::ParserGuard;

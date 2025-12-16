@@ -107,13 +107,13 @@ mod tests {
         assert_eq!(ast1, ast2);
         assert_ne!(ast1, ast3);
 
-        let call1 = AstNode::Call {
+        let _call1 = AstNode::Call {
             function: Box::new(AstNode::Variable("f".to_string())),
             arguments: vec![AstNode::Literal(Literal::Int(1))],
             location: loc1,
         };
 
-        let call2 = AstNode::Call {
+        let _call2 = AstNode::Call {
             function: Box::new(AstNode::Variable("f".to_string())),
             arguments: vec![AstNode::Literal(Literal::Int(1))],
             location: loc2,

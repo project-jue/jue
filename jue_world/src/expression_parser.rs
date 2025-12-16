@@ -10,6 +10,7 @@ pub struct ExpressionParser<'a> {
 }
 
 impl<'a> ExpressionParser<'a> {
+    /// Create a new expression parser
     pub fn new(tokens: &'a [Token]) -> Self {
         Self {
             tokens,
@@ -27,6 +28,7 @@ impl<'a> ExpressionParser<'a> {
         self.position >= self.tokens.len()
     }
 
+    /// Parse an expression from tokens
     pub fn parse(&mut self) -> Result<AstNode, CompilationError> {
         if self.is_at_end() {
             return Err(CompilationError::ParseError {

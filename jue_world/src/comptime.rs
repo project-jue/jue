@@ -218,8 +218,8 @@ impl ComptimeExecutor {
                 }
 
                 // Pop arguments and function
-                let args: Vec<_> = (0..arg_count).map(|_| self.stack.pop().unwrap()).collect();
-                let func = self.stack.pop().unwrap();
+                let _args: Vec<_> = (0..arg_count).map(|_| self.stack.pop().unwrap()).collect();
+                let _func = self.stack.pop().unwrap();
 
                 // For now, just push a placeholder result
                 self.stack.push(Value::Nil);
@@ -391,7 +391,7 @@ impl ComptimeExecutor {
                     }
                 }
             }
-            OpCode::MakeClosure(code_idx, capture_count) => {
+            OpCode::MakeClosure(_code_idx, _capture_count) => {
                 // TODO: Implement closure creation
                 self.stack.push(Value::Nil); // Placeholder
             }

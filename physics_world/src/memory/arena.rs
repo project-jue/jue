@@ -182,7 +182,7 @@ mod tests {
     fn test_arena_alignment() {
         let mut arena = ObjectArena::with_capacity(1024);
         // Allocate 1 byte, should be aligned to 8 bytes after header
-        let ptr1 = arena.allocate(1, 0).unwrap();
+        let _ptr1 = arena.allocate(1, 0).unwrap();
         // Header is 8 bytes, data size aligned to 8 -> 8 + 8 = 16
         assert_eq!(arena.next_free(), 16);
 

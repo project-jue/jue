@@ -82,14 +82,14 @@ impl FfiCallGenerator {
         arguments: Vec<physics_world::Value>,
     ) -> Result<Vec<physics_world::OpCode>, CompilationError> {
         // Find the FFI function
-        let func = self.registry.find_function(name).ok_or_else(|| {
+        let _func = self.registry.find_function(name).ok_or_else(|| {
             CompilationError::FfiError(format!("FFI function {} not found", name))
         })?;
 
         // Generate the HostCall opcode
         let opcode = physics_world::OpCode::HostCall {
             cap_idx: 0, // TODO: Get actual capability index
-            func_id: func.host_function as u16,
+            func_id: _func.host_function as u16,
             args: arguments.len() as u8,
         };
 
@@ -101,19 +101,19 @@ impl FfiCallGenerator {
                 physics_world::Value::Bool(b) => bytecode.push(physics_world::OpCode::Bool(b)),
                 physics_world::Value::Int(i) => bytecode.push(physics_world::OpCode::Int(i)),
                 physics_world::Value::Symbol(s) => bytecode.push(physics_world::OpCode::Symbol(s)),
-                physics_world::Value::Pair(ptr) => {
+                physics_world::Value::Pair(_ptr) => {
                     // TODO: Handle pair values
                     bytecode.push(physics_world::OpCode::Nil);
                 }
-                physics_world::Value::Closure(ptr) => {
+                physics_world::Value::Closure(_ptr) => {
                     // TODO: Handle closure values
                     bytecode.push(physics_world::OpCode::Nil);
                 }
-                physics_world::Value::ActorId(id) => {
+                physics_world::Value::ActorId(_id) => {
                     // TODO: Handle actor ID values
                     bytecode.push(physics_world::OpCode::Nil);
                 }
-                physics_world::Value::Capability(cap) => {
+                physics_world::Value::Capability(_cap) => {
                     // TODO: Handle capability values
                     bytecode.push(physics_world::OpCode::Nil);
                 }
@@ -132,7 +132,7 @@ impl FfiCallGenerator {
         name: &str,
     ) -> Result<Vec<physics_world::OpCode>, CompilationError> {
         // Find the FFI function
-        let func = self.registry.find_function(name).ok_or_else(|| {
+        let _func = self.registry.find_function(name).ok_or_else(|| {
             CompilationError::FfiError(format!("FFI function {} not found", name))
         })?;
 

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use crate::ast::{AstNode, Literal};
     use crate::error::CompilationError;
     use crate::parser::{parse, Parser, Token};

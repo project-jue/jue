@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::ast::{AstNode, Literal};
     use crate::error::{CompilationError, SourceLocation};
     use crate::trust_tier::TrustTier;

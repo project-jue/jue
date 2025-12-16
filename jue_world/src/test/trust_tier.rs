@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
     use physics_world::types::Capability;
 
     // Explicit import for TrustTier

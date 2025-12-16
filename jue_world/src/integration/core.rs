@@ -40,13 +40,13 @@ impl CoreWorldCompiler {
     }
 
     /// Compile literal to CoreExpr
-    fn compile_literal(&self, lit: &crate::ast::Literal) -> Result<CoreExpr, CompilationError> {
+    fn compile_literal(&self, _lit: &crate::ast::Literal) -> Result<CoreExpr, CompilationError> {
         // TODO: Implement literal compilation
         Ok(CoreExpr::Var(0)) // Placeholder
     }
 
     /// Compile variable to CoreExpr
-    fn compile_variable(&self, name: &str) -> Result<CoreExpr, CompilationError> {
+    fn compile_variable(&self, _name: &str) -> Result<CoreExpr, CompilationError> {
         // TODO: Implement variable compilation with De Bruijn indices
         Ok(CoreExpr::Var(0)) // Placeholder
     }
@@ -82,7 +82,7 @@ impl CoreWorldCompiler {
 
         // Build nested lambdas: (lambda (x y) body) -> (lambda x (lambda y body))
         let mut result = body_expr;
-        for param in parameters.iter().rev() {
+        for _param in parameters.iter().rev() {
             result = CoreExpr::Lam(Box::new(result));
         }
 
@@ -92,7 +92,7 @@ impl CoreWorldCompiler {
     /// Generate proof obligations for CoreExpr
     pub fn generate_proof_obligations(
         &self,
-        core_expr: &CoreExpr,
+        _core_expr: &CoreExpr,
     ) -> Result<Vec<Proof>, CompilationError> {
         // TODO: Implement proof obligation generation
         Ok(Vec::new())
@@ -101,8 +101,8 @@ impl CoreWorldCompiler {
     /// Verify proofs using Core-World kernel
     pub fn verify_proofs(
         &self,
-        core_expr: &CoreExpr,
-        proofs: &[Proof],
+        _core_expr: &CoreExpr,
+        _proofs: &[Proof],
     ) -> Result<(), CompilationError> {
         // TODO: Implement proof verification
         Ok(())

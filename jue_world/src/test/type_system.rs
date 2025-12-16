@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::error::SourceLocation;
     use crate::trust_tier::TrustTier;
     use physics_world::Capability;
@@ -107,10 +106,10 @@ mod tests {
 
     #[test]
     fn test_type_signature_validation() {
-        let mut env = TypeEnvironment::new(TrustTier::Empirical);
-        let mut checker = TypeChecker {
-            env,
+        let env = TypeEnvironment::new(TrustTier::Empirical);
+        let checker = TypeChecker {
             location: SourceLocation::default(),
+            env,
         };
 
         // Valid signature with available capabilities

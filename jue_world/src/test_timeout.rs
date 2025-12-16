@@ -1,7 +1,6 @@
 /// Test timeout and resource management utilities
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread;
 use std::time::{Duration, Instant};
 
 /// Test execution guard that enforces timeouts and resource limits
@@ -85,8 +84,11 @@ where
 /// Test execution error types
 #[derive(Debug, PartialEq)]
 pub enum TestError {
+    /// Test execution timed out
     Timeout,
+    /// Test exceeded memory limit
     MemoryLimitExceeded,
+    /// Test panicked
     Panic,
 }
 
@@ -146,7 +148,9 @@ impl ParserGuard {
 /// Parser error types
 #[derive(Debug, PartialEq)]
 pub enum ParserError {
+    /// Maximum parsing depth exceeded
     MaxDepthExceeded,
+    /// Maximum token limit exceeded
     MaxTokensExceeded,
 }
 

@@ -2,7 +2,6 @@
 mod tests {
     use core_world::core_expr::CoreExpr;
 
-    use super::*;
     use crate::{
         ast::{AstNode, Literal},
         error::SourceLocation,

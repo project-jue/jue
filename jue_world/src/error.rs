@@ -104,7 +104,9 @@ pub enum CompilationError {
     /// Parse error with message and location
     #[error("Parse error at {location:?}: {message}")]
     ParseError {
+        /// Error message
         message: String,
+        /// Source location
         location: SourceLocation,
     },
 

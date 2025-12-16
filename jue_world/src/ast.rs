@@ -17,95 +17,137 @@ pub enum AstNode {
 
     /// Function call
     Call {
+        /// Function expression being called
         function: Box<AstNode>,
+        /// Arguments passed to the function
         arguments: Vec<AstNode>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// Lambda expression
     Lambda {
+        /// Parameter names
         parameters: Vec<String>,
+        /// Function body
         body: Box<AstNode>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// Let binding
     Let {
+        /// Variable bindings (name, value pairs)
         bindings: Vec<(String, AstNode)>,
+        /// Body expression
         body: Box<AstNode>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// If expression
     If {
+        /// Condition expression
         condition: Box<AstNode>,
+        /// Expression to evaluate if condition is true
         then_branch: Box<AstNode>,
+        /// Expression to evaluate if condition is false
         else_branch: Box<AstNode>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// Trust tier annotation
     TrustTier {
+        /// Trust tier level
         tier: String,
+        /// Expression being annotated
         expression: Box<AstNode>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// Capability requirement declaration
     RequireCapability {
+        /// Capability being required
         capability: String,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// Capability check
     HasCapability {
+        /// Capability being checked
         capability: String,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// Type signature declaration
     TypeSignature {
+        /// Function name
         name: String,
+        /// Parameter types
         parameters: Vec<Type>,
+        /// Return type
         return_type: Box<Type>,
+        /// Required capabilities
         capabilities: Vec<String>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// Macro definition
     MacroDefinition {
+        /// Macro name
         name: String,
+        /// Parameter names
         parameters: Vec<String>,
+        /// Macro body
         body: Box<AstNode>,
+        /// Required capabilities
         capabilities: Vec<String>,
+        /// Trust tier for the macro
         tier: String,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// Macro expansion
     MacroExpansion {
+        /// Macro name being expanded
         name: String,
+        /// Arguments passed to macro
         arguments: Vec<AstNode>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// FFI call
     FfiCall {
+        /// Foreign function name
         function: String,
+        /// Arguments passed to FFI function
         arguments: Vec<AstNode>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// List construction
     List {
+        /// List elements
         elements: Vec<AstNode>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 
     /// Pair construction
     Cons {
+        /// First element of pair (car)
         car: Box<AstNode>,
+        /// Second element of pair (cdr)
         cdr: Box<AstNode>,
+        /// Source location for error reporting
         location: SourceLocation,
     },
 }
@@ -137,13 +179,17 @@ pub enum Type {
 
     /// Function type
     Function {
+        /// Parameter types
         parameters: Vec<Type>,
+        /// Return type
         return_type: Box<Type>,
     },
 
     /// Capability-annotated type
     CapabilityType {
+        /// Base type being annotated
         base_type: Box<Type>,
+        /// Required capabilities
         capabilities: Vec<String>,
     },
 

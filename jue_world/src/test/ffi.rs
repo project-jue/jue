@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::error::SourceLocation;
     use crate::ffi::{create_standard_ffi_registry, FfiCallGenerator, FfiFunction, FfiRegistry};
     use physics_world::types::{Capability, HostFunction};

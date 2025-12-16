@@ -272,8 +272,8 @@ impl VmState {
                 }
 
                 // Pop message and target actor ID
-                let message = self.stack.pop().unwrap();
-                let target_actor = match self.stack.pop().unwrap() {
+                let _message = self.stack.pop().unwrap();
+                let _target_actor = match self.stack.pop().unwrap() {
                     Value::ActorId(id) => id,
                     _ => return Err(VmError::TypeMismatch),
                 };
@@ -306,7 +306,7 @@ impl VmState {
                 let a = self.stack.pop().ok_or(VmError::StackUnderflow)?;
 
                 match (a, b) {
-                    (Value::Int(x), Value::Int(0)) => return Err(VmError::DivisionByZero),
+                    (Value::Int(_x), Value::Int(0)) => return Err(VmError::DivisionByZero),
                     (Value::Int(x), Value::Int(y)) => {
                         let result = x.checked_div(y).ok_or(VmError::ArithmeticOverflow)?;
                         self.stack.push(Value::Int(result));
