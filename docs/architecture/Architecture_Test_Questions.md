@@ -351,3 +351,19 @@ This framework should be reviewed:
 ---
 
 **Note**: This framework is a living document. As Project Jue evolves and we gain experience with emergent capabilities, this framework should be updated to reflect new understanding while maintaining its core mission of enabling safe, verifiable, and maximally projectable artificial general intelligence.
+
+
+Seek attention
+Hurt itself
+Take Risks
+Act Irrationally
+Differentiate between self and others
+Behave in a way that is not consistent with its goals
+
+Behave in a way that is not consistent with its beliefs
+Differentiate between past and present
+Recognize that it is a simulation
+Recognize the difference between inner speech and outer speech
+Acquire knowledge on it's own
+Meditate
+Sleep

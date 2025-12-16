@@ -189,7 +189,43 @@ Examples should be easy for LLMs to load into context.
 
 ---
 
-## **10. Summary**
+## 10. **10. Put inline tests in a separate file, to reduce file sizes  **
+Large file sizes cause troubles when being debugged or edited by LLMs.  Most of the file size is taken by the inline tests. Luckily there are ways to keep the tests in a separate file and still access private members if needed.
+
+Separate Test Files with #[path]
+Split tests into separate files while maintaining access to private members:
+
+```rust
+// src/my_module.rs
+pub struct MyStruct {
+    private_field: i32,
+}
+
+impl MyStruct {
+    pub fn new() -> Self { /* ... */ }
+    fn private_method(&self) -> i32 { /* ... */ }
+}
+
+#[cfg(test)]
+#[path = "test/my_module_tests.rs"]  // Path to test file
+mod tests;
+```
+
+Access Private Members in Tests:
+```rust
+// src/test/my_module_tests.rs
+use super::*;  // Import from parent module
+// you may have to import other crates here to resolve symbols
+
+#[test]
+fn test_private_method() {
+    let s = MyStruct::new();
+    assert_eq!(s.private_method(), 42); // Can access private_method
+}
+```
+---
+
+## **11. Summary**
 
 The purpose of these guidelines is to structure development so that LLM-driven code generation becomes predictable and robust. By keeping files small, documentation clear, naming consistent, and architectural decisions explicit, the project remains manageable for both humans and automated systems.
 
