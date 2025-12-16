@@ -1,5 +1,5 @@
 /// Test for lambda display functionality
-use core_world::core_expr::{lam, var, CoreExpr};
+use core_world::core_expr::{lam, var};
 
 #[test]
 fn test_lambda_display() {

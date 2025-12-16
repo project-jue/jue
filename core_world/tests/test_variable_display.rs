@@ -1,5 +1,5 @@
 /// Test for variable display functionality
-use core_world::core_expr::{var, CoreExpr};
+use core_world::core_expr::var;
 
 #[test]
 fn test_variable_display() {

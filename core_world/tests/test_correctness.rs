@@ -1,4 +1,4 @@
-use core_world::core_expr::{app, lam, var, CoreExpr};
+use core_world::core_expr::{app, lam, var};
 use core_world::core_kernel::{alpha_equiv, beta_reduce, eta_reduce};
 use core_world::proof_checker::{prove_beta, verify};
 

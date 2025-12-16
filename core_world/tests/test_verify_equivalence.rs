@@ -43,7 +43,7 @@ fn test_verify_equivalence_reflexivity() {
 fn test_verify_equivalence_invalid() {
     // Test that invalid proofs are rejected
     let expr_a = app(lam(var(0)), var(42));
-    let expr_b = var(1); // Different from what the proof would show
+    let _expr_b = var(1); // Different from what the proof would show
 
     // Generate a proof for expr_a → var(42)
     let proof = prove_beta(expr_a.clone());

@@ -55,7 +55,7 @@ fn test_large_expression_with_many_levels() {
 
     // Build a chain of 10 nested applications: (λx.x) ((λx.x) ((λx.x) ... (λx.x) z)...)
     let mut current_expr = app(identity.clone(), var(10));
-    for i in 1..10 {
+    for _i in 1..10 {
         current_expr = app(identity.clone(), current_expr);
     }
 
@@ -100,7 +100,7 @@ fn test_de_bruijn_indices_in_complex_constructions() {
             if let CoreExpr::Lam(innermost_func) = *inner_func {
                 if let CoreExpr::App(app_func, app_arg) = *innermost_func {
                     assert!(matches!(*app_func, CoreExpr::Var(1))); // x (index 1)
-                    assert!(matches!(*app_arg, CoreExpr::Var(0)));  // y (index 0)
+                    assert!(matches!(*app_arg, CoreExpr::Var(0))); // y (index 0)
                 }
             }
         }
@@ -128,7 +128,7 @@ fn test_church_numerals_construction() {
 
                 if let CoreExpr::App(inner_func, inner_arg) = *arg {
                     assert!(matches!(*inner_func, CoreExpr::Var(1))); // f
-                    assert!(matches!(*inner_arg, CoreExpr::Var(0)));  // x
+                    assert!(matches!(*inner_arg, CoreExpr::Var(0))); // x
                 }
             }
         }
@@ -168,13 +168,13 @@ fn test_complex_combinator_patterns() {
                     // left_app should be (x z)
                     if let CoreExpr::App(x_app, z_var) = *left_app {
                         assert!(matches!(*x_app, CoreExpr::Var(2))); // x
-                        assert!(matches!(*z_var, CoreExpr::Var(0)));  // z
+                        assert!(matches!(*z_var, CoreExpr::Var(0))); // z
                     }
 
                     // right_app should be (y z)
                     if let CoreExpr::App(y_app, z_var) = *right_app {
                         assert!(matches!(*y_app, CoreExpr::Var(1))); // y
-                        assert!(matches!(*z_var, CoreExpr::Var(0)));  // z
+                        assert!(matches!(*z_var, CoreExpr::Var(0))); // z
                     }
                 }
             }
@@ -188,9 +188,9 @@ fn test_memory_intensive_expression_construction() {
     // Build a large expression tree with many branches
 
     let identity = lam(var(0));
-    let v0 = var(0);
-    let v1 = var(1);
-    let v2 = var(2);
+    let _v0 = var(0);
+    let _v1 = var(1);
+    let _v2 = var(2);
 
     // Build: ((λx.x) (λx.x)) ((λx.x) (λx.x))
     let left_branch = app(identity.clone(), identity.clone());

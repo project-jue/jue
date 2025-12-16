@@ -1,5 +1,5 @@
 /// Test for expression size functionality
-use core_world::core_expr::{app, lam, var, CoreExpr};
+use core_world::core_expr::{app, lam, var};
 
 #[test]
 fn test_expression_size() {

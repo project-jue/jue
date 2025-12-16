@@ -34,7 +34,6 @@ pub fn core_expr_from_value(value: &Value) -> CoreExpr {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core_world::core_expr::{app, lam, var};
     use physics_world::types::{Capability, HostFunction, OpCode, Value};
     use serde_json;
 

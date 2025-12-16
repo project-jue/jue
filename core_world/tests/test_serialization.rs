@@ -1,7 +1,7 @@
 /// Comprehensive serialization tests for Core-World V2
 /// Tests cover all serialization functionality according to CoreSpec v2.0
 use core_world::{
-    core_expr::{app, lam, nat, pair, var, CoreExpr, ParseError},
+    core_expr::{app, lam, nat, pair, var, ParseError},
     deserialize_core_expr, deserialize_proof,
     proof_checker::{prove_beta, prove_eta, Proof, ProofParseError},
     serialize_core_expr, serialize_proof,
@@ -202,9 +202,9 @@ fn test_complex_nested_proofs() {
 
     // Test complex proof with CongApp and CongLam
     let f1 = lam(var(0));
-    let f2 = lam(var(0));
+    let _f2 = lam(var(0));
     let a1 = var(1);
-    let a2 = var(1);
+    let _a2 = var(1);
     let proof_f = Proof::Refl(f1.clone());
     let proof_a = Proof::Refl(a1.clone());
     let cong_app_proof = Proof::CongApp {

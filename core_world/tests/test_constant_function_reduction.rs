@@ -1,5 +1,5 @@
 /// Test for constant function reduction
-use core_world::core_expr::{app, lam, var, CoreExpr};
+use core_world::core_expr::{app, lam, var};
 use core_world::core_kernel::beta_reduce;
 
 #[test]

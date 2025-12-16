@@ -1,5 +1,5 @@
 /// Test for deeply nested expressions functionality
-use core_world::core_expr::{app, lam, var, CoreExpr};
+use core_world::core_expr::{app, lam, var};
 
 #[test]
 fn test_deeply_nested_expressions() {

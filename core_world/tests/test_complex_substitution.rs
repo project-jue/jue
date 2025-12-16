@@ -1,5 +1,5 @@
 /// Test for complex substitution
-use core_world::core_expr::{app, lam, var, CoreExpr};
+use core_world::core_expr::{app, lam, var};
 use core_world::core_kernel::normalize;
 
 #[test]
