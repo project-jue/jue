@@ -10,6 +10,7 @@ pub use types::{Capability, HostFunction, OpCode, Value};
 use crate::scheduler::{Actor, PhysicsScheduler};
 use crate::vm::state::VmState;
 use serde::Serialize;
+use std::fmt;
 
 /// The main entry point for the Physics World public API.
 /// This is the immutable, external interface for Jue-World.
@@ -209,6 +210,40 @@ pub enum StructuredError {
     ArithmeticOverflow,
     /// Scheduler-level error occurred
     SchedulerError(String),
+}
+
+impl fmt::Display for StructuredError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StructuredError::CpuLimitExceeded { limit, attempted } => {
+                write!(
+                    f,
+                    "CPU limit exceeded: attempted {} steps, limit was {}",
+                    attempted, limit
+                )
+            }
+            StructuredError::MemoryLimitExceeded { limit, attempted } => {
+                write!(
+                    f,
+                    "Memory limit exceeded: attempted {} bytes, limit was {}",
+                    attempted, limit
+                )
+            }
+            StructuredError::StackUnderflow => write!(f, "Stack underflow"),
+            StructuredError::InvalidHeapPtr => write!(f, "Invalid heap pointer"),
+            StructuredError::UnknownOpCode => write!(f, "Unknown opcode"),
+            StructuredError::TypeMismatch => write!(f, "Type mismatch"),
+            StructuredError::DivisionByZero => write!(f, "Division by zero"),
+            StructuredError::ArithmeticOverflow => write!(f, "Arithmetic overflow"),
+            StructuredError::SchedulerError(msg) => write!(f, "Scheduler error: {}", msg),
+        }
+    }
+}
+
+impl fmt::Debug for StructuredError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
 }
 
 #[cfg(test)]
