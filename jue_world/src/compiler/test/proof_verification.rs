@@ -1,9 +1,6 @@
-use crate::compiler::core_compilation::{
-    compile_ast_to_core_expr_with_proofs, generate_simple_proof, verify_core_expr_with_proof,
-    verify_proof_against_kernel,
-};
+use crate::compiler::core_compilation::{compile_ast_to_core_expr_with_proofs, generate_simple_proof, verify_core_expr_with_proof, verify_proof_against_kernel};
 use crate::parser::parse;
-use core_world::core_kernel::{alpha_equiv, is_normal_form};
+use core_world::core_kernel::alpha_equiv;
 use core_world::proof_checker::Proof;
 use core_world::{app, lam, prove_beta, var};
 

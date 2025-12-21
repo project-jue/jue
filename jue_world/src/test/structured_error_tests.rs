@@ -1,5 +1,5 @@
 use super::*;
-use crate::error::{CompilationError, SourceLocation};
+use crate::error::SourceLocation;
 
 #[test]
 fn test_structured_error_creation() {

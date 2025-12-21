@@ -407,7 +407,7 @@ mod tests {
 
                 // First argument should be a call
                 match &arguments[0] {
-                    AstNode::Call { function, .. } => {
+                    AstNode::Call { .. } => {
                         // Just check that it's a call node, don't try to match the function
                         assert!(true);
                     }

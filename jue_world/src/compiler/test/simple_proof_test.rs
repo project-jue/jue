@@ -1,8 +1,8 @@
 #[test]
 fn test_simple_proof_generation_works() {
     use crate::compiler::core_compilation::generate_simple_proof;
-    use core_world::core_expr::{app, lam, var, CoreExpr};
-    use core_world::proof_checker::{verify, Proof};
+    use core_world::core_expr::{app, lam, var};
+    use core_world::proof_checker::verify;
 
     // Create a simple lambda expression: (λx.x) y
     let expr = app(lam(var(0)), var(1));

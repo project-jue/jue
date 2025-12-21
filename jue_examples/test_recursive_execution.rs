@@ -1,7 +1,6 @@
 use jue_world::compiler::compile;
 use jue_world::parser::parse;
 use jue_world::trust_tier::TrustTier;
-use physics_world::types::{OpCode, Value};
 use physics_world::api::PhysicsWorld;
 
 fn test_recursive_program(name: &str, source: &str) {
@@ -10,7 +9,7 @@ fn test_recursive_program(name: &str, source: &str) {
     // Test parsing
     println!("1. Testing parsing...");
     match parse(source) {
-        Ok(ast) => {
+        Ok(_ast) => {
             println!("✓ Successfully parsed {}", name);
         }
         Err(e) => {

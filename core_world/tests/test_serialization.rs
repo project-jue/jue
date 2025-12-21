@@ -204,14 +204,14 @@ fn test_complex_nested_proofs() {
     let a1 = var(1);
     let proof_f = Proof::Refl(f1.clone());
     let proof_a = Proof::Refl(a1.clone());
-    let cong_app_proof = Proof::CongApp {
+    let _cong_app_proof = Proof::CongApp {
         proof_f: Box::new(proof_f),
         proof_a: Box::new(proof_a),
     };
 
     let m = var(1);
     let proof_b = Proof::Refl(m.clone());
-    let cong_lam_proof = Proof::CongLam {
+    let _cong_lam_proof = Proof::CongLam {
         proof_b: Box::new(proof_b),
     };
 
