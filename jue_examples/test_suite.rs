@@ -2,7 +2,7 @@ use jue_world::compiler::compile;
 use jue_world::parser::parse;
 use jue_world::trust_tier::TrustTier;
 use physics_world::types::{OpCode, Value};
-use physics_world::PhysicsWorld;
+use physics_world::api::PhysicsWorld;
 
 fn test_jue_program(name: &str, source: &str) {
     println!("\n=== Testing {} ===", name);

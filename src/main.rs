@@ -6,7 +6,7 @@ use std::process;
 use std::time::Instant;
 
 use jue_world::{compile, TrustTier};
-use physics_world::{ExecutionResult, PhysicsWorld};
+use physics_world::api::{ExecutionResult, PhysicsWorld};
 
 fn main() {
     // Initialize logging
