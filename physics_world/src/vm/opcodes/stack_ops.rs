@@ -34,21 +34,26 @@ pub fn handle_swap(vm: &mut VmState) -> Result<(), VmError> {
 
 /// Handles GetLocal opcode
 pub fn handle_get_local(vm: &mut VmState, offset: u16) -> Result<(), VmError> {
-    // GetLocal should access arguments/locals relative to the call frame
-    // For a function with N arguments, GetLocal(0) gets the first argument, etc.
-    if vm.call_stack.is_empty() {
-        return Err(VmError::StackUnderflow);
-    }
-
-    let call_frame = vm.call_stack.last().unwrap();
     let offset_usize = offset as usize;
 
-    // Get the value from the call frame locals
-    if offset_usize >= call_frame.locals.len() {
+    // Check if we're inside a function call (have a call frame)
+    if let Some(call_frame) = vm.call_stack.last() {
+        // Inside a function - get from call frame locals
+        if offset_usize < call_frame.locals.len() {
+            let value = call_frame.locals[offset_usize].clone();
+            vm.stack.push(value);
+            return Ok(());
+        }
+        // Fall through to stack-based access if local not found in frame
+    }
+
+    // Top-level execution or local not in frame - access from stack directly
+    // The offset is relative to the base of the current scope
+    if offset_usize >= vm.stack.len() {
         return Err(VmError::StackUnderflow);
     }
 
-    let value = call_frame.locals[offset_usize].clone();
+    let value = vm.stack[offset_usize].clone();
     vm.stack.push(value);
     Ok(())
 }
@@ -59,24 +64,27 @@ pub fn handle_set_local(vm: &mut VmState, offset: u16) -> Result<(), VmError> {
         return Err(VmError::StackUnderflow);
     }
 
-    // SetLocal should modify locals in the current call frame
-    if vm.call_stack.is_empty() {
-        return Err(VmError::StackUnderflow);
-    }
-
-    // Save the value to set first
-    let value = vm.stack.pop().unwrap();
-
-    // Access the mutable call frame
-    let call_frame = vm.call_stack.last_mut().unwrap();
     let offset_usize = offset as usize;
 
-    // If the local index is beyond current locals, expand the locals vector
-    while offset_usize >= call_frame.locals.len() {
-        call_frame.locals.push(Value::Nil);
+    // Pop the value to set
+    let value = vm.stack.pop().unwrap();
+
+    // Check if we're inside a function call (have a call frame)
+    if let Some(call_frame) = vm.call_stack.last_mut() {
+        // Inside a function - set in call frame locals
+        // Expand locals vector if needed
+        while offset_usize >= call_frame.locals.len() {
+            call_frame.locals.push(Value::Nil);
+        }
+        call_frame.locals[offset_usize] = value;
+        return Ok(());
     }
 
-    // Set the local variable in the call frame
-    call_frame.locals[offset_usize] = value;
+    // Top-level execution - store in stack at the specified offset
+    // Expand stack if needed
+    while offset_usize >= vm.stack.len() {
+        vm.stack.push(Value::Nil);
+    }
+    vm.stack[offset_usize] = value;
     Ok(())
 }

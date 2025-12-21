@@ -105,6 +105,22 @@ pub enum OpCode {
         func_id: u16,
         args: u8,
     },
+
+    // --- SANDBOX INSTRUCTIONS ---
+    /// Initialize sandbox environment with resource limits
+    InitSandbox,
+
+    /// Isolate capability access for untrusted code
+    IsolateCapabilities,
+
+    /// Set error handler jump target for sandbox violations
+    SetErrorHandler(i16),
+
+    /// Log sandbox violation and transition to error state
+    LogSandboxViolation,
+
+    /// Cleanup sandbox resources and restore previous state
+    CleanupSandbox,
 }
 
 impl OpCode {
@@ -158,6 +174,12 @@ impl OpCode {
                 func_id: _,
                 args: _,
             } => 7, // usize (4) + u16 (2) + u8 (1) + opcode tag (1) = 8 bytes
+            // Sandbox instructions
+            OpCode::InitSandbox => 1,
+            OpCode::IsolateCapabilities => 1,
+            OpCode::SetErrorHandler(_) => 3, // i16 (2 bytes) + opcode tag (1 byte)
+            OpCode::LogSandboxViolation => 1,
+            OpCode::CleanupSandbox => 1,
         }
     }
 }
@@ -167,11 +189,11 @@ impl OpCode {
 pub enum Value {
     Nil,
     Bool(bool),
-    Int(i64),      // Primary deterministic number type.
-    Float(f64),    // NEW: Float value type
+    Int(i64),       // Primary deterministic number type.
+    Float(f64),     // NEW: Float value type
     String(String), // NEW: String value type
-    Symbol(usize), // Index into a constant table.
-    Pair(HeapPtr), // HeapPtr is a u32 index into an ObjectArena.
+    Symbol(usize),  // Index into a constant table.
+    Pair(HeapPtr),  // HeapPtr is a u32 index into an ObjectArena.
     Closure(HeapPtr),
     ActorId(u32),
     Capability(crate::types::capability::Capability),

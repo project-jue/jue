@@ -1375,6 +1375,27 @@ impl VmState {
                 capability::handle_host_call(self, *cap_idx, *func_id, *args)?;
                 self.ip += 1;
             }
+            // Sandbox instructions
+            OpCode::InitSandbox => {
+                // Initialize sandbox environment - place holder for now
+                self.ip += 1;
+            }
+            OpCode::IsolateCapabilities => {
+                // Isolate capability access - place holder for now
+                self.ip += 1;
+            }
+            OpCode::SetErrorHandler(offset) => {
+                // Set error handler jump target - place holder for now
+                self.ip += 1;
+            }
+            OpCode::LogSandboxViolation => {
+                // Log sandbox violation - place holder for now
+                self.ip += 1;
+            }
+            OpCode::CleanupSandbox => {
+                // Cleanup sandbox resources - place holder for now
+                self.ip += 1;
+            }
         }
 
         Ok(InstructionResult::Continue)
