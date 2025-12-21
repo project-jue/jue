@@ -1,4 +1,4 @@
-use super::environment::Environment;
+use super::environment::CompilationEnvironment;
 use crate::ast;
 use crate::error::CompilationError;
 use physics_world::types::{OpCode, Value};
@@ -17,16 +17,18 @@ use physics_world::types::{OpCode, Value};
 pub fn compile_ast_to_bytecode(
     ast: &ast::AstNode,
 ) -> Result<(Vec<OpCode>, Vec<Value>), CompilationError> {
-    let mut env = Environment::new();
+    let mut env = CompilationEnvironment::new();
     let mut bytecode = Vec::new();
     let mut constants = Vec::new();
+    let mut closure_bodies = Vec::new();
 
     // Helper function to generate bytecode for a node
     fn generate_node(
         bytecode: &mut Vec<OpCode>,
         constants: &mut Vec<Value>,
+        closure_bodies: &mut Vec<Vec<OpCode>>,
         node: &ast::AstNode,
-        env: &mut Environment,
+        env: &mut CompilationEnvironment,
     ) {
         match node {
             ast::AstNode::Literal(ast::Literal::Int(value)) => {
@@ -35,12 +37,41 @@ pub fn compile_ast_to_bytecode(
             ast::AstNode::Lambda {
                 parameters, body, ..
             } => {
-                // Create a closure
-                let capture_count = 0; // For now, no captures
-                bytecode.push(OpCode::MakeClosure(capture_count, parameters.len()));
+                // Start closure capture context
+                env.start_closure_capture();
 
-                // Compile the body
-                generate_node(bytecode, constants, body, env);
+                // Push new scope for lambda parameters
+                env.push_scope();
+
+                // Define parameters in the new scope
+                for param in parameters {
+                    env.define_variable(param);
+                }
+
+                // Compile the body into a separate bytecode vector for the closure
+                let mut closure_bytecode = Vec::new();
+                generate_node(&mut closure_bytecode, constants, closure_bodies, body, env);
+
+                // Pop scope after compilation
+                env.pop_scope();
+
+                // Get captured variables and end capture context
+                let captures = env.end_closure_capture();
+
+                // Store the closure body in the constants
+                // For now, we'll use a placeholder - the VM will create an identity function
+                let code_idx = constants.len();
+                constants.push(Value::Int(0)); // Placeholder - will be replaced by VM
+
+                // Capture variables onto the stack
+                for (name, offset) in &captures {
+                    // Generate instruction to load the captured variable
+                    bytecode.push(OpCode::GetLocal(*offset));
+                }
+
+                // Create closure with proper code index and capture count
+                let capture_count = captures.len() as usize;
+                bytecode.push(OpCode::MakeClosure(code_idx, capture_count));
             }
             ast::AstNode::Call {
                 function,
@@ -54,7 +85,7 @@ pub fn compile_ast_to_bytecode(
                         "+" | "-" | "*" | "/" | "%" | "<=" | "<" | ">" | "=" => {
                             // Compile arguments first
                             for arg in arguments {
-                                generate_node(bytecode, constants, arg, env);
+                                generate_node(bytecode, constants, closure_bodies, arg, env);
                             }
 
                             // Generate the appropriate opcode
@@ -90,53 +121,62 @@ pub fn compile_ast_to_bytecode(
                 }
 
                 // Compile function
-                generate_node(bytecode, constants, function, env);
+                generate_node(bytecode, constants, closure_bodies, function, env);
 
                 // Compile arguments
                 for arg in arguments {
-                    generate_node(bytecode, constants, arg, env);
+                    generate_node(bytecode, constants, closure_bodies, arg, env);
                 }
 
                 // Call the function
                 bytecode.push(OpCode::Call(arguments.len() as u16));
             }
             ast::AstNode::Let { bindings, body, .. } => {
+                // Push new scope for let bindings
+                env.push_scope();
+
                 // Process bindings
                 for (name, value) in bindings {
                     // Compile the value expression
-                    generate_node(bytecode, constants, value, env);
+                    generate_node(bytecode, constants, closure_bodies, value, env);
 
-                    // Store the value in the environment
-                    env.bind_variable(name.clone(), bytecode.len() - 1);
+                    // Define the variable in the current scope
+                    let offset = env.define_variable(name);
+
+                    // Generate SetLocal instruction to store the value
+                    bytecode.push(OpCode::SetLocal(offset));
                 }
 
                 // Compile the body
-                generate_node(bytecode, constants, body, env);
+                generate_node(bytecode, constants, closure_bodies, body, env);
+
+                // Pop scope after compilation
+                env.pop_scope();
             }
-            ast::AstNode::Variable(_name) => {
-                if let Some(_position) = env.resolve_variable(_name) {
-                    // FIXED: Use proper stack-based variable access
-                    // For now, use a simple approach: use Dup to access variables
-                    // This is a temporary solution until we implement proper stack frames
-                    bytecode.push(OpCode::Dup);
+            ast::AstNode::Variable(name) => {
+                // Look up the variable in the environment
+                if let Some(offset) = env.lookup_variable(name) {
+                    // Check if we're in a closure and this is an outer variable
+                    if env.is_in_closure() {
+                        // Check if this variable is in an outer scope (not current scope)
+                        let current_scope_depth = env.current_scope_depth();
+                        if current_scope_depth > 0 {
+                            // This is likely a free variable that needs capture
+                            env.add_capture(name.clone(), offset as u16);
+                        }
+                    }
+
+                    // Variable found - generate GetLocal instruction
+                    bytecode.push(OpCode::GetLocal(offset));
                 } else {
-                    // Variable not found - push dummy value
+                    // Variable not found - push dummy value for now
                     bytecode.push(OpCode::Int(0));
                 }
             }
             ast::AstNode::Symbol(_sym) => {
-                // FIXED: Check if this symbol is actually a variable reference
-                // If it's in the environment, treat it as a variable
-                if let Some(_position) = env.resolve_variable(_sym) {
-                    // This symbol is actually a variable reference
-                    // Use Dup to access the variable
-                    bytecode.push(OpCode::Dup);
-                } else {
-                    // This is a real symbol (like a built-in operator)
-                    // For now, push as constant and use symbol reference
-                    constants.push(Value::Symbol(constants.len()));
-                    bytecode.push(OpCode::Symbol((constants.len() - 1) as usize));
-                }
+                // For now, push as constant and use symbol reference
+                constants.push(Value::Symbol(constants.len()));
+                bytecode.push(OpCode::Symbol((constants.len() - 1) as usize));
             }
             ast::AstNode::If {
                 condition,
@@ -145,19 +185,19 @@ pub fn compile_ast_to_bytecode(
                 ..
             } => {
                 // Compile condition
-                generate_node(bytecode, constants, condition, env);
+                generate_node(bytecode, constants, closure_bodies, condition, env);
 
                 // Jump if false - placeholder for now
                 bytecode.push(OpCode::JmpIfFalse(0));
 
                 // Compile then branch
-                generate_node(bytecode, constants, then_branch, env);
+                generate_node(bytecode, constants, closure_bodies, then_branch, env);
 
                 // Jump to end - placeholder for now
                 bytecode.push(OpCode::Jmp(0));
 
                 // Compile else branch
-                generate_node(bytecode, constants, else_branch, env);
+                generate_node(bytecode, constants, closure_bodies, else_branch, env);
             }
             // Handle other AST node types as needed
             _ => {
@@ -167,6 +207,12 @@ pub fn compile_ast_to_bytecode(
         }
     }
 
-    generate_node(&mut bytecode, &mut constants, ast, &mut env);
+    generate_node(
+        &mut bytecode,
+        &mut constants,
+        &mut closure_bodies,
+        ast,
+        &mut env,
+    );
     Ok((bytecode, constants))
 }

@@ -1,5 +1,6 @@
 /// Physics-World integration for Jue-World V2.0
 use crate::ast::AstNode;
+use crate::compiler::environment::CompilationEnvironment;
 use crate::error::{CompilationError, SourceLocation};
 use crate::ffi::{create_standard_ffi_registry, FfiCallGenerator};
 use crate::trust_tier::TrustTier;
@@ -21,6 +22,9 @@ pub struct PhysicsWorldCompiler {
 
     /// FFI registry for function lookup
     pub ffi_registry: FfiCallGenerator,
+
+    /// Compilation environment for variable tracking
+    pub environment: CompilationEnvironment,
 }
 
 impl PhysicsWorldCompiler {
@@ -35,6 +39,7 @@ impl PhysicsWorldCompiler {
                 registry: create_standard_ffi_registry(),
                 location: SourceLocation::default(),
             },
+            environment: CompilationEnvironment::new(),
         }
     }
 
@@ -71,6 +76,7 @@ impl PhysicsWorldCompiler {
             AstNode::Lambda {
                 parameters, body, ..
             } => self.compile_lambda(parameters, body),
+            AstNode::Let { bindings, body, .. } => self.compile_let(bindings, body),
             AstNode::TrustTier { expression, .. } => self.compile_to_physics(expression),
             AstNode::RequireCapability { capability, .. } => {
                 self.compile_require_capability(capability)
@@ -110,10 +116,18 @@ impl PhysicsWorldCompiler {
     }
 
     /// Compile variable to bytecode
-    fn compile_variable(&self, _name: &str) -> Result<Vec<OpCode>, CompilationError> {
-        // TODO: Implement variable lookup and loading
-        // For now, just push a placeholder value
-        Ok(vec![OpCode::Nil])
+    fn compile_variable(&mut self, name: &str) -> Result<Vec<OpCode>, CompilationError> {
+        // Look up the variable in the environment
+        if let Some(offset) = self.environment.lookup_variable(name) {
+            // Variable found - generate GetLocal instruction
+            Ok(vec![OpCode::GetLocal(offset)])
+        } else {
+            // Variable not found - this is an error
+            Err(CompilationError::ParseError {
+                message: format!("Undefined variable: {}", name),
+                location: self.location.clone(),
+            })
+        }
     }
 
     /// Compile function call to bytecode
@@ -148,13 +162,58 @@ impl PhysicsWorldCompiler {
     ) -> Result<Vec<OpCode>, CompilationError> {
         let mut bytecode = Vec::new();
 
+        // Push new scope for lambda parameters
+        self.environment.push_scope();
+
+        // Define parameters in the new scope
+        for param in parameters {
+            self.environment.define_variable(param);
+        }
+
         // Compile body
         let body_bytecode = self.compile_to_physics(body)?;
         bytecode.extend(body_bytecode);
 
+        // Pop scope after compilation
+        self.environment.pop_scope();
+
         // Create closure
         // TODO: Implement proper closure creation with environment capture
         bytecode.push(OpCode::MakeClosure(0, parameters.len()));
+
+        Ok(bytecode)
+    }
+
+    /// Compile let binding to bytecode
+    fn compile_let(
+        &mut self,
+        bindings: &[(String, AstNode)],
+        body: &AstNode,
+    ) -> Result<Vec<OpCode>, CompilationError> {
+        let mut bytecode = Vec::new();
+
+        // Push new scope for let bindings
+        self.environment.push_scope();
+
+        // Compile each binding and define variables
+        for (name, value_expr) in bindings {
+            // Compile the binding value
+            let value_bytecode = self.compile_to_physics(value_expr)?;
+            bytecode.extend(value_bytecode);
+
+            // Define the variable in the current scope
+            let offset = self.environment.define_variable(name);
+
+            // Generate SetLocal instruction to store the value
+            bytecode.push(OpCode::SetLocal(offset));
+        }
+
+        // Compile the let body
+        let body_bytecode = self.compile_to_physics(body)?;
+        bytecode.extend(body_bytecode);
+
+        // Pop scope after compilation
+        self.environment.pop_scope();
 
         Ok(bytecode)
     }
@@ -316,24 +375,95 @@ impl PhysicsWorldCompiler {
         })
     }
 
+    /// Analyze bytecode to identify required capabilities
+    fn analyze_capabilities_from_bytecode(&self, bytecode: &[OpCode]) -> Vec<Capability> {
+        let mut required_capabilities = Vec::new();
+
+        for opcode in bytecode {
+            match opcode {
+                OpCode::HasCap(cap_idx) => {
+                    if let Some(cap) = self.capability_indices.get(*cap_idx) {
+                        if !required_capabilities.contains(cap) {
+                            required_capabilities.push(cap.clone());
+                        }
+                    }
+                }
+                OpCode::HostCall { cap_idx, .. } => {
+                    if let Some(cap) = self.capability_indices.get(*cap_idx) {
+                        if !required_capabilities.contains(cap) {
+                            required_capabilities.push(cap.clone());
+                        }
+                    }
+                }
+                _ => {
+                    // Check for other capability-requiring operations
+                    // This would be expanded based on specific opcode analysis
+                }
+            }
+        }
+
+        required_capabilities
+    }
+
     /// Insert runtime capability checks for empirical tier
     pub fn insert_runtime_capability_checks(
         &mut self,
-        bytecode: Vec<OpCode>,
+        mut bytecode: Vec<OpCode>,
     ) -> Result<Vec<OpCode>, CompilationError> {
-        // TODO: Implement capability check insertion
-        // For now, just return the bytecode as-is
-        Ok(bytecode)
+        // Analyze the bytecode to find required capabilities
+        let required_caps = self.analyze_capabilities_from_bytecode(&bytecode);
+
+        if required_caps.is_empty() {
+            // No capabilities required, return original bytecode
+            return Ok(bytecode);
+        }
+
+        // Create capability check preamble
+        let mut check_bytecode = Vec::new();
+
+        // Insert capability checks at the beginning
+        for cap in &required_caps {
+            let cap_index = self.get_capability_index(cap);
+            check_bytecode.push(OpCode::HasCap(cap_index));
+            // Jump over subsequent check if capability is missing
+            // This creates a chain of capability checks
+            check_bytecode.push(OpCode::JmpIfFalse(2));
+        }
+
+        // Prepend capability checks to the main bytecode
+        check_bytecode.extend(bytecode);
+        Ok(check_bytecode)
     }
 
     /// Add sandbox wrapper for experimental tier
     pub fn add_sandbox_wrapper(
         &mut self,
-        bytecode: Vec<OpCode>,
+        mut bytecode: Vec<OpCode>,
     ) -> Result<Vec<OpCode>, CompilationError> {
-        // TODO: Implement sandbox wrapper
-        // For now, just return the bytecode as-is
-        Ok(bytecode)
+        let mut wrapper = Vec::new();
+
+        // 1. Add resource monitoring initialization
+        wrapper.push(OpCode::InitSandbox);
+
+        // 2. Add capability isolation setup
+        wrapper.push(OpCode::IsolateCapabilities);
+
+        // 3. Add error boundary setup
+        let error_handler_offset = bytecode.len() + 2; // After wrapper setup
+        wrapper.push(OpCode::SetErrorHandler(error_handler_offset as i16));
+
+        // 4. Add main bytecode
+        wrapper.extend(bytecode);
+
+        // 5. Add cleanup and result return
+        wrapper.push(OpCode::CleanupSandbox);
+        wrapper.push(OpCode::Ret);
+
+        // 6. Add error handler
+        wrapper.push(OpCode::LogSandboxViolation);
+        wrapper.push(OpCode::Ret); // Return nil on sandbox violation
+
+        Ok(wrapper)
     }
 }
 

@@ -29,25 +29,52 @@ fn test_literal_compilation() {
 fn test_variable_compilation() {
     let mut compiler = PhysicsWorldCompiler::new(TrustTier::Empirical);
 
+    // Test with undefined variable - should return error
     let variable = AstNode::Variable("x".to_string());
     let result = compiler.compile_to_physics(&variable);
 
+    assert!(result.is_err());
+    match result {
+        Err(CompilationError::ParseError { message, .. }) => {
+            assert!(message.contains("Undefined variable"));
+        }
+        _ => panic!("Expected ParseError for undefined variable"),
+    }
+
+    // Test with defined variable - should work
+    let let_binding = AstNode::Let {
+        bindings: vec![("x".to_string(), AstNode::Literal(Literal::Int(42)))],
+        body: Box::new(AstNode::Variable("x".to_string())),
+        location: SourceLocation::default(),
+    };
+
+    let result = compiler.compile_to_physics(&let_binding);
     assert!(result.is_ok());
     let bytecode = result.unwrap();
-    assert_eq!(bytecode.len(), 1);
-    match &bytecode[0] {
-        OpCode::Nil => assert!(true), // Placeholder
-        _ => panic!("Expected placeholder opcode"),
-    }
+    assert!(bytecode.len() > 0);
 }
 
 #[test]
 fn test_simple_call_compilation() {
     let mut compiler = PhysicsWorldCompiler::new(TrustTier::Empirical);
 
-    let call = AstNode::Call {
-        function: Box::new(AstNode::Variable("f".to_string())),
-        arguments: vec![AstNode::Literal(Literal::Int(5))],
+    // Create a let binding that defines function "f" and then calls it
+    let call = AstNode::Let {
+        bindings: vec![
+            (
+                "f".to_string(),
+                AstNode::Lambda {
+                    parameters: vec!["x".to_string()],
+                    body: Box::new(AstNode::Variable("x".to_string())),
+                    location: SourceLocation::default(),
+                },
+            ),
+        ],
+        body: Box::new(AstNode::Call {
+            function: Box::new(AstNode::Variable("f".to_string())),
+            arguments: vec![AstNode::Literal(Literal::Int(5))],
+            location: SourceLocation::default(),
+        }),
         location: SourceLocation::default(),
     };
 

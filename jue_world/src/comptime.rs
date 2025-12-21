@@ -551,6 +551,12 @@ impl ComptimeExecutor {
                     "HostCall not supported in comptime execution".to_string(),
                 ));
             }
+            // Sandbox instructions - not supported in comptime
+            OpCode::InitSandbox | OpCode::IsolateCapabilities | OpCode::SetErrorHandler(_) | OpCode::LogSandboxViolation | OpCode::CleanupSandbox => {
+                return Err(CompilationError::ComptimeError(
+                    "Sandbox instructions not supported in comptime execution".to_string(),
+                ));
+            }
         }
 
         Ok(())

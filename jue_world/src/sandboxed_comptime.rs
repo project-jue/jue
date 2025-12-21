@@ -502,6 +502,12 @@ impl SandboxedComptimeExecutor {
                     "Invalid host call in sandboxed comptime".to_string(),
                 ))
             }
+            // Sandbox instructions - not supported in sandboxed comptime
+            OpCode::InitSandbox | OpCode::IsolateCapabilities | OpCode::SetErrorHandler(_) | OpCode::LogSandboxViolation | OpCode::CleanupSandbox => {
+                return Err(CompilationError::ComptimeError(
+                    "Sandbox instructions not supported in sandboxed comptime execution".to_string(),
+                ));
+            }
         }
     }
 
