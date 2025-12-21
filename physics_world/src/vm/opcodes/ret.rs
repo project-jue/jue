@@ -30,10 +30,10 @@ pub fn handle_ret(vm: &mut VmState) -> Result<(), VmError> {
 
     // 1. Check if there's a call frame
     if vm.call_stack.is_empty() {
-        eprintln!("Returning from main program - completing execution");
-        // Return from main program - let the VM know to complete execution
-        // This should be handled by the step() method to return InstructionResult::Finished
-        return Ok(());
+        eprintln!("Returning from main program - should complete execution");
+        // Return from main program - this indicates a programming error
+        // Should return StackUnderflow as expected by tests
+        return Err(VmError::StackUnderflow);
     }
 
     // 2. Get the call frame

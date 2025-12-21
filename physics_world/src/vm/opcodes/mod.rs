@@ -7,6 +7,8 @@ pub mod capability;
 pub mod closure;
 pub mod comparison;
 pub mod jump;
+pub mod list_ops;
 pub mod make_closure;
+pub mod messaging;
 pub mod ret;
 pub mod stack_ops;

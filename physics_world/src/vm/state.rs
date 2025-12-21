@@ -489,8 +489,8 @@ impl VmState {
                 StackFrame {
                     function_name: format!("frame_{}", i),
                     call_ip: frame.return_ip,
-                    arg_count: 0,       // TODO: Track actual argument counts
-                    locals: Vec::new(), // TODO: Capture local variables
+                    arg_count: frame.locals.len(),         // Track actual argument counts from locals
+                    locals: frame.locals.clone(),         // Capture local variables from call frame
                 }
             })
             .collect()
@@ -877,6 +877,11 @@ impl VmState {
         // Pop the function from the stack
         let function_value = self.stack.pop().ok_or(VmError::StackUnderflow)?;
 
+        // Check for stack underflow - ensure we have enough arguments
+        if self.stack.len() < arg_count as usize {
+            return Err(VmError::StackUnderflow);
+        }
+
         // Copy arguments from the stack (preserve them for caller, copy to locals)
         let start_idx = self.stack.len() - arg_count as usize;
         let args: Vec<Value> = self.stack[start_idx..].to_vec();
@@ -1217,15 +1222,15 @@ impl VmState {
                 self.ip += 1;
             }
             OpCode::Cons => {
-                // TODO: Implement Cons handler
+                list_ops::handle_cons(self)?;
                 self.ip += 1;
             }
             OpCode::Car => {
-                // TODO: Implement Car handler
+                list_ops::handle_car(self)?;
                 self.ip += 1;
             }
             OpCode::Cdr => {
-                // TODO: Implement Cdr handler
+                list_ops::handle_cdr(self)?;
                 self.ip += 1;
             }
             OpCode::Call(arg_count) => {
@@ -1259,8 +1264,10 @@ impl VmState {
                 return Ok(InstructionResult::Yield);
             }
             OpCode::Send => {
-                // TODO: Implement Send handler
+                // Implement Send handler for inter-actor communication
+                let result = messaging::handle_send(self)?;
                 self.ip += 1;
+                return Ok(result);
             }
             OpCode::Add => {
                 arithmetic::handle_add(self)?;
