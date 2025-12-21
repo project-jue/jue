@@ -1,4 +1,3 @@
-
 # **LLM-Assisted Software Engineering Guidelines**
 
 This document defines standards for projects that incorporate Large Language Model (LLM)–driven code generation. The goal is to minimize hallucination, architectural drift, misorganization, and context-limit constraints while maximizing correctness, maintainability, and predictability.
@@ -110,90 +109,86 @@ Avoid surprises in file-to-module mapping.
 
 ## **6. Testing Strategy**
 
-**6.1 Emphasize unit-level coverage**
-Every module receives extensive inline tests covering nominal cases, edge cases, and error states.
+**6.1 Emphasize complete code coverage**
+Every module must have comprehensive test coverage including:
+- **Nominal cases**: Standard expected behavior
+- **Edge cases**: Boundary conditions and special values
+- **Error states**: Invalid inputs and failure scenarios
+- **Property-based tests**: Mathematical properties and invariants
 
-**6.2 Prefer many short tests over a few large ones**
+**6.2 Achieve 100% coverage for critical paths**
+Core functionality, safety-critical code, and public APIs must have complete coverage.
+Use `cargo tarpaulin` or similar tools to measure and enforce coverage.
+
+**6.3 Prefer many short tests over a few large ones**
 Short, focused tests simplify LLM review and regeneration.
+Each test should validate one specific behavior or invariant.
 
-**6.3 Keep integration tests scenario-driven**
+**6.4 Keep integration tests scenario-driven**
 Integration tests exercise public API usage and multi-module workflows.
+Each integration test should represent a realistic usage scenario.
 
-**6.4 Use test helpers**
+**6.5 Use test helpers judiciously**
 Shared utilities belong in test-only modules behind `#[cfg(test)]`.
+Avoid creating complex test frameworks that obscure the actual tests.
 
-**6.5 Avoid leaking internals into public API**
+**6.6 Avoid leaking internals into public API**
 Do not make private items public solely for testing.
+Use Rust's module system and `#[path]` attribute to access private members from separate test files.
+
+**6.7 Document test coverage requirements**
+Each module should include a comment indicating expected coverage:
+```rust
+// Test coverage: 100% (critical path)
+// Tests: nominal, edge cases, error handling
+```
 
 ---
 
-## **7. Documenting Invariants and Assumptions**
+## **7. Code Comments and Documentation**
 
-**7.1 Record invariants for each module**
-Add invariants either in comments or in `docs/subsystems/<module>.md`.
+**7.1 Write comprehensive module-level documentation**
+Each module should have a clear doc comment explaining:
+- Purpose and responsibilities
+- Key data structures and their invariants
+- Public API and usage patterns
+- Error handling strategy
 
-**7.2 Define error-handling strategy**
-Document expected error types, panic boundaries, and recovery behavior.
+**7.2 Document all public items**
+Functions, structs, enums, and traits must have doc comments explaining:
+- Purpose and behavior
+- Parameters and return values
+- Error conditions
+- Examples where appropriate
 
-**7.3 Clarify concurrency rules**
-If the system uses threads, async, or shared state, document the rules explicitly.
+**7.3 Use inline comments for complex logic**
+Add comments to explain:
+- Non-obvious algorithms
+- Mathematical properties
+- Performance considerations
+- Safety invariants
 
----
+**7.4 Maintain consistent comment style**
+Use `//` for line comments, `///` for doc comments.
+Keep comments concise but informative.
 
-## **8. LLM-Oriented Coding Practices**
-
-**8.1 Apply changes one file at a time**
-Avoid large multi-file edits through an LLM unless necessary.
-
-**8.2 Always provide full context**
-LLMs produce more accurate patches when given full source files rather than fragments.
-
-**8.3 Limit change scope**
-Specify what must be modified and what must remain untouched.
-
-**8.4 Validate output immediately**
-Compile, lint, run tests, and check formatting after every LLM-generated patch.
-
-**8.5 Maintain canonical examples**
-Store canonical code examples for patterns such as error handling, parsing, logging, and state transitions.
-LLMs generalize from these patterns.
-
-**8.6 Maintain reusable prompt templates**
-Store prompt templates for common tasks under `docs/prompts/`.
-
----
-
-## **9. Stability and Architectural Consistency**
-
-**9.1 Keep module boundaries stable**
-Frequent reorganization increases the chance of incorrect LLM assumptions.
-
-**9.2 Use Architecture Decision Records (ADRs)**
-Record each major decision under `docs/adr/`.
-
-**9.3 Standardize the code-validation pipeline**
-Create a script (e.g., `./check.sh`) that runs:
-
-* formatting
-* linting
-* clippy
-* unit tests
-* integration tests
-* coverage
-
-**9.4 Periodic cleanup of generated tests**
-Review test suites and remove redundant or overly specific tests.
-
-**9.5 Keep example code small and precise**
-Examples should be easy for LLMs to load into context.
+**7.5 Document assumptions and constraints**
+Explicitly state any assumptions about:
+- Input validation
+- Performance characteristics
+- Memory usage
+- Thread safety
 
 ---
 
-## 10. **10. Put inline tests in a separate file, to reduce file sizes  **
-Large file sizes cause troubles when being debugged or edited by LLMs.  Most of the file size is taken by the inline tests. Luckily there are ways to keep the tests in a separate file and still access private members if needed.
+## **8. LLM-Oriented File Organization**
 
-Separate Test Files with #[path]
-Split tests into separate files while maintaining access to private members:
+**8.1 Prefer multiple smaller files over monoliths**
+LLMs work better with files under 400 lines.
+Break large modules into logical submodules.
+
+**8.2 Move inline tests to separate files**
+Use the `#[path]` attribute to keep tests accessible while reducing main file size:
 
 ```rust
 // src/my_module.rs
@@ -207,25 +202,95 @@ impl MyStruct {
 }
 
 #[cfg(test)]
-#[path = "test/my_module_tests.rs"]  // Path to test file
+#[path = "test/my_module_tests.rs"]
 mod tests;
 ```
 
-Access Private Members in Tests:
-```rust
-// src/test/my_module_tests.rs
-use super::*;  // Import from parent module
-// you may have to import other crates here to resolve symbols
-
-#[test]
-fn test_private_method() {
-    let s = MyStruct::new();
-    assert_eq!(s.private_method(), 42); // Can access private_method
-}
+**8.3 Organize test files systematically**
+Place test files in a parallel structure:
 ```
+src/
+  my_module.rs
+  test/
+    my_module_tests.rs
+    my_module_integration.rs
+```
+
+**8.4 Keep test files focused**
+Each test file should cover one logical unit.
+Avoid creating massive test files that are hard to navigate.
+
+**8.5 Use descriptive test file names**
+Name test files to reflect their purpose:
+- `nominal_tests.rs` for standard behavior
+- `edge_case_tests.rs` for boundary conditions
+- `error_tests.rs` for failure scenarios
+
 ---
 
-## **11. Summary**
+## **9. Documenting Invariants and Assumptions**
+
+**9.1 Record invariants for each module**
+Add invariants either in comments or in `docs/subsystems/<module>.md`.
+
+**9.2 Define error-handling strategy**
+Document expected error types, panic boundaries, and recovery behavior.
+
+**9.3 Clarify concurrency rules**
+If the system uses threads, async, or shared state, document the rules explicitly.
+
+---
+
+## **10. LLM-Oriented Coding Practices**
+
+**10.1 Apply changes one file at a time**
+Avoid large multi-file edits through an LLM unless necessary.
+
+**10.2 Always provide full context**
+LLMs produce more accurate patches when given full source files rather than fragments.
+
+**10.3 Limit change scope**
+Specify what must be modified and what must remain untouched.
+
+**10.4 Validate output immediately**
+Compile, lint, run tests, and check formatting after every LLM-generated patch.
+
+**10.5 Maintain canonical examples**
+Store canonical code examples for patterns such as error handling, parsing, logging, and state transitions.
+LLMs generalize from these patterns.
+
+**10.6 Maintain reusable prompt templates**
+Store prompt templates for common tasks under `docs/prompts/`.
+
+---
+
+## **11. Stability and Architectural Consistency**
+
+**11.1 Keep module boundaries stable**
+Frequent reorganization increases the chance of incorrect LLM assumptions.
+
+**11.2 Use Architecture Decision Records (ADRs)**
+Record each major decision under `docs/adr/`.
+
+**11.3 Standardize the code-validation pipeline**
+Create a script (e.g., `./check.sh`) that runs:
+
+* formatting
+* linting
+* clippy
+* unit tests
+* integration tests
+* coverage
+
+**11.4 Periodic cleanup of generated tests**
+Review test suites and remove redundant or overly specific tests.
+
+**11.5 Keep example code small and precise**
+Examples should be easy for LLMs to load into context.
+
+---
+
+## **12. Summary**
 
 The purpose of these guidelines is to structure development so that LLM-driven code generation becomes predictable and robust. By keeping files small, documentation clear, naming consistent, and architectural decisions explicit, the project remains manageable for both humans and automated systems.
 

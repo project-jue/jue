@@ -1,0 +1,13 @@
+;; Simple Jue example that demonstrates basic functionality
+;; This file is used in the Jue command-line documentation
+
+;; Trust tier declaration - this can be :formal, :verified, :empirical, or :experimental
+(trust-tier :empirical)
+
+;; A simple function that adds two numbers
+(def add-two (lambda (x y) (+ x y)))
+
+;; Call the function with arguments 5 and 7
+(add-two 5 7)
+
+;; The result should be 12

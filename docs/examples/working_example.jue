@@ -1,0 +1,13 @@
+;; Working Jue example that demonstrates current functionality
+;; This file is used in the Jue command-line documentation
+
+;; Trust tier declaration - this can be :formal, :verified, :empirical, or :experimental
+(trust-tier :empirical)
+
+;; A simple lambda function
+(def greet (lambda () "Hello, Jue!"))
+
+;; Call the function
+(greet)
+
+;; The result should be a string value
