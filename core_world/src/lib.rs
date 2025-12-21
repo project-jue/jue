@@ -36,24 +36,12 @@
 ///
 /// ## Usage Examples
 ///
-/// ```rust
-/// // Example 1: Basic equivalence verification
-/// let redex = app(lam(var(0)), var(42));
-/// let proof = prove_beta(redex.clone());
-/// let (left, right) = verify_equivalence(proof).unwrap();
-/// assert!(alpha_equiv(left, redex));
-/// assert_eq!(right, var(42));
-///
-/// // Example 2: Serialization for cross-layer communication
-/// let expr = app(lam(var(0)), var(1));
-/// let serialized = serialize_core_expr(&expr);
-/// let deserialized = deserialize_core_expr(&serialized).unwrap();
-/// assert_eq!(expr, deserialized);
-///
-/// // Example 3: Stack-based normalization for large terms
-/// let large_term = /* complex expression */;
-/// let normalized = normalize_stack_based(large_term, 1000).unwrap();
-/// ```
+/// For detailed usage examples, see the integration tests and the test suite.
+/// The core functionality includes:
+/// - Creating λ-calculus expressions with `var()`, `lam()`, `app()`
+/// - Performing β-reduction and normalization
+/// - Generating and verifying equivalence proofs
+/// - Serializing/deserializing expressions and proofs
 ///
 /// ## Best Practices
 ///
@@ -66,6 +54,11 @@ use crate::{core_expr::CoreExpr, proof_checker::Proof};
 pub mod core_expr;
 pub mod core_kernel;
 pub mod proof_checker;
+
+// Re-export helper functions for convenience
+pub use core_expr::{app, lam, nat, pair, var};
+pub use core_kernel::alpha_equiv;
+pub use proof_checker::prove_beta;
 
 /// The primary export: verifies that a proof correctly establishes term equivalence.
 pub fn verify_equivalence(proof: Proof) -> Result<(CoreExpr, CoreExpr), VerifyError> {

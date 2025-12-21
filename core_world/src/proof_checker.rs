@@ -303,7 +303,11 @@ pub fn deserialize_proof(bytes: &[u8]) -> Result<Proof, ProofParseError> {
             let redex = deserialize_core_expr(&bytes[cursor..])
                 .map_err(|e| ProofParseError::CoreExprParseError(format!("{:?}", e)))?;
             let redex_len = serialize_core_expr(&redex).len();
-            let contractum = deserialize_core_expr(&bytes[cursor + redex_len..])
+            let remaining = &bytes[cursor + redex_len..];
+            if remaining.is_empty() {
+                return Err(ProofParseError::IncompleteData);
+            }
+            let contractum = deserialize_core_expr(remaining)
                 .map_err(|e| ProofParseError::CoreExprParseError(format!("{:?}", e)))?;
             Ok(Proof::BetaStep { redex, contractum })
         }
@@ -312,7 +316,11 @@ pub fn deserialize_proof(bytes: &[u8]) -> Result<Proof, ProofParseError> {
             let redex = deserialize_core_expr(&bytes[cursor..])
                 .map_err(|e| ProofParseError::CoreExprParseError(format!("{:?}", e)))?;
             let redex_len = serialize_core_expr(&redex).len();
-            let contractum = deserialize_core_expr(&bytes[cursor + redex_len..])
+            let remaining = &bytes[cursor + redex_len..];
+            if remaining.is_empty() {
+                return Err(ProofParseError::IncompleteData);
+            }
+            let contractum = deserialize_core_expr(remaining)
                 .map_err(|e| ProofParseError::CoreExprParseError(format!("{:?}", e)))?;
             Ok(Proof::EtaStep { redex, contractum })
         }
@@ -332,7 +340,11 @@ pub fn deserialize_proof(bytes: &[u8]) -> Result<Proof, ProofParseError> {
             let proof_a = deserialize_proof(&bytes[cursor..])?;
             let proof_a_serialized = serialize_proof(&proof_a);
             let proof_a_len = proof_a_serialized.len();
-            let proof_b = deserialize_proof(&bytes[cursor + proof_a_len..])?;
+            let remaining = &bytes[cursor + proof_a_len..];
+            if remaining.is_empty() {
+                return Err(ProofParseError::IncompleteData);
+            }
+            let proof_b = deserialize_proof(remaining)?;
             Ok(Proof::Trans {
                 proof_a: Box::new(proof_a),
                 proof_b: Box::new(proof_b),
@@ -343,7 +355,11 @@ pub fn deserialize_proof(bytes: &[u8]) -> Result<Proof, ProofParseError> {
             let proof_f = deserialize_proof(&bytes[cursor..])?;
             let proof_f_serialized = serialize_proof(&proof_f);
             let proof_f_len = proof_f_serialized.len();
-            let proof_a = deserialize_proof(&bytes[cursor + proof_f_len..])?;
+            let remaining = &bytes[cursor + proof_f_len..];
+            if remaining.is_empty() {
+                return Err(ProofParseError::IncompleteData);
+            }
+            let proof_a = deserialize_proof(remaining)?;
             Ok(Proof::CongApp {
                 proof_f: Box::new(proof_f),
                 proof_a: Box::new(proof_a),
@@ -361,360 +377,9 @@ pub fn deserialize_proof(bytes: &[u8]) -> Result<Proof, ProofParseError> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core_expr::{app, lam, var};
+#[path = "test/proof_checker_tests.rs"]
+mod tests;
 
-    #[test]
-    fn test_beta_step_proof() {
-        // Test: (λ.0) 1 → 1
-        let redex = app(lam(var(0)), var(1));
-        let proof = prove_beta(redex.clone());
-
-        let result = verify(&proof);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert!(alpha_equiv(left, redex));
-        assert_eq!(right, var(1));
-    }
-
-    #[test]
-    fn test_eta_step_proof() {
-        // Test: λ.(1 0) → 1 (where 0 is not free in 1)
-        let redex = lam(app(var(1), var(0)));
-        let proof = prove_eta(redex.clone()).unwrap();
-
-        let result = verify(&proof);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert!(alpha_equiv(left, redex));
-        assert_eq!(right, var(1));
-    }
-
-    #[test]
-    fn test_refl_proof() {
-        let expr = var(0);
-        let proof = Proof::Refl(expr.clone());
-
-        let result = verify(&proof);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert_eq!(left, expr);
-        assert_eq!(right, expr);
-    }
-
-    #[test]
-    fn test_sym_proof() {
-        // Create a beta step proof, then apply symmetry
-        let redex = app(lam(var(0)), var(1));
-        let beta_proof = prove_beta(redex.clone());
-        let sym_proof = Proof::Sym(Box::new(beta_proof));
-
-        let result = verify(&sym_proof);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert_eq!(left, var(1));
-        assert!(alpha_equiv(right, redex));
-    }
-
-    #[test]
-    fn test_trans_proof() {
-        // Create two beta step proofs that can be chained with transitivity
-        // Start with: (λ.0) ((λ.0) 1)
-        // First reduction: (λ.0) ((λ.0) 1) → (λ.0) 1
-        // Second reduction: (λ.0) 1 → 1
-        let inner_redex = app(lam(var(0)), var(1)); // (λ.0) 1
-        let outer_redex = app(lam(var(0)), inner_redex.clone()); // (λ.0) ((λ.0) 1)
-
-        let proof1 = prove_beta(outer_redex.clone()); // (λ.0) ((λ.0) 1) → (λ.0) 1
-        let proof2 = prove_beta(inner_redex.clone()); // (λ.0) 1 → 1
-
-        let trans_proof = Proof::Trans {
-            proof_a: Box::new(proof1),
-            proof_b: Box::new(proof2),
-        };
-
-        let result = verify(&trans_proof);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert!(alpha_equiv(left, outer_redex));
-        assert_eq!(right, var(1));
-    }
-
-    #[test]
-    fn test_cong_app_proof() {
-        // Test congruence for application: if F ≡ G and A ≡ B, then F A ≡ G B
-        let f1 = lam(var(0));
-        let f2 = lam(var(0)); // Same as f1, so F ≡ G
-        let a1 = var(1);
-        let a2 = var(1); // Same as a1, so A ≡ B
-
-        let proof_f = Proof::Refl(f1.clone());
-        let proof_a = Proof::Refl(a1.clone());
-
-        let cong_app_proof = Proof::CongApp {
-            proof_f: Box::new(proof_f),
-            proof_a: Box::new(proof_a),
-        };
-
-        let result = verify(&cong_app_proof);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-
-        let expected_left = app(f1, a1);
-        let expected_right = app(f2, a2);
-
-        assert!(alpha_equiv(left, expected_left));
-        assert!(alpha_equiv(right, expected_right));
-    }
-
-    #[test]
-    fn test_cong_lam_proof() {
-        // Test congruence for abstraction: if M ≡ N, then λ.M ≡ λ.N
-        let m = var(0);
-        let n = var(0); // Same as m, so M ≡ N
-
-        let proof_b = Proof::Refl(m.clone());
-
-        let cong_lam_proof = Proof::CongLam {
-            proof_b: Box::new(proof_b),
-        };
-
-        let result = verify(&cong_lam_proof);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-
-        let expected_left = lam(m);
-        let expected_right = lam(n);
-
-        assert!(alpha_equiv(left, expected_left));
-        assert!(alpha_equiv(right, expected_right));
-    }
-
-    #[test]
-    fn test_normalization_proof() {
-        // Test normalization proof for a simple expression
-        let expr = app(lam(var(0)), var(1)); // (λ.0) 1
-        let proof = prove_normalization(expr.clone(), 10).unwrap();
-
-        let result = verify(&proof);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert!(alpha_equiv(left, expr));
-        assert_eq!(right, var(1));
-    }
-
-    #[test]
-    fn test_invalid_beta_step() {
-        // Test invalid beta step verification
-        let redex = var(0);
-        let contractum = var(1);
-        let invalid_proof = Proof::BetaStep { redex, contractum };
-
-        let result = verify(&invalid_proof);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            ProofError::InvalidBetaStep(_)
-        ));
-    }
-
-    #[test]
-    fn test_invalid_eta_step() {
-        // Test invalid eta step verification
-        let redex = var(0); // Not eta-reducible
-        let contractum = var(1);
-        let invalid_proof = Proof::EtaStep { redex, contractum };
-
-        let result = verify(&invalid_proof);
-        assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), ProofError::InvalidEtaStep(_)));
-    }
-
-    #[test]
-    fn test_beta_step_serialization() {
-        // Test BetaStep serialization roundtrip
-        let redex = app(lam(var(0)), var(1));
-        let proof = prove_beta(redex.clone());
-
-        let serialized = serialize_proof(&proof);
-        let deserialized = deserialize_proof(&serialized).unwrap();
-
-        // Verify the deserialized proof is valid
-        let result = verify(&deserialized);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert!(alpha_equiv(left, redex));
-        assert_eq!(right, var(1));
-    }
-
-    #[test]
-    fn test_eta_step_serialization() {
-        // Test EtaStep serialization roundtrip
-        let redex = lam(app(var(1), var(0)));
-        let proof = prove_eta(redex.clone()).unwrap();
-
-        let serialized = serialize_proof(&proof);
-        let deserialized = deserialize_proof(&serialized).unwrap();
-
-        // Verify the deserialized proof is valid
-        let result = verify(&deserialized);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert!(alpha_equiv(left, redex));
-        assert_eq!(right, var(1));
-    }
-
-    #[test]
-    fn test_refl_serialization() {
-        // Test Refl serialization roundtrip
-        let expr = var(42);
-        let proof = Proof::Refl(expr.clone());
-
-        let serialized = serialize_proof(&proof);
-        let deserialized = deserialize_proof(&serialized).unwrap();
-
-        // Verify the deserialized proof is valid
-        let result = verify(&deserialized);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert_eq!(left, expr);
-        assert_eq!(right, expr);
-    }
-
-    #[test]
-    fn test_sym_serialization() {
-        // Test Sym serialization roundtrip
-        let redex = app(lam(var(0)), var(1));
-        let beta_proof = prove_beta(redex.clone());
-        let sym_proof = Proof::Sym(Box::new(beta_proof));
-
-        let serialized = serialize_proof(&sym_proof);
-        let deserialized = deserialize_proof(&serialized).unwrap();
-
-        // Verify the deserialized proof is valid
-        let result = verify(&deserialized);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert_eq!(left, var(1));
-        assert!(alpha_equiv(right, redex));
-    }
-
-    #[test]
-    fn test_trans_serialization() {
-        // Test Trans serialization roundtrip
-        let inner_redex = app(lam(var(0)), var(1));
-        let outer_redex = app(lam(var(0)), inner_redex.clone());
-
-        let proof1 = prove_beta(outer_redex.clone());
-        let proof2 = prove_beta(inner_redex.clone());
-        let trans_proof = Proof::Trans {
-            proof_a: Box::new(proof1),
-            proof_b: Box::new(proof2),
-        };
-
-        let serialized = serialize_proof(&trans_proof);
-        let deserialized = deserialize_proof(&serialized).unwrap();
-
-        // Verify the deserialized proof is valid
-        let result = verify(&deserialized);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert!(alpha_equiv(left, outer_redex));
-        assert_eq!(right, var(1));
-    }
-
-    #[test]
-    fn test_cong_app_serialization() {
-        // Test CongApp serialization roundtrip
-        let f1 = lam(var(0));
-        let a1 = var(1);
-
-        let proof_f = Proof::Refl(f1.clone());
-        let proof_a = Proof::Refl(a1.clone());
-        let cong_app_proof = Proof::CongApp {
-            proof_f: Box::new(proof_f),
-            proof_a: Box::new(proof_a),
-        };
-
-        let serialized = serialize_proof(&cong_app_proof);
-        let deserialized = deserialize_proof(&serialized).unwrap();
-
-        // Verify the deserialized proof is valid
-        let result = verify(&deserialized);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-
-        let expected_left = app(f1.clone(), a1.clone());
-        let expected_right = app(f1.clone(), a1.clone());
-
-        assert!(alpha_equiv(left, expected_left));
-        assert!(alpha_equiv(right, expected_right));
-    }
-
-    #[test]
-    fn test_cong_lam_serialization() {
-        // Test CongLam serialization roundtrip
-        let m = var(0);
-        let proof_b = Proof::Refl(m.clone());
-        let cong_lam_proof = Proof::CongLam {
-            proof_b: Box::new(proof_b),
-        };
-
-        let serialized = serialize_proof(&cong_lam_proof);
-        let deserialized = deserialize_proof(&serialized).unwrap();
-
-        // Verify the deserialized proof is valid
-        let result = verify(&deserialized);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-
-        let expected_left = lam(m.clone());
-        let expected_right = lam(m.clone());
-
-        assert!(alpha_equiv(left, expected_left));
-        assert!(alpha_equiv(right, expected_right));
-    }
-
-    #[test]
-    fn test_complex_proof_serialization() {
-        // Test a complex proof with multiple nested constructs
-        let redex = app(lam(var(0)), var(1));
-        let beta_proof = prove_beta(redex.clone());
-        let sym_proof = Proof::Sym(Box::new(beta_proof));
-
-        let serialized = serialize_proof(&sym_proof);
-        let deserialized = deserialize_proof(&serialized).unwrap();
-
-        // Verify the deserialized proof is valid
-        let result = verify(&deserialized);
-        assert!(result.is_ok());
-        let (left, right) = result.unwrap();
-        assert_eq!(left, var(1));
-        assert!(alpha_equiv(right, redex));
-    }
-
-    #[test]
-    fn test_empty_input_error() {
-        let result = deserialize_proof(&[]);
-        assert!(matches!(result, Err(ProofParseError::EmptyInput)));
-    }
-
-    #[test]
-    fn test_invalid_tag_error() {
-        let invalid_tag = vec![0xFF];
-        let result = deserialize_proof(&invalid_tag);
-        assert!(matches!(result, Err(ProofParseError::InvalidTag(0xFF))));
-    }
-
-    #[test]
-    fn test_incomplete_data_error() {
-        // Incomplete BetaStep - only tag, no data
-        let incomplete_beta = vec![0x01];
-        let result = deserialize_proof(&incomplete_beta);
-        assert!(matches!(
-            result,
-            Err(ProofParseError::CoreExprParseError(_))
-        ));
-    }
-}
+#[cfg(test)]
+#[path = "test/proof_checker_serialization_tests.rs"]
+mod serialization_tests;
