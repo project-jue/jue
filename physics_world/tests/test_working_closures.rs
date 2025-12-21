@@ -1,7 +1,6 @@
-use bincode;
 use physics_world::vm::error::VmError;
 use physics_world::{
-    types::{HeapPtr, OpCode, Value},
+    types::{OpCode, Value},
     vm::VmState,
 };
 

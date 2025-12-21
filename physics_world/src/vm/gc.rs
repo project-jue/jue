@@ -1,7 +1,7 @@
 use crate::types::Value;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 /// Heap object types that can be managed by the garbage collector
 #[derive(Debug, Clone, Serialize, Deserialize)]

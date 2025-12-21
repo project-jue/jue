@@ -2,7 +2,7 @@
 /// Handles stack frame cleanup and return value propagation
 use crate::types::Value;
 use crate::vm::state::VmError;
-use crate::vm::state::{CallFrame, VmState};
+use crate::vm::state::VmState;
 
 /// Handles the Ret opcode with proper stack frame management
 ///

@@ -1,5 +1,4 @@
 /// Error types for Physics World types
-use std::fmt;
 
 /// Type-safe operation result
 #[derive(Debug, Clone)]

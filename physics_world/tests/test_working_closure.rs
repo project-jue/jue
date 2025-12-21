@@ -1,6 +1,6 @@
 use physics_world::{
     types::{OpCode, Value},
-    vm::{VmError, VmState},
+    vm::VmState,
 };
 
 /// Test that verifies the existing closure implementation works

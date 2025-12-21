@@ -1,6 +1,6 @@
 use bincode;
 use physics_world::{
-    types::{HeapPtr, OpCode, Value},
+    types::{OpCode, Value},
     vm::VmState,
 };
 

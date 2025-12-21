@@ -1,4 +1,3 @@
-use super::actor::CapRequest;
 use super::capability::{CapDecision, CapDecisionResult, CapOperation, ConsensusVoteResult};
 use super::error::PhysicsError;
 /// Consensus mechanisms for the Physics World scheduler

@@ -1,4 +1,3 @@
-use physics_world::vm::error::VmError;
 use physics_world::{
     types::{HeapPtr, OpCode, Value},
     vm::VmState,

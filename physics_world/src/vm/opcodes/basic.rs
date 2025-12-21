@@ -1,5 +1,5 @@
 /// Basic opcode handlers - Nil, Bool, Int, Symbol
-use crate::types::{HeapPtr, OpCode, Value};
+use crate::types::Value;
 use crate::vm::state::VmError;
 use crate::vm::state::VmState;
 

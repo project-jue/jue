@@ -1,6 +1,6 @@
 /// Optimized closure creation based on escape analysis
 use crate::types::{HeapPtr, OpCode, Value};
-use crate::vm::state::{EscapeStatus, FunctionInfo, VmError, VmState};
+use crate::vm::state::{EscapeStatus, VmError, VmState};
 use bincode;
 use std::collections::HashMap;
 

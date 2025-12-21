@@ -1,5 +1,5 @@
 /// List operation handlers - Cons, Car, Cdr
-use crate::types::{HeapPtr, Value};
+use crate::types::Value;
 use crate::vm::state::{VmError, VmState};
 
 /// Create a new pair (cons cell) from two values

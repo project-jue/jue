@@ -1,7 +1,6 @@
 use crate::vm::state::{VmDebugSnapshot, VmState};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::time::Instant;
 
 /// Enhanced debugging support
 #[derive(Clone, Serialize, Deserialize)]
