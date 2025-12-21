@@ -1,5 +1,5 @@
 [package]
-name = "project_jue"
+name = "jue"
 version = "0.1.0"
 edition = "2021"
 authors = ["Project Jue Team"]
@@ -11,10 +11,9 @@ members = [
     "core_world",
     "physics_world",
     "integration",
-    "jue_world"
+    "jue_world",
+    "jue_examples"
 ]
-
-
 
 [dependencies]
 # Core Rust dependencies
@@ -33,9 +32,14 @@ env_logger = "0.10"
 # Optional math / numeric ops
 num-traits = "0.2"
 
+# CLI argument parsing
+clap = { version = "4.0", features = ["derive"] }
+
 # Local dependencies
 core_world = { path = "core_world" }
 physics_world = { path = "physics_world" }
+jue_world = { path = "jue_world" }
+
 [features]
 core_world_tests = []
 
