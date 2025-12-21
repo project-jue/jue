@@ -2,7 +2,7 @@
 mod tests {
     use crate::error::SourceLocation;
     use crate::trust_tier::TrustTier;
-    use physics_world::Capability;
+    use physics_world::types::Capability;
 
     // Explicit imports for type system types
     use crate::type_system::{

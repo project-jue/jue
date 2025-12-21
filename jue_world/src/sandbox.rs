@@ -1,6 +1,6 @@
 use crate::error::CompilationError;
 use physics_world::types::{Capability, OpCode, Value};
-use physics_world::{ExecutionResult, PhysicsWorld};
+use physics_world::api::{ExecutionResult, PhysicsWorld};
 
 /// Sandbox configuration for experimental tier execution
 #[derive(Debug, Clone)]

@@ -1,5 +1,5 @@
 use crate::error::{CompilationError, SourceLocation};
-use physics_world::types::{Capability, HostFunction};
+use physics_world::types::{Capability, HostFunction, OpCode, Value};
 /// Foreign Function Interface (FFI) with capability mediation
 use serde::{Deserialize, Serialize};
 
@@ -79,15 +79,15 @@ impl FfiCallGenerator {
     pub fn generate_ffi_call(
         &self,
         name: &str,
-        arguments: Vec<physics_world::Value>,
-    ) -> Result<Vec<physics_world::OpCode>, CompilationError> {
+        arguments: Vec<Value>,
+    ) -> Result<Vec<OpCode>, CompilationError> {
         // Find the FFI function
         let _func = self.registry.find_function(name).ok_or_else(|| {
             CompilationError::FfiError(format!("FFI function {} not found", name))
         })?;
 
         // Generate the HostCall opcode
-        let opcode = physics_world::OpCode::HostCall {
+        let opcode = OpCode::HostCall {
             cap_idx: 0, // TODO: Get actual capability index
             func_id: _func.host_function as u16,
             args: arguments.len() as u8,
@@ -97,29 +97,29 @@ impl FfiCallGenerator {
         let mut bytecode = Vec::new();
         for arg in arguments.into_iter().rev() {
             match arg {
-                physics_world::Value::Nil => bytecode.push(physics_world::OpCode::Nil),
-                physics_world::Value::Bool(b) => bytecode.push(physics_world::OpCode::Bool(b)),
-                physics_world::Value::Int(i) => bytecode.push(physics_world::OpCode::Int(i)),
-                physics_world::Value::Symbol(s) => bytecode.push(physics_world::OpCode::Symbol(s)),
-                physics_world::Value::Pair(_ptr) => {
+                Value::Nil => bytecode.push(OpCode::Nil),
+                Value::Bool(b) => bytecode.push(OpCode::Bool(b)),
+                Value::Int(i) => bytecode.push(OpCode::Int(i)),
+                Value::Symbol(s) => bytecode.push(OpCode::Symbol(s)),
+                Value::Pair(_ptr) => {
                     // TODO: Handle pair values
-                    bytecode.push(physics_world::OpCode::Nil);
+                    bytecode.push(OpCode::Nil);
                 }
-                physics_world::Value::Closure(_ptr) => {
+                Value::Closure(_ptr) => {
                     // TODO: Handle closure values
-                    bytecode.push(physics_world::OpCode::Nil);
+                    bytecode.push(OpCode::Nil);
                 }
-                physics_world::Value::ActorId(_id) => {
+                Value::ActorId(_id) => {
                     // TODO: Handle actor ID values
-                    bytecode.push(physics_world::OpCode::Nil);
+                    bytecode.push(OpCode::Nil);
                 }
-                physics_world::Value::Capability(_cap) => {
+                Value::Capability(_cap) => {
                     // TODO: Handle capability values
-                    bytecode.push(physics_world::OpCode::Nil);
+                    bytecode.push(OpCode::Nil);
                 }
-                physics_world::Value::GcPtr(_ptr) => {
+                Value::GcPtr(_ptr) => {
                     // TODO: Handle GC pointer values
-                    bytecode.push(physics_world::OpCode::Nil);
+                    bytecode.push(OpCode::Nil);
                 }
             }
         }
@@ -134,14 +134,14 @@ impl FfiCallGenerator {
     pub fn generate_capability_check(
         &self,
         name: &str,
-    ) -> Result<Vec<physics_world::OpCode>, CompilationError> {
+    ) -> Result<Vec<OpCode>, CompilationError> {
         // Find the FFI function
         let _func = self.registry.find_function(name).ok_or_else(|| {
             CompilationError::FfiError(format!("FFI function {} not found", name))
         })?;
 
         // Generate HasCap opcode to check if capability is available
-        let opcode = physics_world::OpCode::HasCap(0); // TODO: Get actual capability index
+        let opcode = OpCode::HasCap(0); // TODO: Get actual capability index
 
         Ok(vec![opcode])
     }

@@ -1,4 +1,11 @@
 
+use crate::error::SourceLocation;
+use crate::compiler::capability_checking::{insert_capability_checks, CheckType};
+use crate::compiler::capability_analysis::{analyze_capabilities, validate_ffi_call, get_ffi_function_capability};
+use crate::ast::{AstNode, Literal};
+use crate::TrustTier;
+use physics_world::types::{Capability, OpCode};
+
 #[test]
 fn test_capability_check_insertion() {
     // Create a simple AST node that requires capability checks

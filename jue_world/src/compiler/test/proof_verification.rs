@@ -1,3 +1,12 @@
+use crate::compiler::core_compilation::{
+    compile_ast_to_core_expr_with_proofs, generate_simple_proof, verify_core_expr_with_proof,
+    verify_proof_against_kernel,
+};
+use crate::parser::parse;
+use core_world::core_kernel::{alpha_equiv, is_normal_form};
+use core_world::proof_checker::Proof;
+use core_world::{app, lam, prove_beta, var};
+
 #[test]
 fn test_proof_verification_integration() {
     // Test that we can verify a simple proof against the Core-World kernel
@@ -9,10 +18,9 @@ fn test_proof_verification_integration() {
     assert!(result.is_ok());
 
     let (left, right) = result.unwrap();
-    assert!(core_world::core_kernel::alpha_equiv(left, redex));
+    assert!(alpha_equiv(left, redex));
     assert_eq!(right, var(1));
 }
-
 
 #[test]
 fn test_core_expr_with_proof_verification() {

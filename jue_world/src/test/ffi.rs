@@ -2,7 +2,7 @@
 mod tests {
     use crate::error::SourceLocation;
     use crate::ffi::{create_standard_ffi_registry, FfiCallGenerator, FfiFunction, FfiRegistry};
-    use physics_world::types::{Capability, HostFunction};
+    use physics_world::types::{Capability, HostFunction, OpCode, Value};
 
     #[test]
     fn test_ffi_function_creation() {
@@ -101,7 +101,7 @@ mod tests {
         // Should have the HostCall opcode
         assert_eq!(bytecode.len(), 1);
         match &bytecode[0] {
-            physics_world::OpCode::HostCall { func_id, args, .. } => {
+            OpCode::HostCall { func_id, args, .. } => {
                 assert_eq!(*func_id, HostFunction::ReadSensor as u16);
                 assert_eq!(*args, 0);
             }
@@ -130,8 +130,7 @@ mod tests {
         };
 
         // Generate FFI call with arguments
-        let result =
-            generator.generate_ffi_call("test-with-args", vec![physics_world::Value::Int(314)]);
+        let result = generator.generate_ffi_call("test-with-args", vec![Value::Int(314)]);
 
         assert!(result.is_ok());
         let bytecode = result.unwrap();
@@ -139,11 +138,11 @@ mod tests {
         // Should have argument push followed by HostCall
         assert_eq!(bytecode.len(), 2);
         match &bytecode[0] {
-            physics_world::OpCode::Int(314) => assert!(true), // Changed from Float to Int
+            OpCode::Int(314) => assert!(true), // Changed from Float to Int
             _ => panic!("Expected argument push"),
         }
         match &bytecode[1] {
-            physics_world::OpCode::HostCall { func_id, args, .. } => {
+            OpCode::HostCall { func_id, args, .. } => {
                 assert_eq!(*func_id, HostFunction::WriteActuator as u16);
                 assert_eq!(*args, 1);
             }
@@ -179,7 +178,7 @@ mod tests {
         // Should have HasCap opcode
         assert_eq!(bytecode.len(), 1);
         match &bytecode[0] {
-            physics_world::OpCode::HasCap(_) => assert!(true),
+            OpCode::HasCap(_) => assert!(true),
             _ => panic!("Expected HasCap opcode"),
         }
     }

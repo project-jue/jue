@@ -1,4 +1,9 @@
 
+use crate::compile;
+use crate::parser::parse;
+use crate::TrustTier;
+use physics_world::types::{Capability, OpCode};
+
 #[test]
 fn test_simple_ffi_call() {
     // Test simple FFI call
