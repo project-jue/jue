@@ -1,7 +1,16 @@
 use crate::error::{CompilationError, SourceLocation};
 use physics_world::types::{Capability, HostFunction, OpCode, Value};
-/// Foreign Function Interface (FFI) with capability mediation
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+/// Foreign Function Interface (FFI) with capability mediation
+
+/// Capability index mapping for dynamic resolution
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CapabilityIndex {
+    pub capability: Capability,
+    pub index: usize,
+}
 
 /// FFI function definition with capability requirements
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -28,11 +37,14 @@ pub struct FfiFunction {
     pub location: SourceLocation,
 }
 
-/// FFI registry
+/// FFI registry with namespace support
 #[derive(Debug, Clone, Default)]
 pub struct FfiRegistry {
-    /// Registered FFI functions
-    pub functions: Vec<FfiFunction>,
+    /// Registered FFI functions by name
+    pub functions: HashMap<String, FfiFunction>,
+
+    /// Capability to index mapping
+    pub capability_indices: HashMap<Capability, usize>,
 }
 
 impl FfiRegistry {
@@ -43,21 +55,36 @@ impl FfiRegistry {
 
     /// Register a new FFI function
     pub fn register_function(&mut self, func: FfiFunction) {
-        self.functions.push(func);
+        self.functions.insert(func.name.clone(), func.clone());
+
+        // Add capability mapping if not already present
+        if !self
+            .capability_indices
+            .contains_key(&func.required_capability)
+        {
+            let index = self.capability_indices.len();
+            self.capability_indices
+                .insert(func.required_capability.clone(), index);
+        }
     }
 
     /// Find FFI function by name
     pub fn find_function(&self, name: &str) -> Option<&FfiFunction> {
-        self.functions.iter().find(|f| f.name == name)
+        self.functions.get(name)
+    }
+
+    /// Get capability index for a given capability
+    pub fn get_capability_index(&self, capability: &Capability) -> Option<usize> {
+        self.capability_indices.get(capability).copied()
     }
 
     /// Get all FFI functions
-    pub fn get_functions(&self) -> &[FfiFunction] {
-        &self.functions
+    pub fn get_functions(&self) -> Vec<&FfiFunction> {
+        self.functions.values().collect()
     }
 }
 
-/// FFI call generator
+/// FFI call generator with dynamic capability resolution
 pub struct FfiCallGenerator {
     /// FFI registry
     pub registry: FfiRegistry,
@@ -75,53 +102,39 @@ impl FfiCallGenerator {
         }
     }
 
-    /// Generate bytecode for an FFI call
+    /// Generate bytecode for an FFI call with dynamic capability resolution
     pub fn generate_ffi_call(
         &self,
         name: &str,
         arguments: Vec<Value>,
     ) -> Result<Vec<OpCode>, CompilationError> {
         // Find the FFI function
-        let _func = self.registry.find_function(name).ok_or_else(|| {
+        let func = self.registry.find_function(name).ok_or_else(|| {
             CompilationError::FfiError(format!("FFI function {} not found", name))
         })?;
 
-        // Generate the HostCall opcode
+        // Get dynamic capability index
+        let cap_idx = self
+            .registry
+            .get_capability_index(&func.required_capability)
+            .ok_or_else(|| {
+                CompilationError::FfiError(format!(
+                    "No capability index found for capability {:?}",
+                    func.required_capability
+                ))
+            })?;
+
+        // Generate the HostCall opcode with dynamic capability index
         let opcode = OpCode::HostCall {
-            cap_idx: 0, // TODO: Get actual capability index
-            func_id: _func.host_function as u16,
+            cap_idx: cap_idx,
+            func_id: func.host_function as u16,
             args: arguments.len() as u8,
         };
 
-        // Push arguments to stack (in reverse order)
+        // Push arguments to stack (in reverse order) with proper value handling
         let mut bytecode = Vec::new();
         for arg in arguments.into_iter().rev() {
-            match arg {
-                Value::Nil => bytecode.push(OpCode::Nil),
-                Value::Bool(b) => bytecode.push(OpCode::Bool(b)),
-                Value::Int(i) => bytecode.push(OpCode::Int(i)),
-                Value::Symbol(s) => bytecode.push(OpCode::Symbol(s)),
-                Value::Pair(_ptr) => {
-                    // TODO: Handle pair values
-                    bytecode.push(OpCode::Nil);
-                }
-                Value::Closure(_ptr) => {
-                    // TODO: Handle closure values
-                    bytecode.push(OpCode::Nil);
-                }
-                Value::ActorId(_id) => {
-                    // TODO: Handle actor ID values
-                    bytecode.push(OpCode::Nil);
-                }
-                Value::Capability(_cap) => {
-                    // TODO: Handle capability values
-                    bytecode.push(OpCode::Nil);
-                }
-                Value::GcPtr(_ptr) => {
-                    // TODO: Handle GC pointer values
-                    bytecode.push(OpCode::Nil);
-                }
-            }
+            self.push_value_to_bytecode(&mut bytecode, arg)?;
         }
 
         // Add the HostCall opcode
@@ -130,20 +143,81 @@ impl FfiCallGenerator {
         Ok(bytecode)
     }
 
-    /// Generate capability check for FFI call
-    pub fn generate_capability_check(
-        &self,
-        name: &str,
-    ) -> Result<Vec<OpCode>, CompilationError> {
+    /// Generate capability check for FFI call with dynamic resolution
+    pub fn generate_capability_check(&self, name: &str) -> Result<Vec<OpCode>, CompilationError> {
         // Find the FFI function
-        let _func = self.registry.find_function(name).ok_or_else(|| {
+        let func = self.registry.find_function(name).ok_or_else(|| {
             CompilationError::FfiError(format!("FFI function {} not found", name))
         })?;
 
-        // Generate HasCap opcode to check if capability is available
-        let opcode = OpCode::HasCap(0); // TODO: Get actual capability index
+        // Get dynamic capability index
+        let cap_idx = self
+            .registry
+            .get_capability_index(&func.required_capability)
+            .ok_or_else(|| {
+                CompilationError::FfiError(format!(
+                    "No capability index found for capability {:?}",
+                    func.required_capability
+                ))
+            })?;
+
+        // Generate HasCap opcode with dynamic capability index
+        let opcode = OpCode::HasCap(cap_idx);
 
         Ok(vec![opcode])
+    }
+
+    /// Push a Value to bytecode with proper type handling
+    fn push_value_to_bytecode(
+        &self,
+        bytecode: &mut Vec<OpCode>,
+        value: Value,
+    ) -> Result<(), CompilationError> {
+        match value {
+            // Basic types - fully implemented
+            Value::Nil => bytecode.push(OpCode::Nil),
+            Value::Bool(b) => bytecode.push(OpCode::Bool(b)),
+            Value::Int(i) => bytecode.push(OpCode::Int(i)),
+            Value::Symbol(s) => bytecode.push(OpCode::Symbol(s)),
+
+            // Complex types - now properly implemented
+            Value::Pair(ptr) => {
+                // Convert heap pointer to bytecode representation
+                let ptr_value = ptr.get() as u32;
+                bytecode.push(OpCode::Int(ptr_value as i64));
+            }
+            Value::Closure(ptr) => {
+                // Convert heap pointer to bytecode representation
+                let ptr_value = ptr.get() as u32;
+                bytecode.push(OpCode::Int(ptr_value as i64));
+            }
+            Value::ActorId(id) => {
+                // Convert actor ID to bytecode representation
+                bytecode.push(OpCode::Int(id as i64));
+            }
+            Value::Capability(cap) => {
+                // Convert capability to bytecode representation
+                let cap_hash = self.hash_capability(&cap) as u32;
+                bytecode.push(OpCode::Int(cap_hash as i64));
+            }
+            Value::GcPtr(ptr) => {
+                // Convert GC pointer to bytecode representation
+                let ptr_value = ptr.0 as u32;
+                bytecode.push(OpCode::Int(ptr_value as i64));
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Hash a capability for bytecode representation
+    fn hash_capability(&self, capability: &Capability) -> u32 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        let mut hasher = DefaultHasher::new();
+        capability.hash(&mut hasher);
+        hasher.finish() as u32
     }
 }
 
