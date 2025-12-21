@@ -34,6 +34,11 @@ pub fn core_expr_from_value(value: &Value) -> CoreExpr {
             // In a full implementation, this would need proper GC pointer handling
             CoreExpr::Nat(45) // Placeholder for GC pointer representation
         }
+        Value::String(_) => {
+            // For strings, we'll create a placeholder representation
+            // In a full implementation, this would need proper string handling
+            CoreExpr::Nat(46) // Placeholder for string representation
+        }
     }
 }
 
