@@ -1,6 +1,7 @@
+use physics_world::vm::error::VmError;
 use physics_world::{
     types::{OpCode, Value},
-    vm::{VmError, VmState},
+    vm::VmState,
 };
 
 // Test 1: Basic Stack Execution
@@ -11,7 +12,7 @@ fn vm_stack_operations() {
         OpCode::Int(3),
         OpCode::Add, // Custom opcode for i64 addition
     ];
-    let mut vm = VmState::new(code, vec![], 1000, 1024);
+    let mut vm = VmState::new(code, vec![], 1000, 1024, 1, 100);
     let result = vm.run().unwrap();
     assert_eq!(result, Value::Int(8));
 }
@@ -44,17 +45,17 @@ fn vm_enforces_cpu_limit() {
         OpCode::Int(1),
         OpCode::Add, // Step 10 - this should exceed the limit
     ];
-    let mut vm = VmState::new(code, vec![], 10, 1024); // Limit: 10 steps
+    let mut vm = VmState::new(code, vec![], 10, 1024, 1, 100); // Limit: 10 steps
     let result = vm.run();
-    assert!(matches!(result, Err(VmError::CpuLimitExceeded)));
+    assert!(matches!(result, Err(VmError::CpuLimitExceeded { .. })));
 }
 
 // Test 3: Deterministic Replay
 #[test]
 fn vm_deterministic_replay() {
     let code = vec![OpCode::Int(7), OpCode::Dup, OpCode::Add];
-    let mut vm1 = VmState::new(code.clone(), vec![], 100, 1024);
-    let mut vm2 = VmState::new(code, vec![], 100, 1024);
+    let mut vm1 = VmState::new(code.clone(), vec![], 100, 1024, 1, 100);
+    let mut vm2 = VmState::new(code, vec![], 100, 1024, 1, 100);
 
     let result1 = vm1.run().unwrap();
     let result2 = vm2.run().unwrap();

@@ -9,13 +9,44 @@ pub enum ArenaError {
     ArenaFull { capacity: u32, requested: u32 },
 }
 
+/// Error type for garbage collection failures.
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum GarbageCollectionError {
+    #[error("Garbage collection failed: {0}")]
+    CollectionFailed(String),
+}
+
+/// Error type for defragmentation failures.
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum DefragmentationError {
+    #[error("Defragmentation failed: {0}")]
+    DefragmentationFailed(String),
+}
+
+/// Result type for garbage collection operations.
+pub type GarbageCollectionResult = Result<(), GarbageCollectionError>;
+
+/// Result type for defragmentation operations.
+pub type DefragmentationResult = Result<DefragmentationStats, DefragmentationError>;
+
+/// Statistics from defragmentation operation.
+#[derive(Debug, Clone)]
+pub struct DefragmentationStats {
+    pub objects_moved: u32,
+    pub bytes_reclaimed: u32,
+    pub fragmentation_before: f32,
+    pub fragmentation_after: f32,
+    pub time_taken_ms: u64,
+}
+
 /// Header prepended to each allocated object.
 #[repr(C)]
 #[derive(Debug)]
 pub struct ObjectHeader {
     pub size: u32,
     pub tag: u8,
-    _padding: [u8; 3],
+    pub marked: bool,  // Mark bit for garbage collection
+    _padding: [u8; 2], // Maintain 8-byte alignment
 }
 
 impl ObjectHeader {
@@ -24,7 +55,8 @@ impl ObjectHeader {
         Self {
             size,
             tag,
-            _padding: [0; 3],
+            marked: false,
+            _padding: [0; 2],
         }
     }
 
@@ -38,11 +70,16 @@ impl ObjectHeader {
 ///
 /// Each allocated object is prefixed by an `ObjectHeader`. The arena does not
 /// support individual deallocation; the entire arena can be reset with `reset()`.
-#[derive(Serialize, Deserialize)]
+/// The arena supports defragmentation to reduce memory fragmentation.
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ObjectArena {
     storage: Vec<u8>,
     next_free: u32,
     capacity: u32,
+    /// Fragmentation threshold for automatic defragmentation (0.0 to 1.0)
+    fragmentation_threshold: f32,
+    /// Enable/disable automatic defragmentation
+    auto_defragment: bool,
 }
 
 impl ObjectArena {
@@ -52,6 +89,23 @@ impl ObjectArena {
             storage: vec![0; capacity as usize],
             next_free: 0,
             capacity,
+            fragmentation_threshold: 0.3, // 30% fragmentation threshold
+            auto_defragment: true,        // Enable automatic defragmentation by default
+        }
+    }
+
+    /// Creates a new arena with custom defragmentation settings.
+    pub fn with_capacity_and_settings(
+        capacity: u32,
+        fragmentation_threshold: f32,
+        auto_defragment: bool,
+    ) -> Self {
+        Self {
+            storage: vec![0; capacity as usize],
+            next_free: 0,
+            capacity,
+            fragmentation_threshold: fragmentation_threshold.clamp(0.0, 1.0),
+            auto_defragment,
         }
     }
 
@@ -111,6 +165,15 @@ impl ObjectArena {
         &*(self.storage.as_ptr().add(addr) as *const ObjectHeader)
     }
 
+    /// Returns a mutable reference to the header of the object at `ptr`.
+    ///
+    /// # Safety
+    /// The caller must ensure that `ptr` points to a valid object header.
+    pub unsafe fn get_header_mut(&mut self, ptr: HeapPtr) -> &mut ObjectHeader {
+        let addr = ptr.get() as usize;
+        &mut *(self.storage.as_ptr().add(addr) as *mut ObjectHeader)
+    }
+
     /// Returns a mutable slice to the data region of the object at `ptr`.
     ///
     /// # Safety
@@ -144,110 +207,214 @@ impl ObjectArena {
     pub fn capacity(&self) -> u32 {
         self.capacity
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_object_header_size() {
-        // Ensure the header is 8 bytes (size 4 + tag 1 + padding 3)
-        assert_eq!(ObjectHeader::size_bytes(), 8);
+    /// Marks an object as reachable during garbage collection.
+    ///
+    /// # Safety
+    /// The caller must ensure that `ptr` points to a valid object header.
+    pub unsafe fn mark_object(&mut self, ptr: HeapPtr) {
+        let header = self.get_header_mut(ptr);
+        header.marked = true;
     }
 
-    #[test]
-    fn test_arena_allocate_and_retrieve() {
-        let mut arena = ObjectArena::with_capacity(1024);
-        let ptr = arena.allocate(16, 1).unwrap();
-        assert_eq!(ptr.get(), 0);
-
-        // Check header
-        let header = unsafe { arena.get_header(ptr) };
-        assert_eq!(header.size, 16);
-        assert_eq!(header.tag, 1);
-
-        // Check data region is zeroed
-        let data = unsafe { arena.get_data(ptr) };
-        assert_eq!(data.len(), 16);
-        assert!(data.iter().all(|&b| b == 0));
-
-        // Write something to data
-        let data_mut = unsafe { arena.get_data_mut(ptr) };
-        data_mut[0] = 42;
-        assert_eq!(data_mut[0], 42);
+    /// Checks if an object is marked as reachable.
+    ///
+    /// # Safety
+    /// The caller must ensure that `ptr` points to a valid object header.
+    pub unsafe fn is_marked(&self, ptr: HeapPtr) -> bool {
+        let header = self.get_header(ptr);
+        header.marked
     }
 
-    #[test]
-    fn test_arena_alignment() {
-        let mut arena = ObjectArena::with_capacity(1024);
-        // Allocate 1 byte, should be aligned to 8 bytes after header
-        let _ptr1 = arena.allocate(1, 0).unwrap();
-        // Header is 8 bytes, data size aligned to 8 -> 8 + 8 = 16
-        assert_eq!(arena.next_free(), 16);
+    /// Performs garbage collection using a mark-and-sweep algorithm.
+    ///
+    /// # Arguments
+    /// * `root_set` - A slice of `HeapPtr` values representing the root set of reachable objects.
+    ///
+    /// # Returns
+    /// A `GarbageCollectionResult` indicating success or failure.
+    pub fn collect_garbage(&mut self, root_set: &[HeapPtr]) -> GarbageCollectionResult {
+        // Mark phase: Mark all reachable objects starting from the root set
+        self.mark_phase(root_set)?;
 
-        // Next allocation should start at offset 16
-        let ptr2 = arena.allocate(1, 0).unwrap();
-        assert_eq!(ptr2.get(), 16);
+        // Sweep phase: Collect unmarked objects and compact memory
+        self.sweep_phase()?;
+
+        // Check if automatic defragmentation should be triggered
+        if self.auto_defragment && self.should_defragment() {
+            let _ = self.defragment(); // Ignore result for automatic defrag
+        }
+
+        Ok(())
     }
 
-    #[test]
-    fn test_arena_full() {
-        let mut arena = ObjectArena::with_capacity(32);
-        // Allocate 8 bytes header + 8 bytes data = 16 bytes
-        let ptr1 = arena.allocate(8, 0).unwrap();
-        assert_eq!(ptr1.get(), 0);
-        assert_eq!(arena.next_free(), 16);
+    /// Performs defragmentation to compact memory and reduce fragmentation.
+    ///
+    /// # Returns
+    /// A `DefragmentationResult` with statistics about the operation.
+    pub fn defragment(&mut self) -> DefragmentationResult {
+        let start_time = std::time::Instant::now();
+        let fragmentation_before = self.fragmentation_ratio();
 
-        // Next allocation of 8 bytes header + 8 bytes data = 16 bytes, total 32 -> fits
-        let ptr2 = arena.allocate(8, 0).unwrap();
-        assert_eq!(ptr2.get(), 16);
-        assert_eq!(arena.next_free(), 32);
+        // Create a mapping from old pointers to new pointers
+        let mut pointer_mapping = Vec::new();
+        let mut new_next_free = 0;
 
-        // Next allocation should fail
-        match arena.allocate(1, 0) {
-            Err(ArenaError::ArenaFull {
-                capacity,
-                requested,
-            }) => {
-                assert_eq!(capacity, 32);
-                assert_eq!(requested, 16); // header 8 + aligned size 8
+        // First pass: calculate new positions and build mapping
+        let mut current_ptr = 0;
+        while current_ptr < self.next_free {
+            let header = unsafe { self.get_header(HeapPtr::new(current_ptr)) };
+            let object_size = ObjectHeader::size_bytes() as u32 + header.size;
+
+            if header.marked {
+                // This object is live, calculate its new position
+                pointer_mapping.push((current_ptr, new_next_free));
+                new_next_free += object_size;
             }
-            Ok(_) => panic!("Expected ArenaFull error"),
+
+            current_ptr += object_size;
+        }
+
+        // Second pass: move objects to their new positions
+        let mut objects_moved = 0;
+        for (old_ptr, new_ptr) in &pointer_mapping {
+            let object_size = {
+                let header = unsafe { self.get_header(HeapPtr::new(*old_ptr)) };
+                ObjectHeader::size_bytes() as u32 + header.size
+            };
+
+            // Move the object data
+            let src_start = *old_ptr as usize;
+            let src_end = src_start + object_size as usize;
+            let dst_start = *new_ptr as usize;
+
+            self.storage.copy_within(src_start..src_end, dst_start);
+            objects_moved += 1;
+        }
+
+        // Update next_free to the new compacted position
+        let bytes_reclaimed = self.next_free - new_next_free;
+        self.next_free = new_next_free;
+
+        let fragmentation_after = self.fragmentation_ratio();
+        let time_taken = start_time.elapsed().as_millis() as u64;
+
+        Ok(DefragmentationStats {
+            objects_moved,
+            bytes_reclaimed,
+            fragmentation_before,
+            fragmentation_after,
+            time_taken_ms: time_taken,
+        })
+    }
+
+    /// Checks if defragmentation should be performed based on fragmentation level.
+    ///
+    /// # Returns
+    /// `true` if fragmentation exceeds the threshold, `false` otherwise.
+    pub fn should_defragment(&self) -> bool {
+        if !self.auto_defragment {
+            return false;
+        }
+
+        let fragmentation = self.fragmentation_ratio();
+        fragmentation > self.fragmentation_threshold
+    }
+
+    /// Calculates the current fragmentation ratio (0.0 = no fragmentation, 1.0 = fully fragmented).
+    ///
+    /// # Returns
+    /// Fragmentation ratio as a value between 0.0 and 1.0.
+    pub fn fragmentation_ratio(&self) -> f32 {
+        if self.next_free == 0 || self.capacity == 0 {
+            return 0.0;
+        }
+
+        // Calculate used space
+        let mut used_space = 0;
+        let mut current_ptr = 0;
+
+        while current_ptr < self.next_free {
+            let header = unsafe { self.get_header(HeapPtr::new(current_ptr)) };
+            let object_size = ObjectHeader::size_bytes() as u32 + header.size;
+
+            if header.marked {
+                used_space += object_size;
+            }
+
+            current_ptr += object_size;
+        }
+
+        // Fragmentation = (total allocated space - used space) / total allocated space
+        if used_space == 0 {
+            0.0
+        } else {
+            let wasted_space = self.next_free - used_space;
+            (wasted_space as f32) / (self.next_free as f32)
         }
     }
 
-    #[test]
-    fn test_arena_reset() {
-        let mut arena = ObjectArena::with_capacity(1024);
-        arena.allocate(32, 0).unwrap();
-        assert_eq!(arena.next_free(), 40); // header 8 + aligned 32 = 40
-        arena.reset();
-        assert_eq!(arena.next_free(), 0);
-        // Should be able to allocate again from start
-        let ptr = arena.allocate(32, 0).unwrap();
-        assert_eq!(ptr.get(), 0);
+    /// Gets the current defragmentation settings.
+    pub fn get_defragmentation_settings(&self) -> (f32, bool) {
+        (self.fragmentation_threshold, self.auto_defragment)
     }
 
-    #[test]
-    fn test_pair_allocation() {
-        // Simulate allocating a Pair (two HeapPtrs)
-        let mut arena = ObjectArena::with_capacity(1024);
-        let pair_ptr = arena.allocate(8, 2).unwrap(); // 8 bytes for two u32s
-        let data = unsafe { arena.get_data_mut(pair_ptr) };
-        // Write two HeapPtr values
-        let ptr1 = HeapPtr::new(42);
-        let ptr2 = HeapPtr::new(99);
-        let bytes1 = ptr1.get().to_le_bytes();
-        let bytes2 = ptr2.get().to_le_bytes();
-        data[0..4].copy_from_slice(&bytes1);
-        data[4..8].copy_from_slice(&bytes2);
+    /// Sets the defragmentation settings.
+    pub fn set_defragmentation_settings(&mut self, threshold: f32, auto_defragment: bool) {
+        self.fragmentation_threshold = threshold.clamp(0.0, 1.0);
+        self.auto_defragment = auto_defragment;
+    }
 
-        // Read back
-        let data_read = unsafe { arena.get_data(pair_ptr) };
-        let read_ptr1 = u32::from_le_bytes(data_read[0..4].try_into().unwrap());
-        let read_ptr2 = u32::from_le_bytes(data_read[4..8].try_into().unwrap());
-        assert_eq!(read_ptr1, 42);
-        assert_eq!(read_ptr2, 99);
+    /// Marks all reachable objects starting from the root set.
+    fn mark_phase(&mut self, root_set: &[HeapPtr]) -> Result<(), GarbageCollectionError> {
+        // Mark all objects in the root set
+        for &root_ptr in root_set {
+            unsafe { self.mark_object(root_ptr) };
+        }
+
+        // TODO: Implement recursive marking for objects that contain references to other objects
+        // This would require traversing the object's data region to find HeapPtr values
+        // and marking those objects as well.
+
+        Ok(())
+    }
+
+    /// Collects unmarked objects and compacts memory.
+    fn sweep_phase(&mut self) -> Result<(), GarbageCollectionError> {
+        let mut new_next_free = 0;
+        let mut current_ptr = 0;
+
+        while current_ptr < self.next_free {
+            let header = unsafe { self.get_header(HeapPtr::new(current_ptr)) };
+            let object_size = ObjectHeader::size_bytes() as u32 + header.size;
+
+            if header.marked {
+                // Object is reachable, keep it
+                if current_ptr != new_next_free {
+                    // Move the object to the new location
+                    let src_start = current_ptr as usize;
+                    let src_end = src_start + object_size as usize;
+                    let dst_start = new_next_free as usize;
+
+                    self.storage.copy_within(src_start..src_end, dst_start);
+
+                    // Update the pointer in the root set if it points to this object
+                    // TODO: This is a simplified approach; a more robust solution would
+                    // maintain a mapping of old to new pointers for all reachable objects.
+                }
+                new_next_free += object_size;
+            } else {
+                // Object is unreachable, skip it
+            }
+
+            current_ptr += object_size;
+        }
+
+        self.next_free = new_next_free;
+        Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "test/arena_tests.rs"]
+mod tests;
