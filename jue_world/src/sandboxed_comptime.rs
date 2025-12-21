@@ -183,6 +183,10 @@ impl SandboxedComptimeExecutor {
                 self.stack.push(Value::Int(i));
                 Ok(())
             }
+            OpCode::Float(f) => {
+                self.stack.push(Value::Float(f));
+                Ok(())
+            }
             OpCode::Symbol(idx) => {
                 if idx < self.constants.len() {
                     self.stack.push(self.constants[idx].clone());
@@ -192,6 +196,67 @@ impl SandboxedComptimeExecutor {
                         "Invalid constant index: {}",
                         idx
                     )))
+                }
+            }
+            OpCode::LoadString(idx) => {
+                // Load string from constant pool
+                if idx < self.constants.len() {
+                    if let Value::String(s) = &self.constants[idx] {
+                        self.stack.push(Value::String(s.clone()));
+                        Ok(())
+                    } else {
+                        Err(CompilationError::ComptimeError(format!(
+                            "Expected string at constant index: {}",
+                            idx
+                        )))
+                    }
+                } else {
+                    Err(CompilationError::ComptimeError(format!(
+                        "Invalid string constant index: {}",
+                        idx
+                    )))
+                }
+            }
+            OpCode::StrLen => {
+                // Get string length
+                if let Some(Value::String(s)) = self.stack.pop() {
+                    self.stack.push(Value::Int(s.len() as i64));
+                    Ok(())
+                } else {
+                    Err(CompilationError::ComptimeError(
+                        "Stack underflow or type mismatch for StrLen".to_string(),
+                    ))
+                }
+            }
+            OpCode::StrConcat => {
+                // Concatenate two strings
+                if let (Some(Value::String(right)), Some(Value::String(left))) =
+                    (self.stack.pop(), self.stack.pop()) {
+                    let mut result = left;
+                    result.push_str(&right);
+                    self.stack.push(Value::String(result));
+                    Ok(())
+                } else {
+                    Err(CompilationError::ComptimeError(
+                        "Stack underflow or type mismatch for StrConcat".to_string(),
+                    ))
+                }
+            }
+            OpCode::StrIndex => {
+                // Get character at index
+                if let (Some(Value::Int(idx)), Some(Value::String(s))) =
+                    (self.stack.pop(), self.stack.pop()) {
+                    if idx >= 0 && (idx as usize) < s.len() {
+                        let char_at_index = s.chars().nth(idx as usize).unwrap();
+                        self.stack.push(Value::String(char_at_index.to_string()));
+                    } else {
+                        self.stack.push(Value::Nil); // Out of bounds
+                    }
+                    Ok(())
+                } else {
+                    Err(CompilationError::ComptimeError(
+                        "Stack underflow or type mismatch for StrIndex".to_string(),
+                    ))
                 }
             }
             OpCode::Dup => {
@@ -357,6 +422,12 @@ impl SandboxedComptimeExecutor {
             OpCode::Mul => self.execute_binary_arithmetic(|a, b| Value::Int(a * b)),
             OpCode::Div => self.execute_binary_arithmetic(|a, b| Value::Int(a / b)),
             OpCode::Mod => self.execute_binary_arithmetic(|a, b| Value::Int(a % b)),
+            // Float arithmetic operations - not supported in sandboxed comptime
+            OpCode::FAdd | OpCode::FSub | OpCode::FMul | OpCode::FDiv => {
+                return Err(CompilationError::ComptimeError(
+                    "Float arithmetic not supported in sandboxed comptime execution".to_string(),
+                ));
+            }
             OpCode::Eq => self.execute_binary_comparison(|a, b| Value::Bool(a == b)),
             OpCode::Lt => self.execute_binary_comparison(|a, b| Value::Bool(a < b)),
             OpCode::Gt => self.execute_binary_comparison(|a, b| Value::Bool(a > b)),

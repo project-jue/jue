@@ -23,13 +23,19 @@ impl fmt::Display for HeapPtr {
 }
 
 /// Represents a compiled instruction.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum OpCode {
     // Constants
     Nil,
     Bool(bool),
     Int(i64),
+    Float(f64), // NEW: Direct float constant
     Symbol(usize),
+    // String Operations
+    LoadString(usize), // Load string from constant pool by index
+    StrLen,            // Get string length
+    StrConcat,         // Concatenate two strings
+    StrIndex,          // Get character at index
     // Primitive Stack Operations
     Swap, // Swap top two stack values
     Dup,
@@ -61,6 +67,12 @@ pub enum OpCode {
     Mul,
     Div,
     Mod,
+
+    // NEW: Float Arithmetic Operations
+    FAdd, // Float addition
+    FSub, // Float subtraction
+    FMul, // Float multiplication
+    FDiv, // Float division
 
     // Primitive Comparisons (result is Bool)
     Eq, // TOS == TOS-1 ?
@@ -101,7 +113,12 @@ impl OpCode {
             OpCode::Nil => 1,
             OpCode::Bool(_) => 2,
             OpCode::Int(_) => 9,
+            OpCode::Float(_) => 9, // f64 (8 bytes) + opcode tag (1 byte)
             OpCode::Symbol(_) => 5,
+            OpCode::LoadString(_) => 5, // usize (4 bytes) + opcode tag (1 byte)
+            OpCode::StrLen => 1,
+            OpCode::StrConcat => 1,
+            OpCode::StrIndex => 1,
             OpCode::Dup => 1,
             OpCode::Pop => 1,
             OpCode::Swap => 1,
@@ -122,6 +139,10 @@ impl OpCode {
             OpCode::Mul => 1,
             OpCode::Div => 1,
             OpCode::Mod => 1,
+            OpCode::FAdd => 1, // NEW: Float addition
+            OpCode::FSub => 1, // NEW: Float subtraction
+            OpCode::FMul => 1, // NEW: Float multiplication
+            OpCode::FDiv => 1, // NEW: Float division
             OpCode::Eq => 1,
             OpCode::Lt => 1,
             OpCode::Gt => 1,
@@ -147,6 +168,8 @@ pub enum Value {
     Nil,
     Bool(bool),
     Int(i64),      // Primary deterministic number type.
+    Float(f64),    // NEW: Float value type
+    String(String), // NEW: String value type
     Symbol(usize), // Index into a constant table.
     Pair(HeapPtr), // HeapPtr is a u32 index into an ObjectArena.
     Closure(HeapPtr),
@@ -161,6 +184,8 @@ impl fmt::Display for Value {
             Value::Nil => write!(f, "nil"),
             Value::Bool(b) => write!(f, "{}", b),
             Value::Int(i) => write!(f, "{}", i),
+            Value::Float(fl) => write!(f, "{}", fl),
+            Value::String(s) => write!(f, "\"{}\"", s),
             Value::Symbol(idx) => write!(f, "Symbol({})", idx),
             Value::Pair(ptr) => write!(f, "Pair({})", ptr),
             Value::Closure(ptr) => write!(f, "Closure({})", ptr),
@@ -177,6 +202,8 @@ impl Value {
             Value::Nil => false,
             Value::Bool(b) => *b,
             Value::Int(i) => *i != 0,
+            Value::Float(fl) => *fl != 0.0,
+            Value::String(s) => !s.is_empty(),
             Value::Symbol(_) => true,
             Value::Pair(_) => true,
             Value::Closure(_) => true,

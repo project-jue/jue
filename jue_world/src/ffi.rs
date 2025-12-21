@@ -178,6 +178,11 @@ impl FfiCallGenerator {
             Value::Nil => bytecode.push(OpCode::Nil),
             Value::Bool(b) => bytecode.push(OpCode::Bool(b)),
             Value::Int(i) => bytecode.push(OpCode::Int(i)),
+            Value::Float(f) => bytecode.push(OpCode::Float(f)), // Handle float values
+            Value::String(_s) => {
+                // Handle string values - push nil as placeholder for now
+                bytecode.push(OpCode::Nil);
+            }
             Value::Symbol(s) => bytecode.push(OpCode::Symbol(s)),
 
             // Complex types - now properly implemented

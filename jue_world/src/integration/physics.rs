@@ -16,6 +16,9 @@ pub struct PhysicsWorldCompiler {
     /// Capability index mapping
     pub capability_indices: Vec<Capability>,
 
+    /// String constant pool for deduplication
+    pub string_pool: Vec<String>,
+
     /// FFI registry for function lookup
     pub ffi_registry: FfiCallGenerator,
 }
@@ -27,6 +30,7 @@ impl PhysicsWorldCompiler {
             tier,
             location: SourceLocation::default(),
             capability_indices: Vec::new(),
+            string_pool: Vec::new(),
             ffi_registry: FfiCallGenerator {
                 registry: create_standard_ffi_registry(),
                 location: SourceLocation::default(),
@@ -41,6 +45,16 @@ impl PhysicsWorldCompiler {
         } else {
             self.capability_indices.push(capability.clone());
             self.capability_indices.len() - 1
+        }
+    }
+
+    /// Get or create string index in constant pool
+    pub fn get_string_index(&mut self, string: &str) -> usize {
+        if let Some(index) = self.string_pool.iter().position(|s| s == string) {
+            index
+        } else {
+            self.string_pool.push(string.to_string());
+            self.string_pool.len() - 1
         }
     }
 
@@ -76,18 +90,19 @@ impl PhysicsWorldCompiler {
     }
 
     /// Compile literal to bytecode
-    fn compile_literal(&self, lit: &crate::ast::Literal) -> Result<Vec<OpCode>, CompilationError> {
+    fn compile_literal(
+        &mut self,
+        lit: &crate::ast::Literal,
+    ) -> Result<Vec<OpCode>, CompilationError> {
         let opcode = match lit {
             crate::ast::Literal::Nil => OpCode::Nil,
             crate::ast::Literal::Bool(b) => OpCode::Bool(*b),
             crate::ast::Literal::Int(i) => OpCode::Int(*i),
-            crate::ast::Literal::Float(f) => {
-                // TODO: Handle float literals properly
-                OpCode::Int(*f as i64)
-            }
-            crate::ast::Literal::String(_s) => {
-                // TODO: Handle string literals properly
-                OpCode::Nil
+            crate::ast::Literal::Float(f) => OpCode::Float(*f), // FIXED: Proper float handling
+            crate::ast::Literal::String(s) => {
+                // Get string index from constant pool
+                let string_index = self.get_string_index(s);
+                OpCode::LoadString(string_index)
             }
         };
 

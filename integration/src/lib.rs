@@ -11,6 +11,7 @@ pub fn core_expr_from_value(value: &Value) -> CoreExpr {
         Value::Bool(true) => CoreExpr::Nat(1),
         Value::Bool(false) => CoreExpr::Nat(0),
         Value::Int(n) => CoreExpr::Nat(*n as u64),
+        Value::Float(f) => CoreExpr::Nat(*f as u64), // Convert float to u64 for CoreExpr
         Value::Symbol(usize) => CoreExpr::Var(*usize), // Use symbol index as variable index
         Value::Pair(_) => {
             // For pairs, we'll create a placeholder representation

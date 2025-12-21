@@ -148,6 +148,7 @@ impl ComptimeExecutor {
             OpCode::Nil => self.stack.push(Value::Nil),
             OpCode::Bool(b) => self.stack.push(Value::Bool(b)),
             OpCode::Int(i) => self.stack.push(Value::Int(i)),
+            OpCode::Float(f) => self.stack.push(Value::Float(f)),
             OpCode::Symbol(idx) => {
                 if idx < self.constants.len() {
                     self.stack.push(self.constants[idx].clone());
@@ -156,6 +157,63 @@ impl ComptimeExecutor {
                         "Invalid constant index: {}",
                         idx
                     )));
+                }
+            }
+            OpCode::LoadString(idx) => {
+                // Load string from constant pool
+                if idx < self.constants.len() {
+                    if let Value::String(s) = &self.constants[idx] {
+                        self.stack.push(Value::String(s.clone()));
+                    } else {
+                        return Err(CompilationError::ComptimeError(format!(
+                            "Expected string at constant index: {}",
+                            idx
+                        )));
+                    }
+                } else {
+                    return Err(CompilationError::ComptimeError(format!(
+                        "Invalid string constant index: {}",
+                        idx
+                    )));
+                }
+            }
+            OpCode::StrLen => {
+                // Get string length
+                if let Some(Value::String(s)) = self.stack.pop() {
+                    self.stack.push(Value::Int(s.len() as i64));
+                } else {
+                    return Err(CompilationError::ComptimeError(
+                        "Stack underflow or type mismatch for StrLen".to_string(),
+                    ));
+                }
+            }
+            OpCode::StrConcat => {
+                // Concatenate two strings
+                if let (Some(Value::String(right)), Some(Value::String(left))) =
+                    (self.stack.pop(), self.stack.pop()) {
+                    let mut result = left;
+                    result.push_str(&right);
+                    self.stack.push(Value::String(result));
+                } else {
+                    return Err(CompilationError::ComptimeError(
+                        "Stack underflow or type mismatch for StrConcat".to_string(),
+                    ));
+                }
+            }
+            OpCode::StrIndex => {
+                // Get character at index
+                if let (Some(Value::Int(idx)), Some(Value::String(s))) =
+                    (self.stack.pop(), self.stack.pop()) {
+                    if idx >= 0 && (idx as usize) < s.len() {
+                        let char_at_index = s.chars().nth(idx as usize).unwrap();
+                        self.stack.push(Value::String(char_at_index.to_string()));
+                    } else {
+                        self.stack.push(Value::Nil); // Out of bounds
+                    }
+                } else {
+                    return Err(CompilationError::ComptimeError(
+                        "Stack underflow or type mismatch for StrIndex".to_string(),
+                    ));
                 }
             }
             OpCode::Dup => {
@@ -386,6 +444,12 @@ impl ComptimeExecutor {
                         ))
                     }
                 }
+            }
+            // Float arithmetic operations - not supported in comptime
+            OpCode::FAdd | OpCode::FSub | OpCode::FMul | OpCode::FDiv => {
+                return Err(CompilationError::ComptimeError(
+                    "Float arithmetic not supported in comptime execution".to_string(),
+                ));
             }
             OpCode::Eq => {
                 if self.stack.len() < 2 {

@@ -12,3 +12,4 @@ pub mod make_closure;
 pub mod messaging;
 pub mod ret;
 pub mod stack_ops;
+pub mod string_ops;

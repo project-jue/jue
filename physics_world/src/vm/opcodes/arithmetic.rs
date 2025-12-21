@@ -81,3 +81,60 @@ pub fn handle_mod(vm: &mut VmState) -> Result<(), VmError> {
     }
     Ok(())
 }
+
+/// NEW: Handles Float Add opcode
+pub fn handle_fadd(vm: &mut VmState) -> Result<(), VmError> {
+    let b = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    let a = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+
+    match (a, b) {
+        (Value::Float(x), Value::Float(y)) => {
+            vm.stack.push(Value::Float(x + y));
+        }
+        _ => return Err(VmError::TypeMismatch),
+    }
+    Ok(())
+}
+
+/// NEW: Handles Float Sub opcode
+pub fn handle_fsub(vm: &mut VmState) -> Result<(), VmError> {
+    let b = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    let a = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+
+    match (a, b) {
+        (Value::Float(x), Value::Float(y)) => {
+            vm.stack.push(Value::Float(x - y));
+        }
+        _ => return Err(VmError::TypeMismatch),
+    }
+    Ok(())
+}
+
+/// NEW: Handles Float Mul opcode
+pub fn handle_fmul(vm: &mut VmState) -> Result<(), VmError> {
+    let b = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    let a = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+
+    match (a, b) {
+        (Value::Float(x), Value::Float(y)) => {
+            vm.stack.push(Value::Float(x * y));
+        }
+        _ => return Err(VmError::TypeMismatch),
+    }
+    Ok(())
+}
+
+/// NEW: Handles Float Div opcode
+pub fn handle_fdiv(vm: &mut VmState) -> Result<(), VmError> {
+    let b = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    let a = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+
+    match (a, b) {
+        (Value::Float(_), Value::Float(0.0)) => return Err(VmError::DivisionByZero),
+        (Value::Float(x), Value::Float(y)) => {
+            vm.stack.push(Value::Float(x / y));
+        }
+        _ => return Err(VmError::TypeMismatch),
+    }
+    Ok(())
+}

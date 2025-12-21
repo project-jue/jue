@@ -137,8 +137,10 @@ pub fn create_closure(
             Value::Pair(p) => p.get().to_le_bytes(),
             Value::Closure(p) => p.get().to_le_bytes(),
             Value::Int(n) => (*n as u32).to_le_bytes(),
+            Value::Float(f) => (*f as u32).to_le_bytes(), // Convert float to u32 for storage
             Value::Bool(b) => (*b as u32).to_le_bytes(),
             Value::Nil => 0u32.to_le_bytes(),
+            Value::String(_) => 0u32.to_le_bytes(), // Strings stored in constant pool, not in closure
             Value::Symbol(s) => (*s as u32).to_le_bytes(),
             Value::ActorId(id) => (*id as u32).to_le_bytes(),
             Value::Capability(_) => 0u32.to_le_bytes(), // Placeholder

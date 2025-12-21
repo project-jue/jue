@@ -489,8 +489,8 @@ impl VmState {
                 StackFrame {
                     function_name: format!("frame_{}", i),
                     call_ip: frame.return_ip,
-                    arg_count: frame.locals.len(),         // Track actual argument counts from locals
-                    locals: frame.locals.clone(),         // Capture local variables from call frame
+                    arg_count: frame.locals.len(), // Track actual argument counts from locals
+                    locals: frame.locals.clone(),  // Capture local variables from call frame
                 }
             })
             .collect()
@@ -1197,8 +1197,28 @@ impl VmState {
                 basic::handle_int(self, *i)?;
                 self.ip += 1;
             }
+            OpCode::Float(f) => {
+                basic::handle_float(self, *f)?;
+                self.ip += 1;
+            }
             OpCode::Symbol(sym_idx) => {
                 basic::handle_symbol(self, *sym_idx)?;
+                self.ip += 1;
+            }
+            OpCode::LoadString(string_idx) => {
+                string_ops::handle_load_string(self, *string_idx)?;
+                self.ip += 1;
+            }
+            OpCode::StrLen => {
+                string_ops::handle_str_len(self)?;
+                self.ip += 1;
+            }
+            OpCode::StrConcat => {
+                string_ops::handle_str_concat(self)?;
+                self.ip += 1;
+            }
+            OpCode::StrIndex => {
+                string_ops::handle_str_index(self)?;
                 self.ip += 1;
             }
             OpCode::Dup => {
@@ -1295,6 +1315,22 @@ impl VmState {
             }
             OpCode::Mul => {
                 arithmetic::handle_mul(self)?;
+                self.ip += 1;
+            }
+            OpCode::FAdd => {
+                arithmetic::handle_fadd(self)?;
+                self.ip += 1;
+            }
+            OpCode::FSub => {
+                arithmetic::handle_fsub(self)?;
+                self.ip += 1;
+            }
+            OpCode::FMul => {
+                arithmetic::handle_fmul(self)?;
+                self.ip += 1;
+            }
+            OpCode::FDiv => {
+                arithmetic::handle_fdiv(self)?;
                 self.ip += 1;
             }
             OpCode::Mod => {

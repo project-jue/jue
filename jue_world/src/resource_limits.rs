@@ -91,6 +91,8 @@ impl ResourceLimitEnforcer {
                 Value::Nil => 1,
                 Value::Bool(_) => 1,
                 Value::Int(_) => 8,
+                Value::Float(_) => 8,
+                Value::String(_) => 8, // String storage (pointer + length)
                 Value::Symbol(_) => 4,
                 Value::Pair(_) => 8,
                 Value::Closure(_) => 16,

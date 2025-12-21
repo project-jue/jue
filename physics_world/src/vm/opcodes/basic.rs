@@ -30,3 +30,9 @@ pub fn handle_symbol(vm: &mut VmState, sym_idx: usize) -> Result<(), VmError> {
     vm.stack.push(symbol);
     Ok(())
 }
+
+/// NEW: Handles Float opcode
+pub fn handle_float(vm: &mut VmState, value: f64) -> Result<(), VmError> {
+    vm.stack.push(Value::Float(value));
+    Ok(())
+}
