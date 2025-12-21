@@ -1,7 +1,3 @@
-use crate::compiler::compiler::compile;
-use crate::parser::parse;
-use crate::trust_tier::TrustTier;
-use physics_world::types::{Capability, OpCode};
 
 #[test]
 fn test_simple_ffi_call() {

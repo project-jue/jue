@@ -1,9 +1,3 @@
-use crate::compiler::core_compilation::{
-    compile_ast_to_core_expr, generate_comprehensive_proof, generate_simple_proof,
-};
-use crate::error::SourceLocation;
-use crate::parser::parse;
-use core_world::proof_checker::{verify, Proof};
 
 #[test]
 fn test_simple_lambda_proof_generation() {

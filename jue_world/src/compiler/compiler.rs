@@ -246,7 +246,7 @@ impl EscapeAnalysis {
                 // Analyze body with parameters in scope
                 let mut new_environments = self.variable_environments.clone();
                 new_environments.push(param_vars);
-                let mut temp_analysis = EscapeAnalysis {
+                let temp_analysis = EscapeAnalysis {
                     variable_environments: new_environments,
                     ..Default::default()
                 };
@@ -262,7 +262,7 @@ impl EscapeAnalysis {
                 // Analyze bindings and body with bindings in scope
                 let mut new_environments = self.variable_environments.clone();
                 new_environments.push(binding_vars);
-                let mut temp_analysis = EscapeAnalysis {
+                let temp_analysis = EscapeAnalysis {
                     variable_environments: new_environments,
                     ..Default::default()
                 };

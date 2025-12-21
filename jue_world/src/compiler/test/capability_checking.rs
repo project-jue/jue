@@ -1,7 +1,3 @@
-use crate::compiler::capability_checking::{insert_capability_checks, CapabilityCheck, CheckType};
-use crate::error::SourceLocation;
-use crate::trust_tier::TrustTier;
-use physics_world::types::{Capability, OpCode};
 
 #[test]
 fn test_capability_check_insertion() {

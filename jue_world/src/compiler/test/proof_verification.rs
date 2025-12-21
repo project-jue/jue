@@ -13,13 +13,6 @@ fn test_proof_verification_integration() {
     assert_eq!(right, var(1));
 }
 
-use crate::compiler::core_compilation::{
-    compile_ast_to_core_expr_with_proofs, generate_simple_proof, verify_core_expr_with_proof,
-    verify_proof_against_kernel,
-};
-use crate::parser::parse;
-use core_world::core_expr::{app, lam, var};
-use core_world::proof_checker::{prove_beta, Proof};
 
 #[test]
 fn test_core_expr_with_proof_verification() {
