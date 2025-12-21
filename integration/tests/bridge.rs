@@ -75,7 +75,7 @@ mod tests {
         let constants = vec![Value::Int(42), Value::Bool(true), Value::Nil];
 
         // Create VM state with reasonable limits
-        let vm_state = VmState::new(bytecode, constants, 1000, 1024);
+        let vm_state = VmState::new(bytecode, constants, 1000, 1024, 1, 100);
 
         // Basic sanity check - the VM state should be created successfully
         // Note: We're not testing actual execution here, just construction

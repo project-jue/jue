@@ -1,0 +1,10 @@
+; Level 1 - Basic Functions
+; Simple lambda functions and application
+
+(:formal (lambda (x) x))  ; Identity function
+
+(:formal (lambda (x) (+ x 1)))  ; Increment function
+
+(:formal ((lambda (x) (+ x 1)) 5))  ; Function application
+
+(:formal (lambda (f x) (f x)))  ; Higher-order function

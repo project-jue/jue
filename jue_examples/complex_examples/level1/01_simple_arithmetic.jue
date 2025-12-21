@@ -1,0 +1,10 @@
+; Level 1 - Basic Arithmetic
+; Simple arithmetic operations that should work
+
+(:formal 42)  ; Simple integer literal
+
+(:formal (+ 1 2))  ; Simple addition
+
+(:formal (* 3 4))  ; Simple multiplication
+
+(:formal (- 10 5))  ; Simple subtraction

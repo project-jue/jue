@@ -1,0 +1,16 @@
+; Lambda function example in Jue
+; This demonstrates function abstraction and application
+
+(:formal (lambda (x) x))
+
+(:formal (lambda (x) (+ x 1)))
+
+(:formal ((lambda (x) (+ x 1)) 5))
+
+(:formal (lambda (f x) (f x)))
+
+; This program shows:
+; 1. Lambda abstraction syntax
+; 2. Function application
+; 3. Variable binding and reference
+; 4. Higher-order functions (functions that take functions)

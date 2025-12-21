@@ -183,6 +183,33 @@ impl ComptimeExecutor {
                 let len = self.stack.len();
                 self.stack.swap(len - 1, len - 2);
             }
+            OpCode::GetLocal(offset) => {
+                // GetLocal accesses a local variable at a specific stack offset
+                let position = self.stack.len() - 1 - offset as usize;
+                if position >= self.stack.len() {
+                    return Err(CompilationError::ComptimeError(
+                        "Stack underflow".to_string(),
+                    ));
+                }
+                let value = self.stack[position].clone();
+                self.stack.push(value);
+            }
+            OpCode::SetLocal(offset) => {
+                // SetLocal sets a local variable at a specific stack offset
+                if self.stack.is_empty() {
+                    return Err(CompilationError::ComptimeError(
+                        "Stack underflow".to_string(),
+                    ));
+                }
+                let position = self.stack.len() - 1 - offset as usize;
+                if position >= self.stack.len() {
+                    return Err(CompilationError::ComptimeError(
+                        "Stack underflow".to_string(),
+                    ));
+                }
+                let value = self.stack.pop().unwrap();
+                self.stack[position] = value;
+            }
             OpCode::Cons => {
                 if self.stack.len() < 2 {
                     return Err(CompilationError::ComptimeError(
@@ -225,6 +252,22 @@ impl ComptimeExecutor {
                 self.stack.push(Value::Nil);
 
                 // TODO: Implement proper function call
+            }
+            OpCode::TailCall(arg_count) => {
+                if self.stack.len() < arg_count as usize + 1 {
+                    return Err(CompilationError::ComptimeError(
+                        "Stack underflow".to_string(),
+                    ));
+                }
+
+                // Pop arguments and function
+                let _args: Vec<_> = (0..arg_count).map(|_| self.stack.pop().unwrap()).collect();
+                let _func = self.stack.pop().unwrap();
+
+                // For now, just push a placeholder result
+                self.stack.push(Value::Nil);
+
+                // TODO: Implement proper tail call
             }
             OpCode::Ret => {
                 // TODO: Implement return

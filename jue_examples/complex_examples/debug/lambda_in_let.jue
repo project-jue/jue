@@ -1,0 +1,5 @@
+; Lambda in let binding test
+(:formal
+  (let ((f (lambda (x) (+ x 1))))
+    (f 5))
+)

@@ -1,0 +1,2 @@
+; Simple conditional test without strings
+(:formal (if true 42 0))

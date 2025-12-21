@@ -1,0 +1,12 @@
+; Simple "Hello World" Jue program
+; This demonstrates basic Jue syntax and structure
+
+; For now, we'll use a simple integer as our "hello world"
+; since string handling isn't fully implemented yet
+(:formal 42)
+
+; This represents a simple Jue program that:
+; 1. Has a trust tier annotation (:formal)
+; 2. Contains a literal value (42)
+; 3. Can be parsed by the Jue parser
+; 4. Could be compiled to CoreExpr and Physics bytecode in the future

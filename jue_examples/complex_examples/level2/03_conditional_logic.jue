@@ -1,0 +1,6 @@
+; Level 2 - Conditional Logic
+; Simple conditional expressions
+
+(:formal (if true 42 0))  ; Simple if expression
+
+(:formal (if (> 10 5) "greater" "less"))  ; Conditional with comparison

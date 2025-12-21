@@ -1,0 +1,14 @@
+; Basic arithmetic operations in Jue
+; This demonstrates arithmetic capabilities
+
+(:formal (+ 1 2))
+
+(:formal (+ (* 3 4) (- 10 5)))
+
+(:formal (/ 15 4))
+
+; This program shows:
+; 1. Multiple expressions in a single trust tier block
+; 2. Basic arithmetic operations (+, -, *, /)
+; 3. Nested function calls
+; 4. Literal numbers

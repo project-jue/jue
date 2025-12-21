@@ -1,0 +1,2 @@
+; Simple function test
+(:formal (lambda (x) x))

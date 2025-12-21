@@ -1,0 +1,6 @@
+; Level 2 - Let Bindings
+; Simple variable bindings
+
+(:formal (let ((x 5)) x))  ; Simple let binding
+
+(:formal (let ((x 5) (y 10)) (+ x y)))  ; Multiple bindings

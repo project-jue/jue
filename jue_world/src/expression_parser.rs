@@ -99,6 +99,7 @@ impl<'a> ExpressionParser<'a> {
             Some(Token::Symbol(s)) if s == "has-capability?" => self.parse_has_capability(),
             Some(Token::Symbol(s)) if s == "defmacro" => self.parse_macro_definition(),
             Some(Token::Symbol(s)) if s == "comptime-eval" => self.parse_comptime_eval(),
+            Some(Token::Symbol(s)) if s == "ffi-call" => self.parse_ffi_call(),
             Some(Token::OpenParen) => self.parse_function_call_with_expression(),
             _ => self.parse_function_call_with_symbol(),
         }
@@ -439,6 +440,45 @@ impl<'a> ExpressionParser<'a> {
         Ok(expression)
     }
 
+    fn parse_ffi_call(&mut self) -> Result<AstNode, CompilationError> {
+        self.advance(); // Skip 'ffi-call'
+
+        // Parse function name
+        let function = match self.current_token() {
+            Some(Token::Symbol(s)) => s.clone(),
+            Some(Token::QuotedSymbol(s)) => s.clone(),
+            _ => {
+                return Err(CompilationError::ParseError {
+                    message: "Expected FFI function name".to_string(),
+                    location: SourceLocation::default(),
+                })
+            }
+        };
+
+        self.advance();
+
+        // Parse arguments
+        let mut arguments = Vec::new();
+        while !self.is_at_end() {
+            match self.current_token() {
+                Some(Token::CloseParen) => {
+                    self.advance();
+                    break;
+                }
+                _ => {
+                    let arg = self.parse()?;
+                    arguments.push(arg);
+                }
+            }
+        }
+
+        Ok(AstNode::FfiCall {
+            function,
+            arguments,
+            location: SourceLocation::default(),
+        })
+    }
+
     fn parse_function_call_with_symbol(&mut self) -> Result<AstNode, CompilationError> {
         // Parse function name as a symbol
         let function_name = match self.current_token() {
@@ -458,11 +498,23 @@ impl<'a> ExpressionParser<'a> {
             match self.current_token() {
                 Some(Token::CloseParen) => {
                     self.advance();
-                    return Ok(AstNode::Call {
-                        function: Box::new(AstNode::Symbol(function_name)),
-                        arguments,
-                        location: SourceLocation::default(),
-                    });
+
+                    // FIXED: Check if this is a variable (alphanumeric) or symbol (operator)
+                    // If it's alphanumeric, treat it as a variable reference
+                    if function_name.chars().all(|c| c.is_alphanumeric()) {
+                        return Ok(AstNode::Call {
+                            function: Box::new(AstNode::Variable(function_name)),
+                            arguments,
+                            location: SourceLocation::default(),
+                        });
+                    } else {
+                        // Otherwise, treat it as a symbol (built-in operator)
+                        return Ok(AstNode::Call {
+                            function: Box::new(AstNode::Symbol(function_name)),
+                            arguments,
+                            location: SourceLocation::default(),
+                        });
+                    }
                 }
                 _ => {
                     let arg = self.parse()?;

@@ -28,6 +28,11 @@ pub fn core_expr_from_value(value: &Value) -> CoreExpr {
             // In a full implementation, this would need proper capability handling
             CoreExpr::Nat(44) // Placeholder for capability representation
         }
+        Value::GcPtr(_) => {
+            // For GC pointers, we'll create a placeholder representation
+            // In a full implementation, this would need proper GC pointer handling
+            CoreExpr::Nat(45) // Placeholder for GC pointer representation
+        }
     }
 }
 

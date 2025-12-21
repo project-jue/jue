@@ -1,0 +1,35 @@
+; Complex nested expression example in Jue
+; This demonstrates more advanced Jue features
+
+(:formal
+  ; Conditional expression
+  (if (> 10 5)
+      "greater"
+      "less")
+
+  ; Let binding with multiple variables
+  (let ((x 5)
+        (y 10))
+    (+ x y))
+
+  ; Nested let expressions
+  (let ((a 1))
+    (let ((b 2))
+      (+ a b)))
+
+  ; Function composition
+  ((lambda (f g x) (f (g x)))
+   (lambda (x) (+ x 1))
+   (lambda (x) (* x 2))
+   5)
+
+  ; List operations (conceptual - not fully implemented)
+  (cons 1 (cons 2 nil))
+)
+
+; This program shows:
+; 1. Conditional expressions
+; 2. Let bindings with multiple variables
+; 3. Nested scoping
+; 4. Function composition
+; 5. List construction (conceptual)

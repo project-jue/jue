@@ -212,3 +212,205 @@ fn test_capability_not_allowed_in_tier() {
         _ => panic!("Expected CapabilityError"),
     }
 }
+
+/// FFI Call Tests
+#[test]
+fn test_ffi_call_compilation_success() {
+    let mut compiler = PhysicsWorldCompiler::new(TrustTier::Empirical);
+
+    let ffi_call = AstNode::FfiCall {
+        function: "read-sensor".to_string(),
+        arguments: vec![],
+        location: SourceLocation::default(),
+    };
+
+    let result = compiler.compile_to_physics(&ffi_call);
+
+    assert!(result.is_ok());
+    let bytecode = result.unwrap();
+
+    // Should have: capability check, conditional jump, host call, error handling
+    assert!(bytecode.len() >= 5);
+
+    // Check that we have the expected opcodes
+    let has_cap_found = bytecode.iter().any(|op| matches!(op, OpCode::HasCap(_)));
+    let jmp_if_false_found = bytecode
+        .iter()
+        .any(|op| matches!(op, OpCode::JmpIfFalse(_)));
+    let host_call_found = bytecode
+        .iter()
+        .any(|op| matches!(op, OpCode::HostCall { .. }));
+
+    assert!(has_cap_found, "Expected HasCap opcode in FFI call bytecode");
+    assert!(
+        jmp_if_false_found,
+        "Expected JmpIfFalse opcode in FFI call bytecode"
+    );
+    assert!(
+        host_call_found,
+        "Expected HostCall opcode in FFI call bytecode"
+    );
+}
+
+#[test]
+fn test_ffi_call_with_arguments() {
+    let mut compiler = PhysicsWorldCompiler::new(TrustTier::Empirical);
+
+    let ffi_call = AstNode::FfiCall {
+        function: "write-actuator".to_string(),
+        arguments: vec![AstNode::Literal(Literal::Int(42))],
+        location: SourceLocation::default(),
+    };
+
+    let result = compiler.compile_to_physics(&ffi_call);
+
+    assert!(result.is_ok());
+    let bytecode = result.unwrap();
+
+    // Should have: argument, capability check, conditional jump, host call, error handling
+    assert!(bytecode.len() >= 6);
+
+    // Check that the argument is compiled first
+    assert!(matches!(bytecode[0], OpCode::Int(42)));
+}
+
+#[test]
+fn test_ffi_call_capability_validation() {
+    let mut compiler = PhysicsWorldCompiler::new(TrustTier::Formal);
+
+    let ffi_call = AstNode::FfiCall {
+        function: "read-sensor".to_string(),
+        arguments: vec![],
+        location: SourceLocation::default(),
+    };
+
+    let result = compiler.compile_to_physics(&ffi_call);
+
+    // Formal tier should not allow FFI calls
+    assert!(result.is_err());
+    match result {
+        Err(CompilationError::CapabilityError(_)) => assert!(true),
+        _ => panic!("Expected CapabilityError for FFI call in Formal tier"),
+    }
+}
+
+#[test]
+fn test_ffi_call_unknown_function() {
+    let mut compiler = PhysicsWorldCompiler::new(TrustTier::Empirical);
+
+    let ffi_call = AstNode::FfiCall {
+        function: "unknown-ffi-function".to_string(),
+        arguments: vec![],
+        location: SourceLocation::default(),
+    };
+
+    let result = compiler.compile_to_physics(&ffi_call);
+
+    // Unknown FFI function should fail
+    assert!(result.is_err());
+    match result {
+        Err(CompilationError::FfiError(_)) => assert!(true),
+        _ => panic!("Expected FfiError for unknown FFI function"),
+    }
+}
+
+#[test]
+fn test_ffi_call_system_function_not_allowed() {
+    let mut compiler = PhysicsWorldCompiler::new(TrustTier::Empirical);
+
+    let ffi_call = AstNode::FfiCall {
+        function: "get-wall-clock".to_string(), // Requires SysClock capability
+        arguments: vec![],
+        location: SourceLocation::default(),
+    };
+
+    let result = compiler.compile_to_physics(&ffi_call);
+
+    // Empirical tier doesn't grant SysClock capability
+    assert!(result.is_err());
+    match result {
+        Err(CompilationError::CapabilityError(_)) => assert!(true),
+        _ => panic!("Expected CapabilityError for system FFI call in Empirical tier"),
+    }
+}
+
+#[test]
+fn test_ffi_call_experimental_tier_allowed() {
+    let mut compiler = PhysicsWorldCompiler::new(TrustTier::Experimental);
+
+    let ffi_call = AstNode::FfiCall {
+        function: "get-wall-clock".to_string(), // Requires SysClock capability
+        arguments: vec![],
+        location: SourceLocation::default(),
+    };
+
+    let result = compiler.compile_to_physics(&ffi_call);
+
+    // Experimental tier should allow this
+    assert!(result.is_ok());
+    let bytecode = result.unwrap();
+    assert!(bytecode.len() >= 5);
+}
+
+#[test]
+fn test_ffi_call_capability_index_management() {
+    let mut compiler = PhysicsWorldCompiler::new(TrustTier::Empirical);
+
+    // First FFI call should create capability index
+    let ffi_call1 = AstNode::FfiCall {
+        function: "read-sensor".to_string(),
+        arguments: vec![],
+        location: SourceLocation::default(),
+    };
+
+    let result1 = compiler.compile_to_physics(&ffi_call1);
+    assert!(result1.is_ok());
+
+    // Second FFI call with same function should reuse capability index
+    let ffi_call2 = AstNode::FfiCall {
+        function: "read-sensor".to_string(), // Same function, same capability
+        arguments: vec![],
+        location: SourceLocation::default(),
+    };
+
+    let result2 = compiler.compile_to_physics(&ffi_call2);
+    assert!(result2.is_ok());
+
+    // Check that capability indices are managed correctly
+    // Both calls use IoReadSensor, so only 1 capability index should be created
+    assert_eq!(compiler.capability_indices.len(), 1);
+}
+
+#[test]
+fn test_ffi_call_host_call_opcode_details() {
+    let mut compiler = PhysicsWorldCompiler::new(TrustTier::Empirical);
+
+    let ffi_call = AstNode::FfiCall {
+        function: "read-sensor".to_string(),
+        arguments: vec![],
+        location: SourceLocation::default(),
+    };
+
+    let result = compiler.compile_to_physics(&ffi_call);
+    assert!(result.is_ok());
+    let bytecode = result.unwrap();
+
+    // Find the HostCall opcode
+    let host_call_op = bytecode
+        .iter()
+        .find(|op| matches!(op, OpCode::HostCall { .. }));
+    assert!(host_call_op.is_some());
+
+    if let OpCode::HostCall {
+        cap_idx,
+        func_id,
+        args,
+    } = host_call_op.unwrap()
+    {
+        assert_eq!(*cap_idx, 0); // First capability index
+        assert_eq!(*func_id, 0); // ReadSensor function ID
+        assert_eq!(*args, 0); // No arguments
+    } else {
+        panic!("Expected HostCall opcode");
+    }
+}

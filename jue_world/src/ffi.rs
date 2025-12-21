@@ -117,6 +117,10 @@ impl FfiCallGenerator {
                     // TODO: Handle capability values
                     bytecode.push(physics_world::OpCode::Nil);
                 }
+                physics_world::Value::GcPtr(_ptr) => {
+                    // TODO: Handle GC pointer values
+                    bytecode.push(physics_world::OpCode::Nil);
+                }
             }
         }
 

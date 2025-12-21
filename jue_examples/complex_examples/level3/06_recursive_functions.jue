@@ -1,0 +1,11 @@
+; Level 3 - Recursive Functions
+; Simple recursive function examples
+
+; Factorial function (conceptual - recursion may not be fully supported)
+(:formal
+  (let ((fact (lambda (n)
+                (if (<= n 1)
+                    1
+                    (* n (fact (- n 1)))))))
+    (fact 5))
+)

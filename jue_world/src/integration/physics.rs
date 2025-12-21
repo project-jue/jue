@@ -1,6 +1,7 @@
 /// Physics-World integration for Jue-World V2.0
 use crate::ast::AstNode;
 use crate::error::{CompilationError, SourceLocation};
+use crate::ffi::{create_standard_ffi_registry, FfiCallGenerator};
 use crate::trust_tier::TrustTier;
 use physics_world::types::{Capability, OpCode};
 
@@ -14,6 +15,9 @@ pub struct PhysicsWorldCompiler {
 
     /// Capability index mapping
     pub capability_indices: Vec<Capability>,
+
+    /// FFI registry for function lookup
+    pub ffi_registry: FfiCallGenerator,
 }
 
 impl PhysicsWorldCompiler {
@@ -23,6 +27,10 @@ impl PhysicsWorldCompiler {
             tier,
             location: SourceLocation::default(),
             capability_indices: Vec::new(),
+            ffi_registry: FfiCallGenerator {
+                registry: create_standard_ffi_registry(),
+                location: SourceLocation::default(),
+            },
         }
     }
 
@@ -54,6 +62,11 @@ impl PhysicsWorldCompiler {
                 self.compile_require_capability(capability)
             }
             AstNode::HasCapability { capability, .. } => self.compile_has_capability(capability),
+            AstNode::FfiCall {
+                function,
+                arguments,
+                location,
+            } => self.compile_ffi_call(function, arguments, location),
             // Handle other AST nodes...
             _ => Err(CompilationError::InternalError(format!(
                 "Unsupported AST node for Physics-World compilation: {:?}",
@@ -204,6 +217,88 @@ impl PhysicsWorldCompiler {
 
         // Generate HasCap opcode
         Ok(vec![OpCode::HasCap(cap_index)])
+    }
+
+    /// Compile FFI call to bytecode
+    fn compile_ffi_call(
+        &mut self,
+        function_name: &str,
+        arguments: &[AstNode],
+        location: &SourceLocation,
+    ) -> Result<Vec<OpCode>, CompilationError> {
+        // First, validate the FFI call against the trust tier
+        let required_capability = self.get_ffi_capability(function_name)?;
+
+        // Check if this tier allows the capability
+        if !self.tier.allows_capability(&required_capability) {
+            return Err(CompilationError::CapabilityError(
+                crate::error::CapabilityViolation {
+                    required: required_capability.clone(),
+                    tier: self.tier,
+                    location: location.clone(),
+                    suggestion: format!(
+                        "FFI call to {} requires capability {:?} not granted for trust tier {:?}",
+                        function_name, required_capability, self.tier
+                    ),
+                },
+            ));
+        }
+
+        // Compile arguments first
+        let mut bytecode = Vec::new();
+        for arg in arguments.iter().rev() {
+            let arg_bytecode = self.compile_to_physics(arg)?;
+            bytecode.extend(arg_bytecode);
+        }
+
+        // Get capability index for the required capability
+        let cap_index = self.get_capability_index(&required_capability);
+
+        // Generate capability check
+        bytecode.push(OpCode::HasCap(cap_index));
+        bytecode.push(OpCode::JmpIfFalse(2)); // Jump over the call if capability not available
+
+        // Generate the HostCall opcode
+        let host_function = self.get_ffi_host_function(function_name)?;
+        let opcode = OpCode::HostCall {
+            cap_idx: cap_index, // This is already usize
+            func_id: host_function as u16,
+            args: arguments.len() as u8,
+        };
+        bytecode.push(opcode);
+
+        // Add error handling (placeholder for now)
+        bytecode.push(OpCode::Symbol(0)); // Error symbol
+        bytecode.push(OpCode::Jmp(1)); // Jump to error handler
+
+        Ok(bytecode)
+    }
+
+    /// Get capability required for an FFI function
+    fn get_ffi_capability(&self, function_name: &str) -> Result<Capability, CompilationError> {
+        // Use the capability FFI generator to get the required capability
+        use crate::capability_ffi::CapabilityMediatedFfiGenerator;
+
+        let generator = CapabilityMediatedFfiGenerator::new(self.tier);
+        generator
+            .get_required_capability(function_name)
+            .ok_or_else(|| {
+                CompilationError::FfiError(format!("FFI function {} not found", function_name))
+            })
+    }
+
+    /// Get host function for an FFI function
+    fn get_ffi_host_function(
+        &self,
+        function_name: &str,
+    ) -> Result<physics_world::types::HostFunction, CompilationError> {
+        // Use the capability FFI generator to get the host function
+        use crate::capability_ffi::CapabilityMediatedFfiGenerator;
+
+        let generator = CapabilityMediatedFfiGenerator::new(self.tier);
+        generator.get_host_function(function_name).ok_or_else(|| {
+            CompilationError::FfiError(format!("FFI function {} not found", function_name))
+        })
     }
 
     /// Insert runtime capability checks for empirical tier

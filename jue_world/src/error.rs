@@ -99,7 +99,7 @@ impl fmt::Display for ParserError {
 }
 
 /// Compilation error enum
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum CompilationError {
     /// Parse error with message and location
     #[error("Parse error at {location:?}: {message}")]

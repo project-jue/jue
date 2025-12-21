@@ -1,0 +1,53 @@
+; Comprehensive recursion test suite
+; This file tests various recursion patterns to ensure the compiler handles them correctly
+
+; Test 1: Simple recursive factorial
+(:formal
+  (let ((fact (lambda (n)
+                (if (<= n 1)
+                    1
+                    (* n (fact (- n 1)))))))
+    (fact 5))
+)
+
+; Test 2: Mutual recursion (more complex)
+(:formal
+  (let ((is-even? (lambda (n)
+                    (if (= n 0)
+                        true
+                        (is-odd? (- n 1)))))
+        (is-odd? (lambda (n)
+                   (if (= n 0)
+                       false
+                       (is-even? (- n 1))))))
+    (is-even? 4))
+)
+
+; Test 3: Recursive lambda with multiple parameters
+(:formal
+  (let ((fib (lambda (a b n)
+               (if (= n 0)
+                   a
+                   (fib b (+ a b) (- n 1))))))
+    (fib 0 1 10))
+)
+
+; Test 4: Nested recursive functions
+(:formal
+  (let ((outer (lambda (x)
+                 (let ((inner (lambda (y)
+                               (if (= y 0)
+                                   x
+                                   (inner (- y 1))))))
+                   (inner x)))))
+    (outer 5))
+)
+
+; Test 5: Recursive function with complex condition
+(:formal
+  (let ((countdown (lambda (n)
+                     (if (or (= n 0) (< n 0))
+                         "Done!"
+                         (countdown (- n 1))))))
+    (countdown 3))
+)

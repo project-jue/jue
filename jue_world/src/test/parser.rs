@@ -346,4 +346,132 @@ mod tests {
             _ => panic!("Expected Call node"),
         }
     }
+
+    #[test]
+    fn test_ffi_call_parsing() {
+        let result = parse_with_timeout("(ffi-call 'some-function)");
+        assert!(result.is_ok());
+
+        match result.unwrap() {
+            AstNode::FfiCall {
+                function,
+                arguments,
+                ..
+            } => {
+                assert_eq!(function, "some-function");
+                assert_eq!(arguments.len(), 0);
+            }
+            _ => panic!("Expected FfiCall node"),
+        }
+    }
+
+    #[test]
+    fn test_ffi_call_with_arguments() {
+        let result = parse_with_timeout("(ffi-call 'some-function 42 \"hello\" true)");
+        assert!(result.is_ok());
+
+        match result.unwrap() {
+            AstNode::FfiCall {
+                function,
+                arguments,
+                ..
+            } => {
+                assert_eq!(function, "some-function");
+                assert_eq!(arguments.len(), 3);
+                assert!(matches!(&arguments[0], AstNode::Literal(Literal::Int(42))));
+                assert!(
+                    matches!(&arguments[1], AstNode::Literal(Literal::String(s)) if s == "hello")
+                );
+                assert!(matches!(
+                    &arguments[2],
+                    AstNode::Literal(Literal::Bool(true))
+                ));
+            }
+            _ => panic!("Expected FfiCall node"),
+        }
+    }
+
+    #[test]
+    fn test_ffi_call_with_complex_arguments() {
+        let result = parse_with_timeout("(ffi-call 'complex-call (+ 1 2) (lambda (x) x))");
+        assert!(result.is_ok());
+
+        match result.unwrap() {
+            AstNode::FfiCall {
+                function,
+                arguments,
+                ..
+            } => {
+                assert_eq!(function, "complex-call");
+                assert_eq!(arguments.len(), 2);
+
+                // First argument should be a call
+                match &arguments[0] {
+                    AstNode::Call { function, .. } => {
+                        // Just check that it's a call node, don't try to match the function
+                        assert!(true);
+                    }
+                    _ => panic!("Expected Call node as first argument"),
+                }
+
+                // Second argument should be a lambda
+                match &arguments[1] {
+                    AstNode::Lambda { parameters, .. } => {
+                        assert_eq!(parameters.len(), 1);
+                        assert_eq!(parameters[0], "x");
+                    }
+                    _ => panic!("Expected Lambda node as second argument"),
+                }
+            }
+            _ => panic!("Expected FfiCall node"),
+        }
+    }
+
+    #[test]
+    fn test_ffi_call_display_formatting() {
+        let result = parse_with_timeout("(ffi-call 'test-func 1 2)");
+        assert!(result.is_ok());
+
+        let ast = result.unwrap();
+        let display = format!("{}", ast);
+        assert!(display.contains("ffi-call"));
+        assert!(display.contains("test-func"));
+        assert!(display.contains("1"));
+        assert!(display.contains("2"));
+    }
+
+    #[test]
+    fn test_parse_failing_case() {
+        let jue_code = "
+            (:empirical
+                (require-capability 'io-read-sensor)
+                (let ((sensor-val (read-sensor)))
+                    (if (> sensor-val 50)
+                        \"high\"
+                        \"low\")))
+        ";
+
+        let result = parse(jue_code);
+        println!("Parse result: {:?}", result);
+
+        if let Ok(ast) = result {
+            println!("AST: {}", ast);
+        }
+    }
+
+    #[test]
+    fn test_parse_ffi_case() {
+        let jue_code = "
+            (:experimental
+                (require-capability 'macro-unsafe)
+                (ffi-call 'some-function))
+        ";
+
+        let result = parse(jue_code);
+        println!("FFI Parse result: {:?}", result);
+
+        if let Ok(ast) = result {
+            println!("FFI AST: {}", ast);
+        }
+    }
 }

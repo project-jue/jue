@@ -1,0 +1,14 @@
+; Level 3 - Function Composition
+; Higher-order functions and composition
+
+(:formal
+  (lambda (f g x)
+    (f (g x)))
+)
+
+(:formal
+  ((lambda (f g x) (f (g x)))
+   (lambda (x) (+ x 1))
+   (lambda (x) (* x 2))
+   5)
+)
