@@ -7,16 +7,16 @@ fn test_basic_closure_no_capture() {
     let source = r#"
     (lambda (x) x)
     "#;
-    
+
     // Simple compilation test - just check it doesn't crash
     let program = vec![
-        OpCode::MakeClosure(0, 1), // code_idx=0, param_count=1
+        OpCode::MakeClosure(0, 0), // code_idx=0, capture_count=0 (no environment capture)
     ];
     let constants = vec![Value::Int(0)];
-    
+
     let mut vm = VmState::new(program, constants, 100, 1024, 1, 100);
     let result = vm.run();
-    
+
     // Should create a closure without errors
     assert!(result.is_ok());
 }
@@ -31,10 +31,10 @@ fn test_closure_capture_analysis() {
         OpCode::MakeClosure(1, 1), // Create closure with 1 capture
     ];
     let constants = vec![Value::Int(0), Value::Int(0)];
-    
+
     let mut vm = VmState::new(program, constants, 100, 1024, 1, 100);
     let result = vm.run();
-    
+
     // Should execute without errors
     assert!(result.is_ok());
 }
@@ -49,10 +49,10 @@ fn test_multiple_captures() {
         OpCode::MakeClosure(0, 3), // Create closure with 3 captures
     ];
     let constants = vec![Value::Int(0)];
-    
+
     let mut vm = VmState::new(program, constants, 100, 1024, 1, 100);
     let result = vm.run();
-    
+
     // Should handle multiple captures correctly
     assert!(result.is_ok());
 }
@@ -67,10 +67,10 @@ fn test_nested_closures() {
         OpCode::MakeClosure(0, 1), // Inner closure
     ];
     let constants = vec![Value::Int(0), Value::Int(0)];
-    
+
     let mut vm = VmState::new(program, constants, 100, 1024, 1, 100);
     let result = vm.run();
-    
+
     // Should create nested closures correctly
     assert!(result.is_ok());
 }
@@ -82,10 +82,10 @@ fn test_closure_no_captures() {
         OpCode::MakeClosure(0, 0), // No captures, no parameters
     ];
     let constants = vec![Value::Int(0)];
-    
+
     let mut vm = VmState::new(program, constants, 100, 1024, 1, 100);
     let result = vm.run();
-    
+
     // Should work with no captures
     assert!(result.is_ok());
 }
@@ -95,37 +95,51 @@ fn test_closure_no_captures() {
 fn test_capture_count_tracking() {
     // Verify that different capture counts work
     for capture_count in 0..5 {
-        let program = vec![
-            OpCode::MakeClosure(0, capture_count),
-        ];
+        let program = vec![OpCode::MakeClosure(0, capture_count)];
         let constants = vec![Value::Int(0)];
-        
+
         // Add dummy values for captures
         let mut program_with_captures = program.clone();
         for _ in 0..capture_count {
             program_with_captures.insert(0, OpCode::Int(0));
         }
-        
+
         let mut vm = VmState::new(program_with_captures, constants, 100, 1024, 1, 100);
         let result = vm.run();
-        
-        assert!(result.is_ok(), "Failed with capture count {}", capture_count);
+
+        assert!(
+            result.is_ok(),
+            "Failed with capture count {}",
+            capture_count
+        );
     }
 }
 
-/// Test closure creation with parameters
+/// Test closure creation with environment capture (not parameter count)
 #[test]
-fn test_closure_with_parameters() {
-    for param_count in 1..4 {
-        let program = vec![
-            OpCode::MakeClosure(0, param_count),
-        ];
+fn test_closure_with_captures() {
+    for capture_count in 1..4 {
+        // Build program: push capture_count values, then create closure
+        let mut program = Vec::new();
+
+        // Push values to capture
+        for _ in 0..capture_count {
+            program.push(OpCode::Int(42));
+        }
+
+        // Create closure with the specified capture count
+        program.push(OpCode::MakeClosure(0, capture_count));
+
         let constants = vec![Value::Int(0)];
-        
+
         let mut vm = VmState::new(program, constants, 100, 1024, 1, 100);
         let result = vm.run();
-        
-        assert!(result.is_ok(), "Failed with param count {}", param_count);
+
+        assert!(
+            result.is_ok(),
+            "Failed with capture count {}",
+            capture_count
+        );
     }
 }
 
@@ -137,10 +151,10 @@ fn test_capture_error_handling() {
         OpCode::MakeClosure(0, 5), // Try to capture 5, but only 1 value on stack
     ];
     let constants = vec![Value::Int(0)];
-    
+
     let mut vm = VmState::new(program, constants, 100, 1024, 1, 100);
     let result = vm.run();
-    
+
     // Should handle error gracefully
     assert!(result.is_err());
 }
@@ -150,15 +164,12 @@ fn test_capture_error_handling() {
 fn test_make_closure_generation() {
     // This would test the actual compilation from Jue source
     // For now, just verify the instruction exists and works
-    let program = vec![
-        OpCode::Int(42),
-        OpCode::MakeClosure(0, 1),
-    ];
+    let program = vec![OpCode::Int(42), OpCode::MakeClosure(0, 1)];
     let constants = vec![Value::Int(0)];
-    
+
     let mut vm = VmState::new(program, constants, 100, 1024, 1, 100);
     let result = vm.run();
-    
+
     assert!(result.is_ok());
 }
 
@@ -171,10 +182,10 @@ fn test_closure_execution() {
         OpCode::MakeClosure(0, 1), // Closure with 1 capture, 1 param
     ];
     let constants = vec![Value::Int(0)];
-    
+
     let mut vm = VmState::new(program, constants, 100, 1024, 1, 100);
     let result = vm.run();
-    
+
     // Should create closure that can be executed
     assert!(result.is_ok());
 }

@@ -8,7 +8,9 @@ use std::collections::HashMap;
 /// Capability index mapping for dynamic resolution
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CapabilityIndex {
+    /// The capability being indexed
     pub capability: Capability,
+    /// The index position for this capability
     pub index: usize,
 }
 

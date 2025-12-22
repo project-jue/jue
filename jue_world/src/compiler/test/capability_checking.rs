@@ -1,12 +1,14 @@
-use crate::error::SourceLocation;
+use crate::ast::AstNode;
+use crate::compiler::capability_analysis::{analyze_capabilities, get_ffi_function_capability, validate_ffi_call};
 use crate::compiler::capability_checking::{insert_capability_checks, CheckType};
-use crate::TrustTier;
+use crate::error::SourceLocation;
+use crate::trust_tier::TrustTier;
 use physics_world::types::{Capability, OpCode};
 
 #[test]
 fn test_capability_check_insertion() {
     // Create a simple AST node that requires capability checks
-    let ast = crate::ast::AstNode::RequireCapability {
+    let ast = AstNode::RequireCapability {
         capability: "io-read-sensor".to_string(),
         location: SourceLocation::default(),
     };

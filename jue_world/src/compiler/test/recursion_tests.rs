@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::compiler::{compile, CompilationResult};
-    use crate::error::CompilationError;
-    use crate::TrustTier;
+    use crate::compiler::compile;
+    use crate::trust_tier::TrustTier;
     use physics_world::types::OpCode;
 
     #[test]

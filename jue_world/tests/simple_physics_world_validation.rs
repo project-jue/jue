@@ -53,7 +53,7 @@ fn test_physics_world_todo_features_implemented() {
     // Test 5: Sandbox wrapper generation
     let ast = AstNode::Literal(Literal::Int(1));
     // Use compile_to_physics_world which applies tier-specific processing
-    let bytecode =
+    let (bytecode, _) =
         jue_world::integration::physics::compile_to_physics_world(&ast, TrustTier::Experimental)
             .unwrap();
 

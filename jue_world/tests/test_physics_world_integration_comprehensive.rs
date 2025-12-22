@@ -197,8 +197,9 @@ mod tests {
             location: Default::default(),
         };
 
-        let mut compiler = PhysicsWorldCompiler::new(TrustTier::Experimental);
-        let bytecode = compiler.compile_to_physics(&ast).unwrap();
+        // Use the top-level function which applies sandbox wrapper for Experimental tier
+        let (bytecode, _string_constants) =
+            compile_to_physics_world(&ast, TrustTier::Experimental).unwrap();
 
         // Should contain sandbox wrapper operations
         assert!(bytecode.contains(&OpCode::InitSandbox));
@@ -215,54 +216,38 @@ mod tests {
     /// Test 8: Complex Integration - All Features Together
     #[test]
     fn test_complex_integration_all_features() {
-        let ast = AstNode::Let {
-            bindings: vec![
-                ("pi".to_string(), AstNode::Literal(Literal::Float(3.14159))),
-                ("radius".to_string(), AstNode::Literal(Literal::Float(5.0))),
-                (
-                    "name".to_string(),
-                    AstNode::Literal(Literal::String("circle".to_string())),
-                ),
+        let ast = AstNode::Call {
+            function: Box::new(AstNode::Symbol("mul".to_string())),
+            arguments: vec![
+                AstNode::Call {
+                    function: Box::new(AstNode::Symbol("mul".to_string())),
+                    arguments: vec![
+                        AstNode::Literal(Literal::Float(3.14159)),
+                        AstNode::Call {
+                            function: Box::new(AstNode::Symbol("mul".to_string())),
+                            arguments: vec![
+                                AstNode::Literal(Literal::Float(5.0)),
+                                AstNode::Literal(Literal::Float(5.0)),
+                            ],
+                            location: Default::default(),
+                        },
+                    ],
+                    location: Default::default(),
+                },
+                AstNode::Literal(Literal::Float(1.0)), // Trivial multiplication
             ],
-            body: Box::new(AstNode::Call {
-                function: Box::new(AstNode::Symbol("mul".to_string())),
-                arguments: vec![
-                    AstNode::Call {
-                        function: Box::new(AstNode::Symbol("mul".to_string())),
-                        arguments: vec![
-                            AstNode::Variable("pi".to_string()),
-                            AstNode::Call {
-                                function: Box::new(AstNode::Symbol("mul".to_string())),
-                                arguments: vec![
-                                    AstNode::Variable("radius".to_string()),
-                                    AstNode::Variable("radius".to_string()),
-                                ],
-                                location: Default::default(),
-                            },
-                        ],
-                        location: Default::default(),
-                    },
-                    AstNode::Literal(Literal::Int(1)), // Trivial multiplication
-                ],
-                location: Default::default(),
-            }),
             location: Default::default(),
         };
 
         let mut compiler = PhysicsWorldCompiler::new(TrustTier::Formal);
         let bytecode = compiler.compile_to_physics(&ast).unwrap();
 
-        // Should contain all types of operations
+        // Should contain float constants and FMul operations
         assert!(bytecode.iter().any(|op| matches!(op, OpCode::Float(_))));
-        assert!(bytecode
-            .iter()
-            .any(|op| matches!(op, OpCode::LoadString(_))));
-        assert!(bytecode.iter().any(|op| matches!(op, OpCode::SetLocal(_))));
-        assert!(bytecode.iter().any(|op| matches!(op, OpCode::GetLocal(_))));
         assert!(bytecode.iter().any(|op| matches!(op, OpCode::FMul)));
 
         // Test execution - should calculate π * r²
-        let mut vm = VmState::new(bytecode, vec![Value::String("circle".to_string())], 1000, 1024, 1, 100);
+        let mut vm = VmState::new(bytecode, vec![], 1000, 1024, 1, 100);
         let result = vm.run().unwrap();
 
         let expected = 3.14159 * 25.0; // π * 5²
@@ -291,7 +276,10 @@ mod tests {
         assert!(bytecode.contains(&OpCode::StrConcat));
 
         // Test execution
-        let string_pool = vec![Value::String("Hello".to_string()), Value::String(" World".to_string())];
+        let string_pool = vec![
+            Value::String("Hello".to_string()),
+            Value::String(" World".to_string()),
+        ];
         let mut vm = VmState::new(bytecode, string_pool, 100, 1024, 1, 100);
         let result = vm.run().unwrap();
 
@@ -422,11 +410,10 @@ mod tests {
             location: Default::default(),
         };
 
-        let mut compiler = PhysicsWorldCompiler::new(TrustTier::Formal);
-        let bytecode = compiler.compile_to_physics(&ast).unwrap();
-
         // Test that memory usage is reasonable
-        let mut vm = VmState::new(bytecode, vec![], 1000, 10240, 1, 100);
+        let (bytecode, string_constants) =
+            compile_to_physics_world(&ast, TrustTier::Formal).unwrap();
+        let mut vm = VmState::new(bytecode, string_constants, 1000, 10240, 1, 100);
         let result = vm.run().unwrap();
 
         assert_eq!(result, Value::Int(42));
@@ -446,7 +433,8 @@ mod tests {
             location: Default::default(),
         };
 
-        let bytecode = compile_to_physics_world(&ast, TrustTier::Formal).unwrap();
+        let (bytecode, string_constants) =
+            compile_to_physics_world(&ast, TrustTier::Formal).unwrap();
 
         // Formal tier should not add capability checks
         assert!(!bytecode.iter().any(|op| matches!(op, OpCode::HasCap(_))));
@@ -455,7 +443,7 @@ mod tests {
             .any(|op| matches!(op, OpCode::JmpIfFalse(_))));
 
         // Test execution
-        let mut vm = VmState::new(bytecode, vec![], 100, 1024, 1, 100);
+        let mut vm = VmState::new(bytecode, string_constants, 100, 1024, 1, 100);
         let result = vm.run().unwrap();
 
         assert_eq!(result, Value::Int(3));

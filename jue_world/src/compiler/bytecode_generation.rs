@@ -80,33 +80,106 @@ pub fn compile_ast_to_bytecode(
             } => {
                 // Check if this is a built-in operator call
                 if let ast::AstNode::Symbol(op) = function.as_ref() {
-                    // Handle built-in operators
+                    // Handle built-in operators (both symbol and operator forms)
                     match op.as_str() {
-                        "+" | "-" | "*" | "/" | "%" | "<=" | "<" | ">" | "=" => {
+                        "+" | "-" | "*" | "/" | "%" | "<=" | "<" | ">" | "=" | "add" | "sub"
+                        | "mul" | "div" | "mod" | "lt" | "gt" | "eq" | "le" => {
                             // Compile arguments first
                             for arg in arguments {
                                 generate_node(bytecode, constants, closure_bodies, arg, env);
                             }
 
-                            // Generate the appropriate opcode
-                            match op.as_str() {
-                                "+" => bytecode.push(OpCode::Add),
-                                "-" => bytecode.push(OpCode::Sub),
-                                "*" => bytecode.push(OpCode::Mul),
-                                "/" => bytecode.push(OpCode::Div),
-                                "%" => bytecode.push(OpCode::Mod),
-                                "<=" => {
-                                    // <= is equivalent to Lt or Eq
-                                    bytecode.push(OpCode::Dup); // Duplicate the two arguments
-                                    bytecode.push(OpCode::Dup); // Duplicate again for the second comparison
-                                    bytecode.push(OpCode::Lt); // Check if less than
-                                    bytecode.push(OpCode::Swap); // Swap to get the original arguments back
-                                    bytecode.push(OpCode::Eq); // Check if equal
-                                    bytecode.push(OpCode::Add); // OR the two results
+                            // Map function names to operators
+                            let operator = match op.as_str() {
+                                "+" | "add" => "add",
+                                "-" | "sub" => "sub",
+                                "*" | "mul" => "mul",
+                                "/" | "div" => "div",
+                                "%" | "mod" => "mod",
+                                "<" | "lt" => "lt",
+                                ">" | "gt" => "gt",
+                                "=" | "eq" => "eq",
+                                "<=" | "le" => "le",
+                                _ => "unknown",
+                            };
+
+                            // Handle multi-argument operators by generating multiple binary operations
+                            match operator {
+                                "add" => {
+                                    // For addition, we need to add all arguments together
+                                    // If there are multiple arguments, generate multiple Add ops
+                                    for _ in 1..arguments.len() {
+                                        bytecode.push(OpCode::Add);
+                                    }
                                 }
-                                "<" => bytecode.push(OpCode::Lt),
-                                ">" => bytecode.push(OpCode::Gt),
-                                "=" => bytecode.push(OpCode::Eq),
+                                "sub" => {
+                                    // For subtraction, it's left-associative: a - b - c = (a - b) - c
+                                    for _ in 1..arguments.len() {
+                                        bytecode.push(OpCode::Sub);
+                                    }
+                                }
+                                "mul" => {
+                                    // For multiplication, we need to multiply all arguments together
+                                    for _ in 1..arguments.len() {
+                                        bytecode.push(OpCode::Mul);
+                                    }
+                                }
+                                "div" => {
+                                    // For division, it's left-associative: a / b / c = (a / b) / c
+                                    for _ in 1..arguments.len() {
+                                        bytecode.push(OpCode::Div);
+                                    }
+                                }
+                                "mod" => {
+                                    // For modulo, it's left-associative: a % b % c = (a % b) % c
+                                    for _ in 1..arguments.len() {
+                                        bytecode.push(OpCode::Mod);
+                                    }
+                                }
+                                "le" => {
+                                    // <= is equivalent to Lt or Eq
+                                    if arguments.len() == 2 {
+                                        bytecode.push(OpCode::Dup); // Duplicate the two arguments
+                                        bytecode.push(OpCode::Dup); // Duplicate again for the second comparison
+                                        bytecode.push(OpCode::Lt); // Check if less than
+                                        bytecode.push(OpCode::Swap); // Swap to get the original arguments back
+                                        bytecode.push(OpCode::Eq); // Check if equal
+                                        bytecode.push(OpCode::Add); // OR the two results
+                                    } else {
+                                        // For multiple arguments, this is more complex - use fallback
+                                        bytecode.push(OpCode::Int(0));
+                                    }
+                                }
+                                "lt" => {
+                                    if arguments.len() == 1 {
+                                        bytecode.push(OpCode::Int(0)); // Unary < not supported
+                                    } else if arguments.len() == 2 {
+                                        bytecode.push(OpCode::Lt);
+                                    } else {
+                                        // Multiple arguments - use fallback
+                                        bytecode.push(OpCode::Int(0));
+                                    }
+                                }
+                                "gt" => {
+                                    if arguments.len() == 1 {
+                                        bytecode.push(OpCode::Int(0)); // Unary > not supported
+                                    } else if arguments.len() == 2 {
+                                        bytecode.push(OpCode::Gt);
+                                    } else {
+                                        // Multiple arguments - use fallback
+                                        bytecode.push(OpCode::Int(0));
+                                    }
+                                }
+                                "eq" => {
+                                    if arguments.len() == 1 {
+                                        bytecode.push(OpCode::Int(1)); // Unary = is always true
+                                    } else if arguments.len() == 2 {
+                                        bytecode.push(OpCode::Eq);
+                                    } else {
+                                        // Multiple arguments - use fallback
+                                        bytecode.push(OpCode::Int(0));
+                                    }
+                                }
                                 _ => {
                                     // Unknown operator - push dummy value
                                     bytecode.push(OpCode::Int(0));

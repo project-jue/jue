@@ -1,6 +1,6 @@
-use crate::compile;
+use crate::compiler::{compile, CompilationResult};
 use crate::parser::parse;
-use crate::TrustTier;
+use crate::trust_tier::TrustTier;
 use physics_world::types::{Capability, OpCode};
 
 #[test]

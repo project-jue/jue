@@ -1,7 +1,6 @@
-use crate::compiler::core_compilation::{
-    compile_ast_to_core_expr, generate_comprehensive_proof, generate_simple_proof,
-};
+
 use crate::parser::parse;
+use crate::compiler::core_compilation::{compile_ast_to_core_expr, generate_simple_proof, generate_comprehensive_proof};
 use core_world::proof_checker::{verify, Proof};
 
 #[test]
