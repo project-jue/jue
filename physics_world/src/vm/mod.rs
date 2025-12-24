@@ -9,7 +9,9 @@ pub mod opcodes;
 pub mod performance;
 pub mod state;
 
-pub use call_state::{CallFrame, CallStack};
+pub use call_state::{
+    CallFrame, CallStack, Closure, EnvBinding, RecursiveEnvironment, Symbol,
+};
 pub use debug::{DebugEvent, DebugEventType, Debugger, Watchpoint, WatchpointTrigger};
 pub use error::{ErrorContext, RecoveryAction, VmError};
 pub use execution::ExecutionEngine;

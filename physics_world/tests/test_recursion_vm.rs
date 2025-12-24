@@ -1,7 +1,7 @@
 /// Physics World VM-level recursion tests
 /// These tests focus on the VM's ability to handle recursive function calls correctly
-use physics_world::types::{OpCode, Value};
-use physics_world::vm::VmState;
+use physics_world::types::{HeapPtr, OpCode, Value};
+use physics_world::vm::{Closure, EnvBinding, RecursiveEnvironment, VmState};
 
 /// Test that the VM can handle simple recursive closures
 #[test]
@@ -236,4 +236,179 @@ fn test_vm_recursive_error_handling() {
     // Should either succeed or fail gracefully
     assert!(result.is_ok() || result.is_err());
     println!("✅ VM recursive error handling test completed");
+}
+
+/// Test RecursiveEnvironment basic operations
+#[test]
+fn test_recursive_environment_basic() {
+    let mut env = RecursiveEnvironment::new();
+
+    // Define a normal binding
+    let x_name = "x".to_string();
+    env.define(x_name.clone(), Value::Int(42));
+    assert_eq!(env.lookup(&x_name), Some(&Value::Int(42)));
+
+    // Define a recursive binding
+    let fact_name = "fact".to_string();
+    env.define_recursive(fact_name.clone(), 0, vec![]);
+    assert!(env.is_bound_locally(&fact_name));
+
+    // Update the recursive binding with a closure
+    let closure = Value::Closure(HeapPtr::new(100));
+    env.set_recursive_closure(&fact_name, closure);
+    assert!(matches!(env.lookup(&fact_name), Some(&Value::Closure(_))));
+
+    println!("✅ RecursiveEnvironment basic operations test passed");
+}
+
+/// Test RecursiveEnvironment parent chain lookup
+#[test]
+fn test_recursive_environment_parent_chain() {
+    let mut parent = RecursiveEnvironment::new();
+    let parent_var = "parent_var".to_string();
+    parent.define(parent_var.clone(), Value::Int(100));
+
+    let mut child = RecursiveEnvironment::extend(parent);
+    let child_var = "child_var".to_string();
+    child.define(child_var.clone(), Value::Int(200));
+
+    // Look up in child
+    assert_eq!(child.lookup(&child_var), Some(&Value::Int(200)));
+
+    // Look up in parent via chain
+    assert_eq!(child.lookup(&parent_var), Some(&Value::Int(100)));
+
+    // Non-existent variable
+    let nonexistent = "nonexistent".to_string();
+    assert_eq!(child.lookup(&nonexistent), None);
+
+    println!("✅ RecursiveEnvironment parent chain test passed");
+}
+
+/// Test RecursiveEnvironment with closure self-reference pattern
+#[test]
+fn test_recursive_environment_closure_self_reference() {
+    let mut env = RecursiveEnvironment::new();
+
+    // Define recursive binding for factorial
+    let fact_name = "fact".to_string();
+    env.define_recursive(fact_name.clone(), 0, vec![]);
+
+    // Create a closure that references "fact" from the environment
+    // In real usage, this closure body would contain: (fact (- n 1))
+    let _closure = Closure::with_self_reference(
+        0,                 // code_index
+        vec![],            // no captures from outer scope
+        env.clone(),       // environment with "fact" binding
+        fact_name.clone(), // name for self-reference
+    );
+
+    // Update the recursive binding
+    env.set_recursive_closure(&fact_name, Value::Closure(HeapPtr::new(42)));
+
+    // Verify the closure can look up itself
+    let fact_lookup = env.lookup(&fact_name);
+    assert!(fact_lookup.is_some());
+
+    println!("✅ RecursiveEnvironment closure self-reference test passed");
+}
+
+/// Test letrec semantics - bindings are available during body evaluation
+#[test]
+fn test_letrec_semantics() {
+    // Simulating: (letrec ((fact (lambda (n) (if (= n 0) 1 (* n (fact (- n 1))))))) (fact 5))
+
+    let mut env = RecursiveEnvironment::new();
+
+    // Step 1: Create uninitialized recursive binding
+    let fact_name = "fact".to_string();
+    env.define_recursive(fact_name.clone(), 0, vec![]);
+
+    // Step 2: Create closure that references "fact"
+    // The closure's environment includes the "fact" binding
+    let _closure = Closure::with_self_reference(
+        0,           // code_index for factorial body
+        vec![],      // no outer captures
+        env.clone(), // environment with "fact"
+        fact_name.clone(),
+    );
+
+    // Step 3: Complete the recursive binding
+    env.set_recursive_closure(&fact_name, Value::Closure(HeapPtr::new(100)));
+
+    // Step 4: Verify the binding is available
+    let fact = env.lookup(&fact_name);
+    assert!(fact.is_some());
+
+    println!("✅ letrec semantics test passed");
+}
+
+/// Test mutual recursion with RecursiveEnvironment
+#[test]
+fn test_mutual_recursion_environment() {
+    // Simulating:
+    // (letrec ((even (lambda (n) (if (= n 0) true (odd (- n 1)))))
+    //          (odd (lambda (n) (if (= n 0) false (even (- n 1))))))
+    //   (even 4))
+
+    let mut env = RecursiveEnvironment::new();
+
+    // Define both bindings as uninitialized
+    let even_name = "even".to_string();
+    let odd_name = "odd".to_string();
+    env.define_recursive(even_name.clone(), 0, vec![]);
+    env.define_recursive(odd_name.clone(), 1, vec![]);
+
+    // Create closures with environment that has both bindings
+    let _even_closure = Closure::with_self_reference(
+        0,           // even body code index
+        vec![],      // no captures
+        env.clone(), // env with both even and odd
+        even_name.clone(),
+    );
+
+    let _odd_closure = Closure::with_self_reference(
+        1,           // odd body code index
+        vec![],      // no captures
+        env.clone(), // env with both even and odd
+        odd_name.clone(),
+    );
+
+    // Complete the recursive bindings
+    env.set_recursive_closure(&even_name, Value::Closure(HeapPtr::new(200)));
+    env.set_recursive_closure(&odd_name, Value::Closure(HeapPtr::new(201)));
+
+    // Verify both are available
+    assert!(env.lookup(&even_name).is_some());
+    assert!(env.lookup(&odd_name).is_some());
+
+    println!("✅ Mutual recursion environment test passed");
+}
+
+/// Test EnvBinding enum variants
+#[test]
+fn test_env_binding_variants() {
+    // Test Normal binding
+    let normal = EnvBinding::Normal(Value::Int(42));
+    assert!(matches!(normal, EnvBinding::Normal(Value::Int(42))));
+
+    // Test Uninitialized binding
+    let uninit = EnvBinding::Uninitialized;
+    assert!(matches!(uninit, EnvBinding::Uninitialized));
+
+    // Test Recursive binding
+    let recursive = EnvBinding::Recursive {
+        closure: Value::Nil,
+        code_index: 0,
+        captures: vec![],
+    };
+    assert!(matches!(
+        recursive,
+        EnvBinding::Recursive {
+            closure: Value::Nil,
+            ..
+        }
+    ));
+
+    println!("✅ EnvBinding variants test passed");
 }

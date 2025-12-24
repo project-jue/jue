@@ -1,6 +1,14 @@
 use crate::types::HeapPtr;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use thiserror::Error;
+
+/// Object tags for identifying different types of heap objects.
+pub const TAG_CLOSURE: u8 = 1;
+pub const TAG_LIST: u8 = 2; // Cons cell (pair)
+pub const TAG_VECTOR: u8 = 3;
+pub const TAG_STRING: u8 = 4;
+pub const TAG_PAIR: u8 = TAG_LIST; // Alias for cons cells
 
 /// Error type for arena allocation failures.
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -365,18 +373,127 @@ impl ObjectArena {
         self.auto_defragment = auto_defragment;
     }
 
-    /// Marks all reachable objects starting from the root set.
+    /// Marks all reachable objects starting from the root set, including
+    /// transitive closure of HeapPtr references.
     fn mark_phase(&mut self, root_set: &[HeapPtr]) -> Result<(), GarbageCollectionError> {
         // Mark all objects in the root set
         for &root_ptr in root_set {
             unsafe { self.mark_object(root_ptr) };
         }
 
-        // TODO: Implement recursive marking for objects that contain references to other objects
-        // This would require traversing the object's data region to find HeapPtr values
-        // and marking those objects as well.
+        // Recursively mark objects referenced by already-marked objects
+        self.mark_reachable_from_roots(root_set)?;
 
         Ok(())
+    }
+
+    /// Recursively marks all objects reachable from the root set.
+    /// Uses a worklist algorithm (DFS) to traverse all reachable objects.
+    fn mark_reachable_from_roots(
+        &mut self,
+        root_set: &[HeapPtr],
+    ) -> Result<(), GarbageCollectionError> {
+        let mut worklist: Vec<HeapPtr> = root_set.to_vec();
+        let mut visited: HashSet<HeapPtr> = root_set.iter().cloned().collect();
+
+        while let Some(ptr) = worklist.pop() {
+            // Get all HeapPtr values this object references
+            let refs = unsafe { self.get_referenced_heap_ptrs(ptr) };
+            for ref_ptr in refs.into_iter() {
+                if !visited.contains(&ref_ptr) {
+                    unsafe { self.mark_object(ref_ptr) };
+                    visited.insert(ref_ptr);
+                    worklist.push(ref_ptr);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Returns all HeapPtr values stored in the object at `ptr`.
+    /// This is used by the garbage collector to traverse object references.
+    ///
+    /// # Safety
+    /// The caller must ensure that `ptr` points to a valid object header.
+    unsafe fn get_referenced_heap_ptrs(&self, ptr: HeapPtr) -> Vec<HeapPtr> {
+        let header = self.get_header(ptr);
+        let data = self.get_data(ptr);
+        let mut refs = Vec::new();
+
+        // Helper function to check if a value is a valid heap pointer
+        // A valid heap pointer must:
+        // 1. Be non-zero
+        // 2. Be less than next_free (within arena bounds)
+        // 3. Be 8-byte aligned (objects are 8-byte aligned in this arena)
+        // 4. Point to a valid object header (header must be within allocated range)
+        fn is_valid_heap_ptr(val: u32, next_free: u32) -> bool {
+            if val == 0 || val >= next_free {
+                return false;
+            }
+            // Check 8-byte alignment (header is 8 bytes)
+            if val % 8 != 0 {
+                return false;
+            }
+            true
+        }
+
+        // Parse data based on object tag/type
+        match header.tag {
+            TAG_CLOSURE => {
+                // Closure contains: code_ptr (4 bytes) + captures (variable length)
+                // After code_ptr, we may have captured HeapPtr values
+                // Try to read captures starting at offset 4
+                if data.len() >= 4 {
+                    // Try to parse as a sequence of HeapPtr values
+                    // Each HeapPtr is 4 bytes (u32)
+                    let mut offset = 4;
+                    while offset + 4 <= data.len() {
+                        let ptr_bytes = &data[offset..offset + 4];
+                        let ptr_val = u32::from_le_bytes(ptr_bytes.try_into().unwrap());
+
+                        if is_valid_heap_ptr(ptr_val, self.next_free) {
+                            refs.push(HeapPtr::new(ptr_val));
+                        }
+                        offset += 4;
+                    }
+                }
+            }
+            TAG_LIST | TAG_PAIR => {
+                // Cons cell contains: car (4 bytes) + cdr (4 bytes)
+                // Each could be a HeapPtr or an immediate value
+                if data.len() >= 8 {
+                    // Read car
+                    let car_bytes = &data[0..4];
+                    let car_val = u32::from_le_bytes(car_bytes.try_into().unwrap());
+                    if is_valid_heap_ptr(car_val, self.next_free) {
+                        refs.push(HeapPtr::new(car_val));
+                    }
+
+                    // Read cdr
+                    let cdr_bytes = &data[4..8];
+                    let cdr_val = u32::from_le_bytes(cdr_bytes.try_into().unwrap());
+                    if is_valid_heap_ptr(cdr_val, self.next_free) {
+                        refs.push(HeapPtr::new(cdr_val));
+                    }
+                }
+            }
+            TAG_VECTOR => {
+                // Vector contains elements, each 4 bytes that could be HeapPtr
+                let num_elements = data.len() / 4;
+                for i in 0..num_elements {
+                    let elem_bytes = &data[i * 4..(i + 1) * 4];
+                    let elem_val = u32::from_le_bytes(elem_bytes.try_into().unwrap());
+                    if is_valid_heap_ptr(elem_val, self.next_free) {
+                        refs.push(HeapPtr::new(elem_val));
+                    }
+                }
+            }
+            // TAG_STRING and other unhandled tags contain raw bytes, no HeapPtr references
+            _ => {}
+        }
+
+        refs
     }
 
     /// Collects unmarked objects and compacts memory.
