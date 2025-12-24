@@ -1,7 +1,7 @@
 use super::capability::{CapDecision, CapDecisionResult, CapOperation, ConsensusVoteResult};
 use super::error::PhysicsError;
 /// Consensus mechanisms for the Physics World scheduler
-use super::execution::PhysicsScheduler;
+use super::core::PhysicsScheduler;
 
 impl PhysicsScheduler {
     /// V2 Capability System - Handle consensus voting for dangerous capabilities

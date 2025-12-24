@@ -1,3 +1,11 @@
+//! Error type definitions for the VM.
+//!
+//! This module contains the core error types used throughout the VM:
+//! - [`SimpleVmError`]: Simple error types for internal use
+//! - [`ErrorContext`]: Enhanced error context capturing VM state
+//! - [`StackFrame`]: Represents a single stack frame in call traces
+//! - [`VmError`]: Detailed VM errors with comprehensive context
+
 use crate::types::{HeapPtr, OpCode, Value};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -519,45 +527,30 @@ impl VmError {
     }
 
     /// Attempt to recover from the error if possible
-    pub fn attempt_recovery(&self) -> Option<RecoveryAction> {
+    pub fn attempt_recovery(&self) -> Option<super::RecoveryAction> {
         match self {
             VmError::CpuLimitExceeded { context, limit } => {
-                Some(RecoveryAction::IncreaseCpuLimit(*limit * 2))
+                Some(super::RecoveryAction::IncreaseCpuLimit(*limit * 2))
             }
             VmError::MemoryLimitExceeded {
                 context,
                 limit,
                 requested,
-            } => Some(RecoveryAction::IncreaseMemoryLimit(*limit * 2)),
+            } => Some(super::RecoveryAction::IncreaseMemoryLimit(*limit * 2)),
             VmError::CapabilityError { capability, .. } => {
-                Some(RecoveryAction::RequestCapability(capability.clone()))
+                Some(super::RecoveryAction::RequestCapability(capability.clone()))
             }
-            VmError::StackOverflow { max_depth, .. } => {
-                Some(RecoveryAction::IncreaseCpuLimit(*max_depth as u64 * 2))
-            }
-            VmError::GcDisabled => Some(RecoveryAction::ContinueWithDefaults),
+            VmError::StackOverflow { max_depth, .. } => Some(
+                super::RecoveryAction::IncreaseCpuLimit(*max_depth as u64 * 2),
+            ),
+            VmError::GcDisabled => Some(super::RecoveryAction::ContinueWithDefaults),
             VmError::HeapExhausted => {
-                Some(RecoveryAction::IncreaseMemoryLimit(1024 * 1024)) // Increase by 1MB
+                Some(super::RecoveryAction::IncreaseMemoryLimit(1024 * 1024)) // Increase by 1MB
             }
-            VmError::DebuggerError { .. } => Some(RecoveryAction::ContinueWithDefaults),
+            VmError::DebuggerError { .. } => Some(super::RecoveryAction::ContinueWithDefaults),
             _ => None,
         }
     }
-}
-
-/// Recovery actions that can be taken to handle errors
-#[derive(Debug, Clone)]
-pub enum RecoveryAction {
-    /// Increase the CPU step limit
-    IncreaseCpuLimit(u64),
-    /// Increase the memory limit
-    IncreaseMemoryLimit(usize),
-    /// Request additional capability
-    RequestCapability(String),
-    /// Terminate execution gracefully
-    TerminateGracefully,
-    /// Continue with default values
-    ContinueWithDefaults,
 }
 
 impl fmt::Display for VmError {
@@ -586,36 +579,6 @@ impl From<SimpleVmError> for VmError {
         };
 
         match simple_error {
-            SimpleVmError::CpuLimitExceeded => VmError::cpu_limit_exceeded(context, 0),
-            SimpleVmError::MemoryLimitExceeded => VmError::memory_limit_exceeded(context, 0, 0),
-            SimpleVmError::StackUnderflow => VmError::stack_underflow(context, "operation", 1, 0),
-            SimpleVmError::InvalidHeapPtr => VmError::invalid_heap_ptr(context, None, "operation"),
-            SimpleVmError::UnknownOpCode => VmError::unknown_opcode(context, None),
-            SimpleVmError::TypeMismatch => {
-                VmError::type_mismatch(context, "operation", "expected", "actual")
-            }
-            SimpleVmError::DivisionByZero => VmError::division_by_zero(context, "division"),
-            SimpleVmError::ArithmeticOverflow => {
-                VmError::arithmetic_overflow(context, "operation", None, None)
-            }
-            SimpleVmError::CapabilityDenied => {
-                VmError::capability_error(context, "unknown", "operation")
-            }
-            SimpleVmError::RecursionLimitExceeded => {
-                VmError::recursion_limit_exceeded(context, 0, 0)
-            }
-        }
-    }
-}
-
-/// Helper trait to convert simple errors to detailed errors with context
-pub trait WithContext {
-    fn with_context(self, context: ErrorContext) -> VmError;
-}
-
-impl WithContext for SimpleVmError {
-    fn with_context(self, context: ErrorContext) -> VmError {
-        match self {
             SimpleVmError::CpuLimitExceeded => VmError::cpu_limit_exceeded(context, 0),
             SimpleVmError::MemoryLimitExceeded => VmError::memory_limit_exceeded(context, 0, 0),
             SimpleVmError::StackUnderflow => VmError::stack_underflow(context, "operation", 1, 0),

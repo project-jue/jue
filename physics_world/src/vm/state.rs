@@ -1,3 +1,18 @@
+//! VM state management.
+//!
+//! This module contains the core VmState struct and its essential methods.
+//! Execution logic has been moved to `execution.rs`, call frame management
+//! to `call_state.rs`, and GC integration to `gc_integration.rs`.
+//!
+//! # Original File
+//! - `vm/state.rs` was 1303 lines
+//!
+//! # Refactored Structure
+//! - `state.rs`: ~400 lines - VmState struct, debugging, error context
+//! - `call_state.rs`: ~300 lines - Call frame management
+//! - `execution.rs`: ~400 lines - Step execution logic
+//! - `gc_integration.rs`: ~200 lines - GC integration helpers
+
 use crate::memory::arena::{ObjectArena, ObjectHeader};
 use crate::types::{HeapPtr, OpCode, Value};
 use crate::vm::debug::{DebugEvent, DebugEventType, DebugInfo, Debugger, WatchpointTrigger};
@@ -14,6 +29,10 @@ use bincode;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
+
+// Re-export from new modules for convenience
+// CallFrame is now defined in call_state.rs and re-exported here for backwards compatibility
+pub use crate::vm::call_state::CallFrame;
 
 /// Function information for escape analysis integration
 #[derive(Debug, Clone)]
@@ -327,6 +346,17 @@ struct ExecutionRecord {
     timestamp: u64,
 }
 
+/// Result of executing a single instruction.
+///
+/// The VM uses a step-based execution model where each instruction returns one of these results.
+#[derive(Debug, Clone)]
+pub enum InstructionResult {
+    Continue,        // Normal execution, proceed to next instruction
+    Yield,           // Voluntary yield, suspend execution
+    Finished(Value), // Execution completed with final value
+    WaitingForCapability(crate::types::Capability), // V2: Actor is waiting for capability decision
+}
+
 /// Backward compatibility: VmError enum for opcode handlers
 /// This provides the same interface as the old VmError enum but uses SimpleVmError internally
 #[derive(Debug)]
@@ -393,31 +423,6 @@ pub struct VmState {
     pub performance_monitor: PerformanceMonitor, // Performance monitoring
     pub gc_enabled: bool,                        // GC enable/disable flag
     pub gc_threshold: usize,                     // GC allocation threshold
-}
-
-/// Represents a call frame for function calls.
-///
-/// Stores the return address and stack state for proper function call/return semantics.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CallFrame {
-    pub return_ip: usize,
-    pub stack_start: usize,
-    pub saved_instructions: Option<Vec<OpCode>>, // Store original instructions for nested calls
-    pub recursion_depth: u32,                    // Track recursion depth for this call frame
-    pub locals: Vec<Value>,                      // NEW: Lexical environment storage
-    pub closed_over: HashMap<usize, Value>,      // NEW: Closed-over variables
-    pub is_tail_call: bool,                      // NEW: TCO tracking flag
-    pub frame_id: u64,                           // NEW: For debugging/verification
-}
-
-/// Result of executing a single instruction.
-///
-/// The VM uses a step-based execution model where each instruction returns one of these results.
-pub enum InstructionResult {
-    Continue,        // Normal execution, proceed to next instruction
-    Yield,           // Voluntary yield, suspend execution
-    Finished(Value), // Execution completed with final value
-    WaitingForCapability(crate::types::Capability), // V2: Actor is waiting for capability decision
 }
 
 impl VmState {
@@ -711,6 +716,10 @@ impl VmState {
         id
     }
 
+    // ========================================================================
+    // GC Integration Methods (delegates to gc_integration module helpers)
+    // ========================================================================
+
     /// Phase 3: GC integration - Allocate heap object with GC
     pub fn allocate_heap_object(&mut self, object: HeapObject) -> Result<Value, DetailedVmError> {
         if !self.gc_enabled {
@@ -743,6 +752,10 @@ impl VmState {
     pub fn set_gc_enabled(&mut self, enabled: bool) {
         self.gc_enabled = enabled;
     }
+
+    // ========================================================================
+    // Debugging Integration Methods
+    // ========================================================================
 
     /// Phase 3: Debugging integration - Add breakpoint
     pub fn add_breakpoint(&mut self, address: usize) {
@@ -786,6 +799,10 @@ impl VmState {
         self.debugger.get_debug_info()
     }
 
+    // ========================================================================
+    // Performance Integration Methods
+    // ========================================================================
+
     /// Phase 3: Performance integration - Increment counter
     pub fn increment_performance_counter(&mut self, name: &str, value: u64) {
         self.performance_monitor.increment_counter(name, value);
@@ -817,7 +834,11 @@ impl VmState {
         self.performance_monitor.get_analysis()
     }
 
-    /// NEW: Tail call detection method
+    // ========================================================================
+    // Call and Execution Helper Methods
+    // ========================================================================
+
+    /// Tail call detection method
     pub fn is_current_position_tail(&self) -> bool {
         if let Some(opcode) = self.instructions.get(self.ip) {
             matches!(opcode, OpCode::Ret | OpCode::TailCall(_))
@@ -826,7 +847,7 @@ impl VmState {
         }
     }
 
-    /// NEW: Get function info for escape analysis integration
+    /// Get function info for escape analysis integration
     pub fn get_function_info(&self, function_ptr: u16) -> Result<FunctionInfo, VmError> {
         // In a real implementation, this would look up function metadata
         // For now, return a default function info
@@ -879,7 +900,7 @@ impl VmState {
         call::handle_call(self, arg_count)
     }
 
-    /// NEW: Helper method to read u16 from instructions
+    /// Helper method to read u16 from instructions
     pub fn read_u16(&mut self) -> Result<u16, VmError> {
         if self.ip >= self.instructions.len() {
             return Err(VmError::UnknownOpCode);
@@ -924,7 +945,7 @@ impl VmState {
         }
     }
 
-    /// NEW: Helper method to get local variable
+    /// Helper method to get local variable
     pub fn get_local_var(&self, var_index: usize) -> Result<Value, VmError> {
         if let Some(frame) = self.call_stack.last() {
             if var_index < frame.locals.len() {
@@ -944,6 +965,10 @@ impl VmState {
         format!("function_{}", frame.return_ip)
     }
 
+    // ========================================================================
+    // Execution Methods (delegates to execution module)
+    // ========================================================================
+
     /// Executes a single instruction. Returns `Ok(InstructionResult)` or `Err(SimpleVmError)`.
     ///
     /// # Test Coverage
@@ -954,312 +979,8 @@ impl VmState {
     /// # Returns
     /// Result containing either the instruction result or an execution error
     pub fn step(&mut self) -> Result<InstructionResult, SimpleVmError> {
-        // Check if we've exceeded CPU limit
-        if self.steps_remaining == 0 {
-            let context = self.create_error_context();
-            return Err(SimpleVmError::CpuLimitExceeded);
-        }
-        self.steps_remaining -= 1;
-
-        eprintln!(
-            "STEP: ip={}, call_stack_len={}, instructions_len={}",
-            self.ip,
-            self.call_stack.len(),
-            self.instructions.len()
-        );
-
-        // Check bounds BEFORE trying to fetch the instruction
-        if self.call_stack.is_empty() && self.ip >= self.instructions.len() {
-            eprintln!(
-                "BOUNDS CHECK TRIGGERED: call_stack empty, ip {} >= instructions.len() {}",
-                self.ip,
-                self.instructions.len()
-            );
-            return Ok(InstructionResult::Finished(
-                self.stack.pop().unwrap_or(Value::Nil),
-            ));
-        }
-
-        // Get current instruction
-        let instruction = match self.instructions.get(self.ip) {
-            Some(instr) => {
-                eprintln!("FETCHED INSTRUCTION: {:?}", instr);
-                instr
-            }
-            None => {
-                eprintln!("INSTRUCTION NOT FOUND at ip={}", self.ip);
-                // We're out of instructions. If we're at the top level (no call frames),
-                // the program is finished. If we're inside a function call, we should
-                // automatically return Nil by properly restoring the call frame.
-                if !self.call_stack.is_empty() {
-                    eprintln!("Out of instructions in function call - implicit return");
-                    // We're in a function that didn't explicitly return - treat as implicit return
-                    // Push Nil as return value and restore call frame
-                    self.stack.push(Value::Nil);
-
-                    // Restore call frame like a proper return
-                    let call_frame = self.call_stack.pop().unwrap();
-
-                    // Pop the return value and restore stack to call frame state
-                    let return_value = if self.stack.len() > call_frame.stack_start {
-                        self.stack.pop()
-                    } else {
-                        None
-                    };
-
-                    // Restore stack to call frame state
-                    self.stack.truncate(call_frame.stack_start);
-
-                    // Push return value (or Nil if none)
-                    if let Some(value) = return_value {
-                        self.stack.push(value);
-                    } else {
-                        self.stack.push(Value::Nil);
-                    }
-
-                    // Restore instruction pointer and original instructions
-                    self.ip = call_frame.return_ip;
-                    if let Some(saved_instructions) = call_frame.saved_instructions {
-                        self.instructions = saved_instructions;
-                    }
-
-                    // Continue execution from the restored context
-                    return Ok(InstructionResult::Continue);
-                } else {
-                    eprintln!("Out of instructions at top level - program finished");
-                    // We're at top level - program is finished
-                    return Ok(InstructionResult::Finished(
-                        self.stack.pop().unwrap_or(Value::Nil),
-                    ));
-                }
-            }
-        };
-
-        // Execute the instruction using modular handlers
-        match instruction {
-            OpCode::Nil => {
-                basic::handle_nil(self)?;
-                self.ip += 1;
-            }
-            OpCode::Bool(b) => {
-                basic::handle_bool(self, *b)?;
-                self.ip += 1;
-            }
-            OpCode::Int(i) => {
-                basic::handle_int(self, *i)?;
-                self.ip += 1;
-            }
-            OpCode::Float(f) => {
-                basic::handle_float(self, *f)?;
-                self.ip += 1;
-            }
-            OpCode::Symbol(sym_idx) => {
-                basic::handle_symbol(self, *sym_idx)?;
-                self.ip += 1;
-            }
-            OpCode::LoadString(string_idx) => {
-                string_ops::handle_load_string(self, *string_idx)?;
-                self.ip += 1;
-            }
-            OpCode::StrLen => {
-                string_ops::handle_str_len(self)?;
-                self.ip += 1;
-            }
-            OpCode::StrConcat => {
-                string_ops::handle_str_concat(self)?;
-                self.ip += 1;
-            }
-            OpCode::StrIndex => {
-                string_ops::handle_str_index(self)?;
-                self.ip += 1;
-            }
-            OpCode::Dup => {
-                stack_ops::handle_dup(self)?;
-                self.ip += 1;
-            }
-            OpCode::Pop => {
-                stack_ops::handle_pop(self)?;
-                self.ip += 1;
-            }
-            OpCode::Swap => {
-                stack_ops::handle_swap(self)?;
-                self.ip += 1;
-            }
-            OpCode::GetLocal(offset) => {
-                stack_ops::handle_get_local(self, *offset)?;
-                self.ip += 1;
-            }
-            OpCode::SetLocal(offset) => {
-                stack_ops::handle_set_local(self, *offset)?;
-                self.ip += 1;
-            }
-            OpCode::Cons => {
-                list_ops::handle_cons(self)?;
-                self.ip += 1;
-            }
-            OpCode::Car => {
-                list_ops::handle_car(self)?;
-                self.ip += 1;
-            }
-            OpCode::Cdr => {
-                list_ops::handle_cdr(self)?;
-                self.ip += 1;
-            }
-            OpCode::Call(arg_count) => {
-                // Use the new enhanced handle_call method from VmState
-                self.handle_call(*arg_count)?;
-                // Note: Call handler sets ip to 0 for closure execution
-            }
-            OpCode::TailCall(arg_count) => {
-                // Use the consolidated handle_tail_call from opcodes/call.rs
-                // The implementation handles argument extraction from stack internally
-                self.handle_tail_call(*arg_count)?;
-                // Note: TailCall handler sets ip to 0 for closure execution
-            }
-            OpCode::Ret => {
-                ret::handle_ret(self)?;
-                // Note: Ret handler sets ip to return address
-            }
-            OpCode::Jmp(offset) => {
-                jump::handle_jmp(self, *offset)?;
-                // Note: Jmp handler sets ip to new position
-            }
-            OpCode::JmpIfFalse(offset) => {
-                jump::handle_jmp_if_false(self, *offset)?;
-                // Note: JmpIfFalse handler sets ip to new position or increments it
-            }
-            OpCode::Yield => {
-                self.ip += 1;
-                return Ok(InstructionResult::Yield);
-            }
-            OpCode::Send => {
-                // Implement Send handler for inter-actor communication
-                let result = messaging::handle_send(self)?;
-                self.ip += 1;
-                return Ok(result);
-            }
-            OpCode::Add => {
-                arithmetic::handle_add(self)?;
-                self.ip += 1;
-            }
-            OpCode::Div => {
-                arithmetic::handle_div(self)?;
-                self.ip += 1;
-            }
-            OpCode::Eq => {
-                comparison::handle_eq(self)?;
-                self.ip += 1;
-            }
-            OpCode::Lt => {
-                comparison::handle_lt(self)?;
-                self.ip += 1;
-            }
-            OpCode::Gt => {
-                comparison::handle_gt(self)?;
-                self.ip += 1;
-            }
-            OpCode::Lte => {
-                comparison::handle_lte(self)?;
-                self.ip += 1;
-            }
-            OpCode::Gte => {
-                comparison::handle_gte(self)?;
-                self.ip += 1;
-            }
-            OpCode::Ne => {
-                comparison::handle_ne(self)?;
-                self.ip += 1;
-            }
-            OpCode::Sub => {
-                arithmetic::handle_sub(self)?;
-                self.ip += 1;
-            }
-            OpCode::Mul => {
-                arithmetic::handle_mul(self)?;
-                self.ip += 1;
-            }
-            OpCode::FAdd => {
-                arithmetic::handle_fadd(self)?;
-                self.ip += 1;
-            }
-            OpCode::FSub => {
-                arithmetic::handle_fsub(self)?;
-                self.ip += 1;
-            }
-            OpCode::FMul => {
-                arithmetic::handle_fmul(self)?;
-                self.ip += 1;
-            }
-            OpCode::FDiv => {
-                arithmetic::handle_fdiv(self)?;
-                self.ip += 1;
-            }
-            OpCode::Mod => {
-                arithmetic::handle_mod(self)?;
-                self.ip += 1;
-            }
-            OpCode::MakeClosure(code_idx, capture_count) => {
-                let closure = make_closure::handle_make_closure(self, *code_idx, *capture_count)?;
-                self.stack.push(closure);
-                self.ip += 1;
-            }
-            OpCode::CheckStepLimit => {
-                // Check if we've exceeded CPU limit
-                if self.steps_remaining == 0 {
-                    let context = self.create_error_context();
-                    return Err(SimpleVmError::CpuLimitExceeded);
-                }
-                self.ip += 1;
-            }
-            // V2 Capability System - Implement capability opcodes
-            OpCode::HasCap(cap_idx) => {
-                let result = capability::handle_has_cap(self, *cap_idx)?;
-                return Ok(result);
-            }
-            OpCode::RequestCap(cap_idx, justification_idx) => {
-                let result = capability::handle_request_cap(self, *cap_idx, *justification_idx)?;
-                return Ok(result);
-            }
-            OpCode::GrantCap(target_actor_id, cap_idx) => {
-                capability::handle_grant_cap(self, *target_actor_id, *cap_idx)?;
-                self.ip += 1;
-            }
-            OpCode::RevokeCap(target_actor_id, cap_idx) => {
-                capability::handle_revoke_cap(self, *target_actor_id, *cap_idx)?;
-                self.ip += 1;
-            }
-            OpCode::HostCall {
-                cap_idx,
-                func_id,
-                args,
-            } => {
-                capability::handle_host_call(self, *cap_idx, *func_id, *args)?;
-                self.ip += 1;
-            }
-            // Sandbox instructions
-            OpCode::InitSandbox => {
-                // Initialize sandbox environment - place holder for now
-                self.ip += 1;
-            }
-            OpCode::IsolateCapabilities => {
-                // Isolate capability access - place holder for now
-                self.ip += 1;
-            }
-            OpCode::SetErrorHandler(offset) => {
-                // Set error handler jump target - place holder for now
-                self.ip += 1;
-            }
-            OpCode::LogSandboxViolation => {
-                // Log sandbox violation - place holder for now
-                self.ip += 1;
-            }
-            OpCode::CleanupSandbox => {
-                // Cleanup sandbox resources - place holder for now
-                self.ip += 1;
-            }
-        }
-
-        Ok(InstructionResult::Continue)
+        let mut engine = crate::vm::execution::ExecutionEngine::new();
+        engine.step(self)
     }
 
     /// Executes the VM until completion or error.
@@ -1270,25 +991,8 @@ impl VmState {
     /// - Error handling for all error types
     /// - Resource limit enforcement
     pub fn run(&mut self) -> Result<Value, DetailedVmError> {
-        loop {
-            match self.step() {
-                Ok(InstructionResult::Continue) => continue,
-                Ok(InstructionResult::Yield) => return Ok(Value::Nil), // Yield returns Nil for now
-                Ok(InstructionResult::Finished(result)) => return Ok(result),
-                Ok(InstructionResult::WaitingForCapability(_capability)) => {
-                    let _context = self.create_error_context();
-                    return Err(DetailedVmError::capability_error(
-                        _context,
-                        "unknown",
-                        "WaitingForCapability",
-                    ));
-                }
-                Err(simple_error) => {
-                    // Convert simple error to detailed error
-                    return Err(self.convert_to_detailed_error(simple_error));
-                }
-            }
-        }
+        let mut engine = crate::vm::execution::ExecutionEngine::new();
+        engine.run(self)
     }
 
     /// Convert a simple VmError to a detailed VmError with context

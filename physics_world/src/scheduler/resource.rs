@@ -1,6 +1,6 @@
 use super::error::PhysicsError;
 /// Resource management for the Physics World scheduler
-use super::execution::{
+use super::core::{
     ActorResourceQuota, PhysicsScheduler, ResourceAllocationResult, ResourceMonitoringStats,
     ResourceUsageSnapshot,
 };

@@ -5,6 +5,7 @@
 pub mod actor;
 pub mod capability;
 pub mod consensus;
+pub mod core;
 pub mod debug;
 pub mod error;
 pub mod execution;
@@ -13,5 +14,6 @@ pub mod resource;
 
 pub use actor::*;
 pub use capability::*;
+pub use core::*;
 pub use error::*;
 pub use execution::*;

@@ -1,4 +1,7 @@
 /// Capability management for the Physics World scheduler
+///
+/// This module provides capability types, audit logging, and delegation logic
+/// for the Physics World scheduler.
 
 /// Capability audit log entry for tracking capability operations
 #[derive(Debug, Clone)]
