@@ -78,6 +78,9 @@ pub enum OpCode {
     Eq, // TOS == TOS-1 ?
     Lt, // TOS < TOS-1 ?
     Gt,
+    Lte, // TOS <= TOS-1 ?
+    Gte, // TOS >= TOS-1 ?
+    Ne,  // TOS != TOS-1 ?
 
     // --- CAPABILITY INSTRUCTIONS ---
     /// Check if actor has capability. Pushes bool to stack.
@@ -162,6 +165,9 @@ impl OpCode {
             OpCode::Eq => 1,
             OpCode::Lt => 1,
             OpCode::Gt => 1,
+            OpCode::Lte => 1,
+            OpCode::Gte => 1,
+            OpCode::Ne => 1,
             OpCode::MakeClosure(_, _) => 9, // 4 bytes for each usize
             OpCode::CheckStepLimit => 1,
             // Capability instructions

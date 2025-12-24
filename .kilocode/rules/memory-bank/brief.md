@@ -26,6 +26,8 @@ The system is designed to support safe self-modification, proof-driven optimizat
 - Macro system for code generation
 - Concurrency runtime with event-driven architecture
 - Proof-carrying code approach for optimization verification
+- **Recursive function support with two-pass environment handling**
+- Full trust tier coverage (Formal, Verified, Empirical, Experimental)
 
 ### Dan-World
 - Event-driven cognitive modules (perceptual, affective, memory, planning)

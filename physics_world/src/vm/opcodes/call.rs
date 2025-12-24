@@ -25,8 +25,9 @@ use std::collections::HashMap;
 /// 7. Resets instruction pointer to start of closure
 /// 8. Arguments remain on stack for function to access via GetLocal
 pub fn handle_call(vm: &mut VmState, arg_count: u16) -> Result<(), VmError> {
-    // 1. Validate stack has enough arguments + function
-    if vm.stack.len() < arg_count as usize + 1 {
+    // 1. Validate stack has at least the closure (function)
+    // Note: arg_count can be 0, so we just need the closure on the stack
+    if vm.stack.is_empty() {
         return Err(VmError::StackUnderflow);
     }
 
@@ -96,42 +97,37 @@ fn execute_closure_call(
     }
     return Err(VmError::InvalidHeapPtr);
 }
-
 /// Helper function to execute a closure body
 fn execute_closure_body(
     vm: &mut VmState,
     closure_body: Vec<OpCode>,
     arg_count: u16,
 ) -> Result<(), VmError> {
-    // 1. Validate we have enough arguments + function on stack
-    if vm.stack.len() < arg_count as usize + 1 {
-        return Err(VmError::StackUnderflow);
-    }
+    // 1. Calculate stack_start BEFORE popping anything
+    // stack_start should point to the first argument (NOT including the closure)
+    let stack_start = vm.stack.len() - arg_count as usize;
 
-    // 2. The closure should be at the top of the stack
-    //    Arguments should be below it: [args..., closure]
-    //    We need to remove the closure from the stack and set up the call frame
-    //    to point to the arguments
-
-    // Remove the closure from stack (it's been validated already)
+    // 2. Pop the closure from the stack first
     let _closure = vm.stack.pop().unwrap();
 
-    // 3. Set up call frame for proper return handling
-    // stack_start should point to the first argument
-    let stack_start = vm.stack.len() - arg_count as usize;
+    // 3. Pop arguments from the stack (they're at the end, in correct order)
+    // No need to reverse - they're already in order
+    let mut args: Vec<Value> = Vec::with_capacity(arg_count as usize);
+    for _ in 0..arg_count {
+        if let Some(arg) = vm.stack.pop() {
+            args.push(arg);
+        }
+    }
+
+    // 4. Set up call frame for proper return handling
     let recursion_depth = if vm.call_stack.is_empty() {
         1 // First call in the stack
     } else {
         vm.call_stack.last().unwrap().recursion_depth + 1
     };
 
-    // Preserve local variables (arguments) for access after recursive calls
-    let mut locals = Vec::new();
-    for i in 0..arg_count as usize {
-        if stack_start + i < vm.stack.len() {
-            locals.push(vm.stack[stack_start + i].clone());
-        }
-    }
+    // Arguments are stored in locals for GetLocal access
+    let locals = args;
 
     let call_frame = CallFrame {
         return_ip: vm.ip + 1,
@@ -145,17 +141,17 @@ fn execute_closure_body(
     };
     vm.call_stack.push(call_frame);
 
-    // 4. Replace instructions and reset IP
+    // 5. Replace instructions and reset IP
     vm.instructions = closure_body;
     vm.ip = 0;
 
     Ok(())
 }
-
 /// NEW: Basic tail call handler
 pub fn handle_tail_call(vm: &mut VmState, arg_count: u16) -> Result<(), VmError> {
-    // 1. Validate stack has enough arguments + function
-    if vm.stack.len() < arg_count as usize + 1 {
+    // 1. Validate stack has at least the closure (function)
+    // Note: arg_count can be 0, so we just need the closure on the stack
+    if vm.stack.is_empty() {
         return Err(VmError::StackUnderflow);
     }
 
@@ -225,37 +221,29 @@ fn execute_tail_call_body(
     closure_body: Vec<OpCode>,
     arg_count: u16,
 ) -> Result<(), VmError> {
-    // 1. Validate we have enough arguments + function on stack
-    if vm.stack.len() < arg_count as usize + 1 {
-        return Err(VmError::StackUnderflow);
-    }
+    // 1. Calculate stack_start BEFORE popping anything
+    let stack_start = vm.stack.len() - arg_count as usize;
 
-    // 2. The closure should be at the top of the stack
-    //    Arguments should be below it: [args..., closure]
-    //    We need to remove the closure from the stack and set up the call frame
-    //    to point to the arguments
-
-    // Remove the closure from stack (it's been validated already)
+    // 2. Pop the closure from the stack first
     let _closure = vm.stack.pop().unwrap();
 
-    // 3. Reuse the current call frame for tail call optimization
+    // 3. Pop arguments from the stack (in correct order)
+    let mut args: Vec<Value> = Vec::with_capacity(arg_count as usize);
+    for _ in 0..arg_count {
+        if let Some(arg) = vm.stack.pop() {
+            args.push(arg);
+        }
+    }
+
+    // 4. Reuse the current call frame for tail call optimization
     if let Some(current_frame) = vm.call_stack.last_mut() {
         current_frame.is_tail_call = true;
-
-        // Preserve local variables for tail call optimization
-        let stack_start = vm.stack.len() - arg_count as usize;
-        current_frame.locals.clear();
-        for i in 0..arg_count as usize {
-            if stack_start + i < vm.stack.len() {
-                current_frame.locals.push(vm.stack[stack_start + i].clone());
-            }
-        }
-
         current_frame.stack_start = stack_start;
+        current_frame.locals = args;
         current_frame.saved_instructions = Some(vm.instructions.clone());
     }
 
-    // 4. Replace instructions and reset IP
+    // 5. Replace instructions and reset IP
     vm.instructions = closure_body;
     vm.ip = 0;
 

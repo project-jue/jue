@@ -47,11 +47,16 @@ pub fn handle_ret(vm: &mut VmState) -> Result<(), VmError> {
         None
     };
 
-    // 4. For identity functions, if no return value was explicitly set,
-    //    return the first argument from the call frame's locals
-    let final_return_value = if return_value.is_none() && !call_frame.locals.is_empty() {
-        // Return first argument for identity function behavior
-        Some(call_frame.locals[0].clone())
+    // 4. For functions that completed without explicit return,
+    //    check if there's a computed value that should be returned
+    let final_return_value = if return_value.is_none() {
+        // If no explicit return value, look for the most recent computed value
+        // This handles the case where functions compute values but don't explicitly Ret
+        if vm.stack.len() > 0 {
+            vm.stack.pop()
+        } else {
+            None
+        }
     } else {
         return_value
     };

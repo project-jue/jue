@@ -1,12 +1,22 @@
-#!/usr/bin/env -S cargo run --bin jue
 use clap::{Arg, Command};
 use std::fs;
 use std::io::{self, Write};
 use std::process;
 use std::time::Instant;
 
-use jue_world::{compile, TrustTier};
-use physics_world::api::{ExecutionResult, PhysicsWorld};
+use jue_world::parsing::parser::parse;
+use jue_world::physics_integration::physics_compiler::compile_to_physics_world;
+use jue_world::shared::trust_tier::TrustTier;
+use physics_world::api::core::PhysicsWorld;
+use physics_world::api::integration::ExecutionResult;
+use physics_world::types::{OpCode, Value};
+
+/// Compilation result structure
+struct CompilationResult {
+    bytecode: Vec<OpCode>,
+    constants: Vec<Value>,
+    core_expr: Option<String>,
+}
 
 fn main() {
     // Initialize logging
@@ -132,8 +142,17 @@ fn main() {
     // Start timing
     let start_time = Instant::now();
 
-    // Compile the Jue source code
-    let compilation_result = match compile(&source, tier, step_limit, memory_limit) {
+    // Parse the Jue source code
+    let ast = match parse(&source) {
+        Ok(ast) => ast,
+        Err(e) => {
+            eprintln!("Parse error: {}", e);
+            process::exit(1);
+        }
+    };
+
+    // Compile to Physics World bytecode
+    let (bytecode, constants) = match compile_to_physics_world(&ast, tier) {
         Ok(result) => result,
         Err(e) => {
             eprintln!("Compilation error: {}", e);
@@ -144,48 +163,27 @@ fn main() {
     // Print debug information if requested
     if debug {
         println!("\n=== Compilation Results ===");
-        println!(
-            "Bytecode length: {} instructions",
-            compilation_result.bytecode.len()
-        );
-        println!("Constants: {}", compilation_result.constants.len());
-        println!(
-            "Required capabilities: {:?}",
-            compilation_result.required_capabilities
-        );
-        println!(
-            "Granted capabilities: {:?}",
-            compilation_result.granted_capabilities
-        );
-        println!("Sandboxed: {}", compilation_result.sandboxed);
+        println!("Bytecode length: {} instructions", bytecode.len());
+        println!("Constants: {}", constants.len());
     }
 
     // Print AST if requested
     if print_ast {
         println!("\n=== AST ===");
-        // Parse and print AST
-        match jue_world::parser::parse(&source) {
-            Ok(ast) => println!("{:#?}", ast),
-            Err(e) => eprintln!("Error parsing AST: {}", e),
-        }
+        println!("{:#?}", ast);
         return;
     }
 
     // Print CoreExpr if requested (for Formal/Verified tiers)
     if print_core {
-        if let Some(core_expr) = compilation_result.core_expr {
-            println!("\n=== CoreExpr ===");
-            println!("{}", core_expr);
-        } else {
-            println!("CoreExpr not available for this trust tier");
-        }
+        println!("CoreExpr not available for this trust tier");
         return;
     }
 
     // Print bytecode if requested
     if print_bytecode {
         println!("\n=== Bytecode ===");
-        for (i, opcode) in compilation_result.bytecode.iter().enumerate() {
+        for (i, opcode) in bytecode.iter().enumerate() {
             println!("{}: {:?}", i, opcode);
         }
         return;
@@ -195,10 +193,10 @@ fn main() {
     let mut physics_world = PhysicsWorld::new();
     let execution_result = physics_world.execute_actor(
         1, // Actor ID
-        compilation_result.bytecode,
-        compilation_result.constants,
-        compilation_result.step_limit,
-        compilation_result.memory_limit,
+        bytecode,
+        constants,
+        step_limit,
+        memory_limit,
     );
 
     // Print execution results
@@ -228,28 +226,33 @@ fn start_repl() {
                     continue;
                 }
 
-                // Try to compile and execute the input
-                match compile(input, TrustTier::Empirical, 1000, 1024) {
-                    Ok(compilation_result) => {
-                        let execution_result = physics_world.execute_actor(
-                            1,
-                            compilation_result.bytecode,
-                            compilation_result.constants,
-                            compilation_result.step_limit,
-                            compilation_result.memory_limit,
-                        );
-
-                        if let Some(output) = execution_result.output {
-                            println!("=> {}", output);
-                        } else if let Some(error) = execution_result.error {
-                            println!("Error: {}", error);
-                        } else {
-                            println!("=> (no output)");
-                        }
-                    }
+                // Parse and compile the input
+                let ast = match parse(input) {
+                    Ok(ast) => ast,
                     Err(e) => {
-                        println!("Compilation error: {}", e);
+                        println!("Parse error: {}", e);
+                        continue;
                     }
+                };
+
+                let (bytecode, constants) =
+                    match compile_to_physics_world(&ast, TrustTier::Empirical) {
+                        Ok(result) => result,
+                        Err(e) => {
+                            println!("Compilation error: {}", e);
+                            continue;
+                        }
+                    };
+
+                let execution_result =
+                    physics_world.execute_actor(1, bytecode, constants, 1000, 1024);
+
+                if let Some(output) = execution_result.output {
+                    println!("=> {}", output);
+                } else if let Some(error) = execution_result.error {
+                    println!("Error: {}", error);
+                } else {
+                    println!("=> (no output)");
                 }
             }
             Err(e) => {

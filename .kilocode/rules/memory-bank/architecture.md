@@ -36,7 +36,7 @@ CoreExpr → βη-reduction → Normal Form / ⊥
 **Purpose**: Dual-interpretation language and compiler. Bridges timeless meaning (Core) to efficient, stateful execution (Physics). For any Jue construct, it must answer both "What does this mean?" (denotational) and "How is this run?" (operational).
 
 **Key Components**:
-- `compiler.jue`: Compiles Jue AST to CoreExpr, generating proof obligations.
+- `compiler.jue`: Compiles Jue AST to CoreExpr, generating proof obligations. **Supports recursive function compilation with two-pass environment handling**.
 - `optimizer.jue`: Applies transformations (CBV, inlining) carrying proofs of equivalence to the original Core meaning.
 - `runtime.jue`: Manages **trust tiers** (Formal/Verified/Empirical/Experimental) for code execution.
 - `macro.jue`: **Hygienic, comptime-like macro system** with explicit capture escapes.

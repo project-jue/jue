@@ -837,194 +837,46 @@ impl VmState {
         })
     }
 
-    /// NEW: Complete tail call implementation with frame reuse
-    pub fn handle_tail_call(&mut self, function_ptr: u16, args: Vec<Value>) -> Result<(), VmError> {
-        // Check that we have a call frame to reuse
-        if self.call_stack.is_empty() {
-            return Err(VmError::StackUnderflow);
-        }
-
-        // Get current frame for reuse
-        let current_frame = self.call_stack.last_mut().unwrap();
-
-        // Check recursion depth even for tail calls
-        let new_depth = current_frame.recursion_depth + 1;
-        if new_depth > self.max_recursion_depth {
-            return Err(VmError::RecursionLimitExceeded);
-        }
-
-        // Reuse the current frame - this is the key TCO optimization
-        current_frame.return_ip = self.ip + 2; // Update return address
-        current_frame.recursion_depth = new_depth;
-        current_frame.is_tail_call = true;
-
-        // Clear locals for reuse
-        current_frame.locals.clear();
-        current_frame.closed_over.clear();
-
-        // Push arguments as new locals
-        current_frame.locals = args;
-
-        // Jump to function instead of calling
-        self.ip = function_ptr as usize;
-        Ok(())
+    /// Tail call optimization handler - delegates to opcodes::call::handle_tail_call
+    ///
+    /// This method is maintained on VmState for API compatibility with the step() function.
+    /// The actual implementation is consolidated in `vm/opcodes/call.rs` to avoid duplication.
+    ///
+    /// # Arguments
+    /// * `arg_count` - Number of arguments for the tail call
+    ///
+    /// # Note
+    /// The consolidated implementation in `opcodes/call.rs` handles:
+    /// - Stack validation
+    /// - Recursion depth checking
+    /// - Closure extraction from stack
+    /// - Frame reuse for TCO
+    /// - Instruction pointer reset
+    pub fn handle_tail_call(&mut self, arg_count: u16) -> Result<(), VmError> {
+        // Delegate to the consolidated implementation in opcodes/call.rs
+        // This avoids duplicating the call handling logic
+        call::handle_tail_call(self, arg_count)
     }
 
-    /// NEW: Enhanced handle_call with full escape analysis integration
+    /// Function call handler - delegates to opcodes::call::handle_call
+    ///
+    /// This method is maintained on VmState for API compatibility with the step() function.
+    /// The actual implementation is consolidated in `vm/opcodes/call.rs` to avoid duplication.
+    ///
+    /// # Arguments
+    /// * `arg_count` - Number of arguments for the function call
+    ///
+    /// # Note
+    /// The consolidated implementation in `opcodes/call.rs` handles:
+    /// - Stack validation
+    /// - Recursion depth checking
+    /// - Closure extraction and deserialization
+    /// - Call frame creation
+    /// - Instruction pointer management
     pub fn handle_call(&mut self, arg_count: u16) -> Result<(), VmError> {
-        let is_tail_position = self.is_current_position_tail();
-
-        // Pop the function from the stack
-        let function_value = self.stack.pop().ok_or(VmError::StackUnderflow)?;
-
-        // Check for stack underflow - ensure we have enough arguments
-        if self.stack.len() < arg_count as usize {
-            return Err(VmError::StackUnderflow);
-        }
-
-        // Copy arguments from the stack (preserve them for caller, copy to locals)
-        let start_idx = self.stack.len() - arg_count as usize;
-        let args: Vec<Value> = self.stack[start_idx..].to_vec();
-
-        // CRITICAL FIX: Save original instructions BEFORE replacing with closure bytecode
-        // This ensures we always have the main program instructions for restoration
-        let original_instructions = self.instructions.clone();
-        eprintln!(
-            "SAVED {} original instructions BEFORE closure bytecode replacement",
-            original_instructions.len()
-        );
-
-        // For now, we'll assume the function is a closure in the constant pool
-        // In a real implementation, this would handle different function types
-        let function_ptr = match function_value {
-            Value::Closure(ptr) => {
-                // Get the closure data from memory
-                // The closure format is: [4-byte body_ptr][4-byte per captured value]
-                let data = unsafe { self.memory.get_data(ptr) };
-
-                // For debugging, let's see what we have in memory
-                eprintln!("Closure data length: {}", data.len());
-                if data.len() >= 4 {
-                    // Get the closure body pointer (first 4 bytes)
-                    let body_ptr_bytes = &data[0..4];
-                    let body_ptr = HeapPtr::new(u32::from_le_bytes([
-                        body_ptr_bytes[0],
-                        body_ptr_bytes[1],
-                        body_ptr_bytes[2],
-                        body_ptr_bytes[3],
-                    ]));
-
-                    // Get the closure body from memory
-                    // The closure body format is: [4-byte size][serialized bytecode]
-                    let body_data = unsafe { self.memory.get_data(body_ptr) };
-                    eprintln!("Closure body data length: {}", body_data.len());
-
-                    if body_data.len() >= 4 {
-                        let size_bytes = &body_data[0..4];
-                        let size = u32::from_le_bytes([
-                            size_bytes[0],
-                            size_bytes[1],
-                            size_bytes[2],
-                            size_bytes[3],
-                        ]);
-                        eprintln!("Expected bytecode size: {}", size);
-
-                        if body_data.len() >= 4 + size as usize {
-                            let serialized_bytecode = &body_data[4..4 + size as usize];
-                            eprintln!("Serialized bytecode length: {}", serialized_bytecode.len());
-
-                            // Deserialize the bytecode
-                            match bincode::deserialize::<Vec<OpCode>>(serialized_bytecode) {
-                                Ok(bytecode) => {
-                                    eprintln!(
-                                        "Successfully deserialized {} opcodes",
-                                        bytecode.len()
-                                    );
-
-                                    // Replace current instructions with closure bytecode
-                                    self.instructions = bytecode;
-
-                                    // Return 0 as the starting IP for the closure
-                                    0
-                                }
-                                Err(e) => {
-                                    eprintln!("Failed to deserialize bytecode: {:?}", e);
-                                    return Err(VmError::TypeMismatch);
-                                }
-                            }
-                        } else {
-                            eprintln!(
-                                "Body data too short: expected {} bytes, got {}",
-                                4 + size as usize,
-                                body_data.len()
-                            );
-                            return Err(VmError::TypeMismatch);
-                        }
-                    } else {
-                        eprintln!(
-                            "Body data too short for size header: {} bytes",
-                            body_data.len()
-                        );
-                        return Err(VmError::TypeMismatch);
-                    }
-                } else {
-                    eprintln!(
-                        "Closure data too short for body pointer: {} bytes",
-                        data.len()
-                    );
-                    return Err(VmError::TypeMismatch);
-                }
-            }
-            _ => return Err(VmError::TypeMismatch),
-        };
-
-        if is_tail_position {
-            self.handle_tail_call(function_ptr, args)?;
-            Ok(())
-        } else {
-            // Regular call with escape analysis integration
-            let current_depth = if let Some(last_frame) = self.call_stack.last() {
-                last_frame.recursion_depth + 1
-            } else {
-                1
-            };
-
-            if current_depth > self.max_recursion_depth {
-                return Err(VmError::RecursionLimitExceeded);
-            }
-
-            // Get escape analysis info from function metadata
-            let function_info = self.get_function_info(function_ptr)?;
-            let local_count = function_info.local_count;
-            let escape_info = function_info.escape_info;
-
-            // Need to save the original instructions at the right time in the closure case
-            // The original_instructions variable was already captured in the closure case above
-
-            let mut call_frame = CallFrame {
-                return_ip: self.ip + 1,        // Return to the next instruction after Call
-                stack_start: self.stack.len(), // Stack state before function call
-                saved_instructions: Some(original_instructions), // Use the saved instructions
-                recursion_depth: current_depth,
-                locals: args, // Arguments are stored in call frame locals
-                closed_over: HashMap::new(),
-                is_tail_call: false,
-                frame_id: self.next_frame_id(),
-            };
-
-            // Process closed-over variables based on escape analysis
-            for (var_index, escape_status) in escape_info {
-                if escape_status == EscapeStatus::Escaping {
-                    // This variable escapes - needs to be in closed_over
-                    let value = self.get_local_var(var_index)?;
-                    call_frame.closed_over.insert(var_index, value);
-                }
-            }
-
-            self.call_stack.push(call_frame);
-            self.ip = function_ptr as usize;
-            Ok(())
-        }
+        // Delegate to the consolidated implementation in opcodes/call.rs
+        // This avoids duplicating the call handling logic
+        call::handle_call(self, arg_count)
     }
 
     /// NEW: Helper method to read u16 from instructions
@@ -1259,12 +1111,9 @@ impl VmState {
                 // Note: Call handler sets ip to 0 for closure execution
             }
             OpCode::TailCall(arg_count) => {
-                // Use the new enhanced handle_tail_call method from VmState
-                let args = self
-                    .stack
-                    .drain((self.stack.len() - *arg_count as usize)..)
-                    .collect();
-                self.handle_tail_call(*arg_count, args)?;
+                // Use the consolidated handle_tail_call from opcodes/call.rs
+                // The implementation handles argument extraction from stack internally
+                self.handle_tail_call(*arg_count)?;
                 // Note: TailCall handler sets ip to 0 for closure execution
             }
             OpCode::Ret => {
@@ -1307,6 +1156,18 @@ impl VmState {
             }
             OpCode::Gt => {
                 comparison::handle_gt(self)?;
+                self.ip += 1;
+            }
+            OpCode::Lte => {
+                comparison::handle_lte(self)?;
+                self.ip += 1;
+            }
+            OpCode::Gte => {
+                comparison::handle_gte(self)?;
+                self.ip += 1;
+            }
+            OpCode::Ne => {
+                comparison::handle_ne(self)?;
                 self.ip += 1;
             }
             OpCode::Sub => {

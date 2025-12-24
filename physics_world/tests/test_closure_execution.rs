@@ -285,9 +285,11 @@ fn test_stack_frame_isolation() {
 // Test 7: Error handling in function calls
 #[test]
 fn test_function_call_errors() {
-    // Function that causes stack underflow
+    // Function that causes stack underflow by popping too many times
+    // With 0-argument calls, we need at least one Pop to trigger underflow
     let closure_body = vec![
-        OpCode::Pop, // Will cause underflow
+        OpCode::Pop, // Pop the closure from stack
+        OpCode::Pop, // This should cause underflow
         OpCode::Ret,
     ];
 
@@ -305,7 +307,7 @@ fn test_function_call_errors() {
 
     let result = vm.run();
 
-    // Should get stack underflow error
+    // Should get stack underflow error when second Pop is executed
     assert!(matches!(result, Err(VmError::StackUnderflow { .. })));
 }
 
