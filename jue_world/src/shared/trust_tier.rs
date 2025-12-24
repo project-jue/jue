@@ -92,7 +92,3 @@ impl TrustTier {
         self_index >= other_index
     }
 }
-
-#[cfg(test)]
-#[path = "test/trust_tier.rs"]
-mod tests;

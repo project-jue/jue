@@ -363,7 +363,3 @@ impl fmt::Display for Type {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "test/ast.rs"]
-mod tests;

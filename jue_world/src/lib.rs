@@ -8,38 +8,39 @@
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
 
-/// Abstract Syntax Tree definitions for Jue language
-pub mod ast;
+/// Shared infrastructure including AST definitions and error handling
+pub mod shared;
 
-/// Capability-mediated Foreign Function Interface
-pub mod capability_ffi;
+/// Token definitions
+pub mod token;
 
-/// Main compilation pipeline and trust-tier based compilation
-pub mod compiler;
-
-/// Compile-time execution with restricted capabilities
-pub mod comptime;
-
-/// Error handling and reporting
-pub mod error;
-
-/// Expression parsing from tokens
-pub mod expression_parser;
-
-/// Foreign Function Interface with capability mediation
+/// FFI module
 pub mod ffi;
 
-/// Integration with Core-World and Physics-World
-pub mod integration;
+/// Core compilation layer for Core-World integration
+pub mod core_compilation;
+
+/// Physics-World integration layer
+/// Physics-World integration layer
+pub mod physics_integration;
+
+/// Foreign Function Interface system
+pub mod ffi_system;
 
 /// Macro system with hygienic expansion
 pub mod macro_system;
 
-/// Parser for Jue language source code
-pub mod parser;
+/// Parsing infrastructure
+pub mod parsing;
 
-/// Resource limit enforcement and monitoring
-pub mod resource_limits;
+/// Integration with Core-World and Physics-World
+pub mod integration;
+
+/// Compiler infrastructure
+pub mod compiler;
+
+/// Compile-time execution with restricted capabilities
+pub mod comptime;
 
 /// Sandbox wrapper for experimental tier execution
 pub mod sandbox;
@@ -47,44 +48,51 @@ pub mod sandbox;
 /// Sandboxed compile-time execution with strict capability enforcement
 pub mod sandboxed_comptime;
 
-/// Structured error handling with detailed context
-pub mod structured_error;
-
 /// Test timeout and resource management utilities
 pub mod test_timeout;
 
-/// Tokenization of Jue source code
-pub mod token;
+pub use crate::shared::ast;
+pub use crate::shared::error;
+pub use crate::shared::resource_limits;
+pub use crate::shared::structured_error;
+pub use crate::shared::trust_tier;
+pub use crate::shared::type_system;
 
-/// Trust tier system and capability management
-pub mod trust_tier;
+pub use crate::core_compilation::capability_analyzer;
+pub use crate::core_compilation::core_compiler;
+pub use crate::core_compilation::escape_analysis;
 
-/// Type system and type checking
-pub mod type_system;
+pub use crate::physics_integration::bytecode_generator;
+pub use crate::physics_integration::physics_compiler;
+pub use crate::physics_integration::runtime_checks;
+pub use crate::physics_integration::sandbox_wrapper;
 
-pub use crate::capability_ffi::{
-    CapabilityMediatedFfiBuilder, CapabilityMediatedFfiCall, CapabilityMediatedFfiGenerator,
-    CapabilityMediatedFfiValidator,
+pub use crate::ffi_system::capability_mediator;
+pub use crate::ffi_system::ffi_call_generator;
+pub use crate::ffi_system::global_ffi_registry;
+pub use crate::ffi_system::standard_functions;
+
+pub use crate::macro_system::macro_expander;
+pub use crate::macro_system::macro_ffi;
+
+pub use crate::parsing::expression_parser;
+pub use crate::parsing::parser;
+pub use crate::parsing::tokenizer;
+
+pub use crate::comptime::{
+    ComptimeEnv, ComptimeExecutor, ComptimeResult,
 };
-pub use crate::compiler::{
-    compile, CapabilityCheck, CheckType, CompilationResult, EmpiricalResult,
-};
-pub use crate::error::{CapabilityViolation, CompilationError};
-pub use crate::macro_system::MacroDefinition;
-pub use crate::resource_limits::{
-    ResourceLimitBuilder, ResourceLimitEnforcer, ResourceLimits, ResourceMonitor,
-    ResourceUsageReport,
-};
+
+// Note: recursion_analysis.rs contains test modules, not exportable types
+// pub use crate::recursion_analysis::{...};
+
 pub use crate::sandbox::{Sandbox, SandboxBuilder, SandboxConfig};
+
 pub use crate::sandboxed_comptime::{
     execute_sandboxed_comptime, SandboxedComptimeBuilder, SandboxedComptimeEnv,
     SandboxedComptimeExecutor, SandboxedComptimeResult,
 };
-pub use crate::structured_error::{
-    ErrorContext, ErrorFormat, ErrorReporter, ErrorSeverity, ErrorType, StructuredError,
-    StructuredErrorBuilder, StructuredErrorHandler,
-};
+
 pub use crate::test_timeout::{run_test_with_guard, TestError, TestGuard};
-pub use crate::trust_tier::TrustTier;
-pub use crate::type_system::TypeSignature;
+
 pub use physics_world::types::{Capability, HostFunction};

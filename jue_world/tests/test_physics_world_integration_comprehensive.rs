@@ -1,9 +1,9 @@
 use jue_world::ast::{AstNode, Literal};
-use jue_world::integration::physics::{compile_to_physics_world, PhysicsWorldCompiler};
 use jue_world::trust_tier::TrustTier;
 /// Comprehensive Integration Tests for Physics-World TODO Implementation
 /// Tests all newly implemented features working together end-to-end
-use physics_world::types::{Capability, OpCode, Value};
+use jue_world::physics_compiler::{compile_to_physics_world, PhysicsWorldCompiler};
+use physics_world::types::{OpCode, Value};
 use physics_world::vm::VmState;
 
 #[cfg(test)]

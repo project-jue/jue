@@ -1,0 +1,190 @@
+use jue_world::compiler::compile;
+use jue_world::trust_tier::TrustTier;
+use physics_world::types::OpCode;
+
+fn main() {
+    println!("=== Testing Recursive Function Compilation Analysis ===\n");
+
+    // Test 1: Simple recursive factorial function
+    let factorial_source = r#"
+        (let ((fact (lambda (n)
+                      (if (<= n 1)
+                          1
+                          (* n (fact (- n 1)))))))
+          (fact 5))
+    "#;
+
+    println!("Test 1: Compiling factorial function...");
+    match compile(factorial_source, TrustTier::Empirical, 1000, 1024) {
+        Ok(compilation_result) => {
+            println!("✅ Compilation successful");
+            println!("Bytecode length: {}", compilation_result.bytecode.len());
+            println!("Constants length: {}", compilation_result.constants.len());
+
+            // Check for MakeClosure opcodes
+            let closure_count = compilation_result
+                .bytecode
+                .iter()
+                .filter(|op| matches!(op, OpCode::MakeClosure(_, _)))
+                .count();
+            println!("Number of MakeClosure opcodes: {}", closure_count);
+
+            // Print detailed bytecode for analysis
+            println!("\nBytecode details:");
+            for (i, op) in compilation_result.bytecode.iter().enumerate() {
+                println!("  {}: {:?}", i, op);
+            }
+
+            // Print constants for analysis
+            println!("\nConstants:");
+            for (i, constant) in compilation_result.constants.iter().enumerate() {
+                println!("  {}: {:?}", i, constant);
+            }
+
+            // Analyze the recursive call issue
+            println!("\n🔍 RECURSION ANALYSIS:");
+            analyze_recursion_bytecode(&compilation_result.bytecode, &compilation_result.constants);
+        }
+        Err(e) => {
+            println!("❌ Compilation failed: {:?}", e);
+        }
+    }
+
+    println!("\n" + "=".repeat(60) + "\n");
+
+    // Test 2: Simple lambda without recursion (for comparison)
+    let simple_lambda_source = r#"
+        (let ((add1 (lambda (x) (+ x 1))))
+          (add1 5))
+    "#;
+
+    println!("Test 2: Compiling simple lambda (for comparison)...");
+    match compile(simple_lambda_source, TrustTier::Empirical, 1000, 1024) {
+        Ok(compilation_result) => {
+            println!("✅ Compilation successful");
+            println!("Bytecode length: {}", compilation_result.bytecode.len());
+            println!("Constants length: {}", compilation_result.constants.len());
+
+            let closure_count = compilation_result
+                .bytecode
+                .iter()
+                .filter(|op| matches!(op, OpCode::MakeClosure(_, _)))
+                .count();
+            println!("Number of MakeClosure opcodes: {}", closure_count);
+
+            // Print detailed bytecode for comparison
+            println!("\nBytecode details:");
+            for (i, op) in compilation_result.bytecode.iter().enumerate() {
+                println!("  {}: {:?}", i, op);
+            }
+
+            println!("\nConstants:");
+            for (i, constant) in compilation_result.constants.iter().enumerate() {
+                println!("  {}: {:?}", i, constant);
+            }
+        }
+        Err(e) => {
+            println!("❌ Compilation failed: {:?}", e);
+        }
+    }
+
+    println!("\n" + "=".repeat(60) + "\n");
+
+    // Test 3: Mutual recursion
+    let mutual_recursion_source = r#"
+        (let ((is-even? (lambda (n)
+                          (if (= n 0)
+                              true
+                              (is-odd? (- n 1)))))
+              (is-odd? (lambda (n)
+                         (if (= n 0)
+                             false
+                             (is-even? (- n 1))))))
+          (is-even? 4))
+    "#;
+
+    println!("Test 3: Compiling mutual recursion function...");
+    match compile(mutual_recursion_source, TrustTier::Empirical, 1000, 1024) {
+        Ok(compilation_result) => {
+            println!("✅ Compilation successful");
+            println!("Bytecode length: {}", compilation_result.bytecode.len());
+            println!("Constants length: {}", compilation_result.constants.len());
+
+            let closure_count = compilation_result
+                .bytecode
+                .iter()
+                .filter(|op| matches!(op, OpCode::MakeClosure(_, _)))
+                .count();
+            println!("Number of MakeClosure opcodes: {}", closure_count);
+
+            // Print detailed bytecode for analysis
+            println!("\nBytecode details:");
+            for (i, op) in compilation_result.bytecode.iter().enumerate() {
+                println!("  {}: {:?}", i, op);
+            }
+
+            println!("\n🔍 MUTUAL RECURSION ANALYSIS:");
+            analyze_recursion_bytecode(&compilation_result.bytecode, &compilation_result.constants);
+        }
+        Err(e) => {
+            println!("❌ Compilation failed: {:?}", e);
+        }
+    }
+}
+
+/// Analyze bytecode to identify recursion issues
+fn analyze_recursion_bytecode(bytecode: &[OpCode], constants: &[physics_world::types::Value]) {
+    println!("Looking for variable references that should be recursive...");
+
+    // Look for GetLocal operations that reference variables
+    let mut variable_refs = Vec::new();
+    for (i, op) in bytecode.iter().enumerate() {
+        match op {
+            OpCode::GetLocal(offset) => {
+                variable_refs.push((i, *offset));
+                println!(
+                    "  Variable reference at instruction {}: GetLocal({})",
+                    i, offset
+                );
+            }
+            OpCode::MakeClosure(code_idx, capture_count) => {
+                println!(
+                    "  Closure creation at instruction {}: code_idx={}, capture_count={}",
+                    i, code_idx, capture_count
+                );
+                if *code_idx < constants.len() {
+                    println!("    Constant at {}: {:?}", code_idx, constants[*code_idx]);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    println!("\n🚨 POTENTIAL ISSUES:");
+
+    // Check if recursive variables are being properly captured
+    let mut has_recursive_calls = false;
+    for (i, op) in bytecode.iter().enumerate() {
+        match op {
+            OpCode::Call(arg_count) => {
+                // Look backwards to see what function is being called
+                if i >= 1 {
+                    if let OpCode::GetLocal(_) = bytecode[i - 1] {
+                        println!("  Instruction {}: Function call via variable reference (potential recursion)", i);
+                        has_recursive_calls = true;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if !has_recursive_calls {
+        println!("  ❌ No recursive function calls detected - this suggests the recursive variable is not accessible");
+        println!("  💡 This means the recursive function name is not in scope when the lambda body is compiled");
+    } else {
+        println!(
+            "  ✅ Recursive calls detected - issue may be in closure capture or environment setup"
+        );
+    }
+}

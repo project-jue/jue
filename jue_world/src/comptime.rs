@@ -145,6 +145,13 @@ impl ComptimeExecutor {
     /// Execute a single opcode
     fn execute_opcode(&mut self, opcode: OpCode) -> Result<(), CompilationError> {
         match opcode {
+            OpCode::Lte | OpCode::Gte | OpCode::Ne => {
+                // TODO: Implement these comparison operations in comptime
+                return Err(CompilationError::InternalError(format!(
+                    "Comparison operation {:?} not implemented in comptime",
+                    opcode
+                )));
+            }
             OpCode::Nil => self.stack.push(Value::Nil),
             OpCode::Bool(b) => self.stack.push(Value::Bool(b)),
             OpCode::Int(i) => self.stack.push(Value::Int(i)),
@@ -190,7 +197,8 @@ impl ComptimeExecutor {
             OpCode::StrConcat => {
                 // Concatenate two strings
                 if let (Some(Value::String(right)), Some(Value::String(left))) =
-                    (self.stack.pop(), self.stack.pop()) {
+                    (self.stack.pop(), self.stack.pop())
+                {
                     let mut result = left;
                     result.push_str(&right);
                     self.stack.push(Value::String(result));
@@ -203,7 +211,8 @@ impl ComptimeExecutor {
             OpCode::StrIndex => {
                 // Get character at index
                 if let (Some(Value::Int(idx)), Some(Value::String(s))) =
-                    (self.stack.pop(), self.stack.pop()) {
+                    (self.stack.pop(), self.stack.pop())
+                {
                     if idx >= 0 && (idx as usize) < s.len() {
                         let char_at_index = s.chars().nth(idx as usize).unwrap();
                         self.stack.push(Value::String(char_at_index.to_string()));
@@ -552,7 +561,11 @@ impl ComptimeExecutor {
                 ));
             }
             // Sandbox instructions - not supported in comptime
-            OpCode::InitSandbox | OpCode::IsolateCapabilities | OpCode::SetErrorHandler(_) | OpCode::LogSandboxViolation | OpCode::CleanupSandbox => {
+            OpCode::InitSandbox
+            | OpCode::IsolateCapabilities
+            | OpCode::SetErrorHandler(_)
+            | OpCode::LogSandboxViolation
+            | OpCode::CleanupSandbox => {
                 return Err(CompilationError::ComptimeError(
                     "Sandbox instructions not supported in comptime execution".to_string(),
                 ));

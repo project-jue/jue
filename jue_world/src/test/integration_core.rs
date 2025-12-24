@@ -4,9 +4,8 @@ mod tests {
 
     use crate::{
         ast::{AstNode, Literal},
-        error::SourceLocation,
+        error::{CompilationError, SourceLocation},
         integration::CoreWorldCompiler,
-        CompilationError,
     };
 
     #[test]

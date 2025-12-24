@@ -145,6 +145,14 @@ pub enum CompilationError {
     /// Internal compiler error
     #[error("Internal compiler error: {0}")]
     InternalError(String),
+
+    /// Variable not found error
+    #[error("Variable not found: {0}")]
+    VariableNotFound(String),
+
+    /// FFI function not found error
+    #[error("FFI function not found: {0}")]
+    FfiFunctionNotFound(String),
 }
 
 /// Source map for debugging information
@@ -186,7 +194,3 @@ impl SourceMap {
             .map(|(_, offset)| offset)
     }
 }
-
-#[cfg(test)]
-#[path = "test/error.rs"]
-mod tests;

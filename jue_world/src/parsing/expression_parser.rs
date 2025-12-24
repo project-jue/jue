@@ -55,7 +55,7 @@ impl<'a> ExpressionParser<'a> {
                 result
             }
             Some(Token::Number(n)) => {
-                let result = self.parse_number(n);
+                let result = self.parse_number_float(*n);
                 self.advance();
                 result
             }
@@ -499,16 +499,33 @@ impl<'a> ExpressionParser<'a> {
                 Some(Token::CloseParen) => {
                     self.advance();
 
-                    // FIXED: Check if this is a variable (alphanumeric) or symbol (operator)
-                    // If it's alphanumeric, treat it as a variable reference
-                    if function_name.chars().all(|c| c.is_alphanumeric()) {
+                    // FIXED: Check if this is a variable (valid identifier) or symbol (operator)
+                    // Exclude single-character operators from being treated as variables
+                    let single_char_ops = ["+", "-", "*", "/", "%", "<", ">", "=", "!"];
+
+                    if single_char_ops.contains(&function_name.as_str()) {
+                        // Single-character operators should always be treated as symbols
+                        return Ok(AstNode::Call {
+                            function: Box::new(AstNode::Symbol(function_name)),
+                            arguments,
+                            location: SourceLocation::default(),
+                        });
+                    } else if function_name.chars().all(|c| {
+                        c.is_alphanumeric()
+                            || c == '-'
+                            || c == '?'
+                            || c == '!'
+                            || c == '_'
+                            || c == ':'
+                    }) {
+                        // Multi-character names with valid identifier characters are variables
                         return Ok(AstNode::Call {
                             function: Box::new(AstNode::Variable(function_name)),
                             arguments,
                             location: SourceLocation::default(),
                         });
                     } else {
-                        // Otherwise, treat it as a symbol (built-in operator)
+                        // Everything else is treated as a symbol (built-in operator)
                         return Ok(AstNode::Call {
                             function: Box::new(AstNode::Symbol(function_name)),
                             arguments,
@@ -572,25 +589,20 @@ impl<'a> ExpressionParser<'a> {
         Ok(AstNode::Literal(Literal::String(string.to_string())))
     }
 
-    fn parse_number(&self, number: &str) -> Result<AstNode, CompilationError> {
-        if number.contains('.') {
-            if let Ok(value) = number.parse::<f64>() {
-                Ok(AstNode::Literal(Literal::Float(value)))
-            } else {
-                Err(CompilationError::ParseError {
-                    message: format!("Invalid float: {}", number),
-                    location: SourceLocation::default(),
-                })
-            }
+    fn parse_number(&self, _number: &str) -> Result<AstNode, CompilationError> {
+        // This method is no longer used - parse_number_float handles Token::Number(f64)
+        Err(CompilationError::ParseError {
+            message: "Internal error: parse_number called with string".to_string(),
+            location: SourceLocation::default(),
+        })
+    }
+
+    /// Parse a number from f64 token value
+    fn parse_number_float(&self, number: f64) -> Result<AstNode, CompilationError> {
+        if number.fract() != 0.0 {
+            Ok(AstNode::Literal(Literal::Float(number)))
         } else {
-            if let Ok(value) = number.parse::<i64>() {
-                Ok(AstNode::Literal(Literal::Int(value)))
-            } else {
-                Err(CompilationError::ParseError {
-                    message: format!("Invalid integer: {}", number),
-                    location: SourceLocation::default(),
-                })
-            }
+            Ok(AstNode::Literal(Literal::Int(number as i64)))
         }
     }
 

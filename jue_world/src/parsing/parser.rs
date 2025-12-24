@@ -100,7 +100,15 @@ impl Parser {
                 }
                 _ if c.is_digit(10) => {
                     let number = self.read_number()?;
-                    tokens.push(Token::Number(number));
+                    // Parse as f64 for Token::Number
+                    if let Ok(num) = number.parse::<f64>() {
+                        tokens.push(Token::Number(num));
+                    } else {
+                        return Err(CompilationError::ParseError {
+                            message: format!("Invalid number: {}", number),
+                            location: self.current_location(),
+                        });
+                    }
                 }
                 _ if c.is_alphabetic()
                     || c == ':'
@@ -111,8 +119,7 @@ impl Parser {
                     || c == '/'
                     || c == '='
                     || c == '<'
-                    || c == '>'
-                    || c == '!' =>
+                    || c == '>' =>
                 {
                     let symbol = self.read_symbol()?;
                     tokens.push(match symbol.as_str() {
@@ -282,7 +289,3 @@ pub fn parse(source: &str) -> Result<AstNode, CompilationError> {
     let mut parser = Parser::new(source.to_string());
     parser.parse()
 }
-
-#[cfg(test)]
-#[path = "test/parser.rs"]
-mod tests;

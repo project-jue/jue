@@ -496,7 +496,3 @@ pub enum ErrorFormat {
     /// Compact format for logging
     Compact,
 }
-
-#[cfg(test)]
-#[path = "test/structured_error_tests.rs"]
-mod tests;

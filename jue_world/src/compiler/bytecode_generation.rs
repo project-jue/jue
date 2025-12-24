@@ -40,6 +40,25 @@ pub fn compile_ast_to_bytecode(
                 // Start closure capture context
                 env.start_closure_capture();
 
+                // RECURSIVE REFERENCE HANDLING:
+                // Before pushing the lambda scope, scan for variables in outer scopes
+                // that might be recursive references (variables defined in the current let scope)
+                let outer_scope_vars: Vec<(String, u16)> = if env.scopes.len() > 1 {
+                    // Get variables from the immediate outer scope (the let scope)
+                    env.scopes
+                        .last()
+                        .map(|scope| {
+                            scope
+                                .variables
+                                .iter()
+                                .map(|(name, offset)| (name.clone(), *offset))
+                                .collect()
+                        })
+                        .unwrap_or_default()
+                } else {
+                    Vec::new()
+                };
+
                 // Push new scope for lambda parameters
                 env.push_scope();
 
@@ -56,7 +75,20 @@ pub fn compile_ast_to_bytecode(
                 env.pop_scope();
 
                 // Get captured variables and end capture context
-                let captures = env.end_closure_capture();
+                let mut captures = env.end_closure_capture();
+
+                // RECURSIVE CAPTURE: Add any outer scope variables that are referenced
+                // in the lambda body but weren't captured through normal lookup
+                // This handles the case where a recursive function references itself
+                for (name, offset) in &outer_scope_vars {
+                    // Check if this variable is used in the body but not yet captured
+                    if !captures.iter().any(|(n, _)| n == name) {
+                        // Check if the body references this variable
+                        if references_variable(body, name) {
+                            captures.push((name.clone(), *offset));
+                        }
+                    }
+                }
 
                 // Store the closure body in the constants
                 // For now, we'll use a placeholder - the VM will create an identity function
@@ -64,7 +96,7 @@ pub fn compile_ast_to_bytecode(
                 constants.push(Value::Int(0)); // Placeholder - will be replaced by VM
 
                 // Capture variables onto the stack
-                for (name, offset) in &captures {
+                for (_name, offset) in &captures {
                     // Generate instruction to load the captured variable
                     bytecode.push(OpCode::GetLocal(*offset));
                 }
@@ -208,15 +240,25 @@ pub fn compile_ast_to_bytecode(
                 // Push new scope for let bindings
                 env.push_scope();
 
-                // Process bindings
-                for (name, value) in bindings {
-                    // Compile the value expression
+                // TWO-PASS APPROACH FOR RECURSIVE BINDINGS:
+                // Pass 1: Pre-define all variables in the scope with placeholder offsets
+                // This allows recursive references within lambda bodies
+                let mut binding_offsets: Vec<(String, u16)> = Vec::new();
+                for (name, _value) in bindings {
+                    let offset = env.define_variable(name);
+                    binding_offsets.push((name.clone(), offset));
+                    // Push a placeholder value onto the stack for this variable
+                    bytecode.push(OpCode::Int(0)); // Placeholder
+                }
+
+                // Pass 2: Compile the actual values and update the stack slots
+                for (idx, (name, value)) in bindings.iter().enumerate() {
+                    let offset = binding_offsets[idx].1;
+
+                    // Compile the value expression (now with all let-bound variables visible)
                     generate_node(bytecode, constants, closure_bodies, value, env);
 
-                    // Define the variable in the current scope
-                    let offset = env.define_variable(name);
-
-                    // Generate SetLocal instruction to store the value
+                    // Update the stack slot with the actual value
                     bytecode.push(OpCode::SetLocal(offset));
                 }
 
@@ -288,4 +330,79 @@ pub fn compile_ast_to_bytecode(
         &mut env,
     );
     Ok((bytecode, constants))
+}
+
+/// Helper function to check if an AST node references a specific variable
+/// Used for detecting recursive references in lambda bodies
+fn references_variable(node: &ast::AstNode, var_name: &str) -> bool {
+    match node {
+        ast::AstNode::Variable(name) => name == var_name,
+        ast::AstNode::Symbol(name) => name == var_name,
+        ast::AstNode::Lambda {
+            body, parameters, ..
+        } => {
+            // Don't count if the variable is shadowed by a parameter
+            if parameters.iter().any(|p| p == var_name) {
+                false
+            } else {
+                references_variable(body, var_name)
+            }
+        }
+        ast::AstNode::Call {
+            function,
+            arguments,
+            ..
+        } => {
+            references_variable(function, var_name)
+                || arguments
+                    .iter()
+                    .any(|arg| references_variable(arg, var_name))
+        }
+        ast::AstNode::Let { bindings, body, .. } => {
+            // Check bindings (but not if the variable is being defined)
+            let in_bindings = bindings
+                .iter()
+                .any(|(name, value)| name != var_name && references_variable(value, var_name));
+            // Check body (but not if the variable is shadowed)
+            let shadowed = bindings.iter().any(|(name, _)| name == var_name);
+            in_bindings || (!shadowed && references_variable(body, var_name))
+        }
+        ast::AstNode::If {
+            condition,
+            then_branch,
+            else_branch,
+            ..
+        } => {
+            references_variable(condition, var_name)
+                || references_variable(then_branch, var_name)
+                || references_variable(else_branch, var_name)
+        }
+        ast::AstNode::Literal(_) => false,
+        ast::AstNode::TrustTier { expression, .. } => references_variable(expression, var_name),
+        ast::AstNode::RequireCapability { .. } => false,
+        ast::AstNode::HasCapability { .. } => false,
+        ast::AstNode::TypeSignature { .. } => false,
+        ast::AstNode::MacroDefinition {
+            body, parameters, ..
+        } => {
+            // Don't count if the variable is shadowed by a parameter
+            if parameters.iter().any(|p| p == var_name) {
+                false
+            } else {
+                references_variable(body, var_name)
+            }
+        }
+        ast::AstNode::MacroExpansion { arguments, .. } => arguments
+            .iter()
+            .any(|arg| references_variable(arg, var_name)),
+        ast::AstNode::FfiCall { arguments, .. } => arguments
+            .iter()
+            .any(|arg| references_variable(arg, var_name)),
+        ast::AstNode::List { elements, .. } => elements
+            .iter()
+            .any(|elem| references_variable(elem, var_name)),
+        ast::AstNode::Cons { car, cdr, .. } => {
+            references_variable(car, var_name) || references_variable(cdr, var_name)
+        }
+    }
 }

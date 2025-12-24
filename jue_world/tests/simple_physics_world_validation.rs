@@ -1,8 +1,8 @@
 use jue_world::ast::{AstNode, Literal};
-use jue_world::integration::physics::PhysicsWorldCompiler;
-use jue_world::trust_tier::TrustTier;
 /// Simple validation test for Physics-World TODO features
 /// This test validates that all the TODO features have been implemented
+use jue_world::physics_compiler::PhysicsWorldCompiler;
+use jue_world::trust_tier::TrustTier;
 use physics_world::types::{OpCode, Value};
 use physics_world::vm::VmState;
 
@@ -54,7 +54,7 @@ fn test_physics_world_todo_features_implemented() {
     let ast = AstNode::Literal(Literal::Int(1));
     // Use compile_to_physics_world which applies tier-specific processing
     let (bytecode, _) =
-        jue_world::integration::physics::compile_to_physics_world(&ast, TrustTier::Experimental)
+        jue_world::physics_compiler::compile_to_physics_world(&ast, TrustTier::Experimental)
             .unwrap();
 
     // Should contain sandbox wrapper operations

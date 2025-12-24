@@ -1,6 +1,6 @@
 /// Test Symbol compilation to Physics-World
 use jue_world::ast::{AstNode, Literal};
-use jue_world::integration::physics::{compile_to_physics_world, PhysicsWorldCompiler};
+use jue_world::physics_compiler::{compile_to_physics_world, PhysicsWorldCompiler};
 use jue_world::trust_tier::TrustTier;
 use physics_world::types::OpCode;
 
