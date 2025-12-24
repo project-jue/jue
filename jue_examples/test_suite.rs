@@ -1,36 +1,34 @@
-use jue_world::compiler::compile;
-use jue_world::parser::parse;
-use jue_world::trust_tier::TrustTier;
+use jue_world::parsing::parser::parse;
+use jue_world::physics_integration::physics_compiler::compile_to_physics_world;
+use jue_world::shared::trust_tier::TrustTier;
+use physics_world::api::core::PhysicsWorld;
 use physics_world::types::{OpCode, Value};
-use physics_world::api::PhysicsWorld;
 
 fn test_jue_program(name: &str, source: &str) {
     println!("\n=== Testing {} ===", name);
 
     // Test parsing
     println!("1. Testing parsing...");
-    match parse(source) {
-        Ok(ast) => {
-            println!("✓ Successfully parsed {}", name);
-            println!("   AST: {:?}", ast);
-        }
+    let ast = match parse(source) {
+        Ok(ast) => ast,
         Err(e) => {
             println!("✗ Failed to parse {}: {}", name, e);
             return;
         }
-    }
+    };
+    println!("✓ Successfully parsed {}", name);
+    println!("   AST: {:?}", ast);
 
-    // Test compilation (will show current compiler status)
+    // Test compilation
     println!("2. Testing compilation...");
-    match compile(source, TrustTier::Formal, 1000, 1024) {
-        Ok(result) => {
+    match compile_to_physics_world(&ast, TrustTier::Formal) {
+        Ok((bytecode, constants)) => {
             println!("✓ Successfully compiled {}", name);
-            println!("   Bytecode length: {}", result.bytecode.len());
-            println!("   Constants: {:?}", result.constants);
+            println!("   Bytecode length: {}", bytecode.len());
+            println!("   Constants: {:?}", constants);
         }
         Err(e) => {
-            println!("⚠ Compiler not fully implemented for {}: {}", name, e);
-            println!("   This is expected - compiler needs implementation");
+            println!("⚠ Compilation error for {}: {}", name, e);
         }
     }
 }

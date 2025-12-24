@@ -1,36 +1,35 @@
-use jue_world::compiler::compile;
-use jue_world::parser::parse;
-use jue_world::trust_tier::TrustTier;
-use physics_world::api::PhysicsWorld;
+use jue_world::parsing::parser::parse;
+use jue_world::physics_integration::physics_compiler::compile_to_physics_world;
+use jue_world::shared::trust_tier::TrustTier;
+use physics_world::api::core::PhysicsWorld;
 
 fn test_recursive_program(name: &str, source: &str) {
     println!("\n=== Testing {} ===", name);
 
     // Test parsing
     println!("1. Testing parsing...");
-    match parse(source) {
-        Ok(_ast) => {
-            println!("✓ Successfully parsed {}", name);
-        }
+    let ast = match parse(source) {
+        Ok(ast) => ast,
         Err(e) => {
             println!("✗ Failed to parse {}: {}", name, e);
             return;
         }
-    }
+    };
+    println!("✓ Successfully parsed {}", name);
 
     // Test compilation
     println!("2. Testing compilation...");
-    match compile(source, TrustTier::Empirical, 1000, 1024) {
-        Ok(result) => {
+    match compile_to_physics_world(&ast, TrustTier::Empirical) {
+        Ok((bytecode, constants)) => {
             println!("✓ Successfully compiled {}", name);
-            println!("   Bytecode length: {}", result.bytecode.len());
-            println!("   Constants: {:?}", result.constants);
-            println!("   Bytecode: {:?}", result.bytecode);
+            println!("   Bytecode length: {}", bytecode.len());
+            println!("   Constants: {:?}", constants);
+            println!("   Bytecode: {:?}", bytecode);
 
             // Test VM execution
             println!("3. Testing Physics World VM execution...");
             let mut world = PhysicsWorld::new();
-            let vm_result = world.execute_actor(1, result.bytecode, result.constants, 1000, 1024);
+            let vm_result = world.execute_actor(1, bytecode, constants, 1000, 1024);
 
             match vm_result.output {
                 Some(output) => {

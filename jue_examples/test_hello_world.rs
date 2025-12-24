@@ -1,6 +1,8 @@
-use jue_world::compiler::compile;
-use jue_world::parser::parse;
-use jue_world::trust_tier::TrustTier;
+use jue_world::parsing::parser::parse;
+use jue_world::physics_integration::physics_compiler::compile_to_physics_world;
+use jue_world::shared::trust_tier::TrustTier;
+use physics_world::api::core::PhysicsWorld;
+use physics_world::types::OpCode;
 
 fn main() {
     // Test parsing the hello world Jue program
@@ -18,14 +20,14 @@ fn main() {
             println!("AST: {:?}", ast);
 
             // Try to compile it (this will show current compiler capabilities)
-            match compile(hello_world_source, TrustTier::Formal, 1000, 1024) {
-                Ok(result) => {
+            match compile_to_physics_world(&ast, TrustTier::Formal) {
+                Ok((bytecode, constants)) => {
                     println!("✓ Successfully compiled Jue program");
-                    println!("Compilation result: {:?}", result);
+                    println!("Bytecode: {:?}", bytecode);
+                    println!("Constants: {:?}", constants);
                 }
                 Err(e) => {
-                    println!("⚠ Compiler not fully implemented yet: {}", e);
-                    println!("This is expected - compiler needs to be implemented");
+                    println!("⚠ Compilation error: {}", e);
                 }
             }
         }
@@ -36,9 +38,6 @@ fn main() {
 
     // Test the Physics World VM directly with equivalent bytecode
     println!("\nTesting Physics World VM with equivalent bytecode...");
-
-    use physics_world::types::OpCode;
-    use physics_world::PhysicsWorld;
 
     let mut world = PhysicsWorld::new();
 

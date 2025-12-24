@@ -1,4 +1,4 @@
-use jue_world::parser::parse;
+use jue_world::parsing::parser::parse;
 
 fn main() {
     let source = r#"
