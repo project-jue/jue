@@ -113,6 +113,8 @@ impl PhysicsWorldCompiler {
                 arguments,
                 location,
             } => self.compile_ffi_call(function, arguments, location),
+            AstNode::Define { name, value, .. } => self.compile_define(name.clone(), value),
+            AstNode::Letrec { bindings, body, .. } => self.compile_letrec(bindings, body),
             // Handle other AST nodes...
             _ => Err(CompilationError::InternalError(format!(
                 "Unsupported AST node for Physics-World compilation: {:?}",
@@ -235,13 +237,72 @@ impl PhysicsWorldCompiler {
         Ok(bytecode)
     }
 
+    /// Compile a letrec binding (recursive - names visible in values)
+    pub fn compile_letrec(
+        &mut self,
+        bindings: &[(String, AstNode)],
+        body: &AstNode,
+    ) -> Result<Vec<OpCode>, CompilationError> {
+        let mut bytecode = Vec::new();
+
+        // Create new environment scope
+        self.environment.push_scope();
+
+        // First, register all binding names (so they're visible in the values)
+        // This enables mutual recursion in lambda bodies
+        for (name, _value) in bindings {
+            self.environment.add_variable(name.clone(), 0);
+        }
+
+        // Now compile each binding (they can reference each other via the environment)
+        for (name, value) in bindings {
+            // Compile the value expression
+            let value_bytecode = self.compile_to_physics(value)?;
+            bytecode.extend(value_bytecode);
+
+            // Store the compiled value in the variable slot
+            if let Some(index) = self.environment.get_variable_index(name) {
+                bytecode.push(OpCode::SetLocal(index as u16));
+            }
+        }
+
+        // Compile body
+        let body_bytecode = self.compile_to_physics(body)?;
+
+        // Pop environment scope
+        self.environment.pop_scope();
+
+        bytecode.extend(body_bytecode);
+        Ok(bytecode)
+    }
+
+    /// Compile a top-level define (stores in global environment)
+    pub fn compile_define(
+        &mut self,
+        name: String,
+        value: &AstNode,
+    ) -> Result<Vec<OpCode>, CompilationError> {
+        let mut bytecode = Vec::new();
+
+        // Compile the value
+        let value_bytecode = self.compile_to_physics(value)?;
+        bytecode.extend(value_bytecode);
+
+        // Add variable to environment and store
+        let index = self.environment.add_variable(name, 0);
+        bytecode.push(OpCode::SetLocal(index as u16));
+
+        Ok(bytecode)
+    }
+
     /// Compile a require capability statement (takes String from AST)
     pub fn compile_require_capability_string(
         &mut self,
         capability: &str,
     ) -> Result<Vec<OpCode>, CompilationError> {
-        let cap = string_to_capability(capability)
-            .ok_or_else(|| CompilationError::InternalError(format!("Unknown capability: {}", capability)))?;
+        let cap = string_to_capability(capability).ok_or_else(|| {
+            CompilationError::InternalError(format!("Unknown capability: {}", capability))
+        })?;
         let cap_index = self.get_capability_index(&cap);
         Ok(vec![OpCode::RequestCap(cap_index, 0)])
     }
@@ -251,8 +312,9 @@ impl PhysicsWorldCompiler {
         &mut self,
         capability: &str,
     ) -> Result<Vec<OpCode>, CompilationError> {
-        let cap = string_to_capability(capability)
-            .ok_or_else(|| CompilationError::InternalError(format!("Unknown capability: {}", capability)))?;
+        let cap = string_to_capability(capability).ok_or_else(|| {
+            CompilationError::InternalError(format!("Unknown capability: {}", capability))
+        })?;
         let cap_index = self.get_capability_index(&cap);
         Ok(vec![OpCode::HasCap(cap_index)])
     }

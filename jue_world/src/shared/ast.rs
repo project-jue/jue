@@ -150,6 +150,26 @@ pub enum AstNode {
         /// Source location for error reporting
         location: SourceLocation,
     },
+
+    /// Top-level definition (define name value)
+    Define {
+        /// Variable name being defined
+        name: String,
+        /// Value expression
+        value: Box<AstNode>,
+        /// Source location for error reporting
+        location: SourceLocation,
+    },
+
+    /// Recursive let binding (letrec ((name value) ...)) where names are visible in values
+    Letrec {
+        /// Variable bindings (name, value pairs) - names are visible in all values
+        bindings: Vec<(String, AstNode)>,
+        /// Body expression
+        body: Box<AstNode>,
+        /// Source location for error reporting
+        location: SourceLocation,
+    },
 }
 
 /// Literal values
@@ -308,6 +328,19 @@ impl fmt::Display for AstNode {
             }
             AstNode::Cons { car, cdr, .. } => {
                 write!(f, "(cons {} {})", car, cdr)
+            }
+            AstNode::Define { name, value, .. } => {
+                write!(f, "(define {} {})", name, value)
+            }
+            AstNode::Letrec { bindings, body, .. } => {
+                write!(f, "(letrec (")?;
+                for (i, (name, value)) in bindings.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " ")?;
+                    }
+                    write!(f, "({} {})", name, value)?;
+                }
+                write!(f, ") {})", body)
             }
         }
     }

@@ -41,11 +41,23 @@ impl CompilationEnvironment {
     pub fn push_scope(&mut self) {
         let saved_frame_size = self.frame_size;
         self.saved_frame_sizes.push(saved_frame_size);
+
+        // Create new scope with current scope as parent
+        let new_scope = VariableScope {
+            bindings: HashMap::new(),
+            parent: Some(Box::new(self.current_scope.clone())),
+        };
+        self.current_scope = new_scope;
+        self.frame_size = 0;
     }
 
     /// Pop the current scope
     pub fn pop_scope(&mut self) {
         if let Some(saved_frame_size) = self.saved_frame_sizes.pop() {
+            // Restore parent scope
+            if let Some(parent) = self.current_scope.parent.take() {
+                self.current_scope = *parent;
+            }
             self.frame_size = saved_frame_size;
         }
     }
@@ -78,8 +90,28 @@ impl CompilationEnvironment {
     }
 
     /// Add a variable to the current scope
-    pub fn add_variable(&mut self, name: String, offset: usize) -> usize {
-        self.current_scope.bindings.insert(name, offset);
-        offset
+    pub fn add_variable(&mut self, name: String, _offset: usize) -> usize {
+        // Use current frame_size as the index
+        let index = self.frame_size;
+        self.current_scope.bindings.insert(name.clone(), index);
+        self.frame_size += 1;
+        eprintln!("DEBUG: add_variable '{}' at index {}", name, index);
+        index
+    }
+
+    /// Debug: print all bindings in current scope chain
+    pub fn debug_print_scopes(&self) {
+        eprintln!("DEBUG: Scope chain:");
+        let mut current = Some(&self.current_scope);
+        let mut depth = 0;
+        while let Some(scope) = current {
+            eprintln!(
+                "  Depth {}: {:?}",
+                depth,
+                scope.bindings.keys().collect::<Vec<_>>()
+            );
+            current = scope.parent.as_ref().map(|b| b.as_ref());
+            depth += 1;
+        }
     }
 }

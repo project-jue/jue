@@ -94,9 +94,11 @@ impl<'a> ExpressionParser<'a> {
             Some(Token::Symbol(s)) if s.starts_with(':') => self.parse_trust_tier(),
             Some(Token::Symbol(s)) if s == "lambda" => self.parse_lambda(),
             Some(Token::Symbol(s)) if s == "let" => self.parse_let(),
+            Some(Token::Symbol(s)) if s == "letrec" => self.parse_letrec(),
             Some(Token::Symbol(s)) if s == "if" => self.parse_if(),
             Some(Token::Symbol(s)) if s == "require-capability" => self.parse_require_capability(),
             Some(Token::Symbol(s)) if s == "has-capability?" => self.parse_has_capability(),
+            Some(Token::Symbol(s)) if s == "define" => self.parse_define(),
             Some(Token::Symbol(s)) if s == "defmacro" => self.parse_macro_definition(),
             Some(Token::Symbol(s)) if s == "comptime-eval" => self.parse_comptime_eval(),
             Some(Token::Symbol(s)) if s == "ffi-call" => self.parse_ffi_call(),
@@ -225,6 +227,63 @@ impl<'a> ExpressionParser<'a> {
         Ok(AstNode::Let {
             bindings,
             body: Box::new(body),
+            location: SourceLocation::default(),
+        })
+    }
+
+    fn parse_letrec(&mut self) -> Result<AstNode, CompilationError> {
+        self.advance(); // Skip 'letrec'
+
+        let bindings = self.parse_bindings()?;
+        let body = self.parse()?;
+
+        // Skip closing paren
+        if let Some(Token::CloseParen) = self.current_token() {
+            self.advance();
+        } else {
+            return Err(CompilationError::ParseError {
+                message: "Expected closing parenthesis".to_string(),
+                location: SourceLocation::default(),
+            });
+        }
+
+        Ok(AstNode::Letrec {
+            bindings,
+            body: Box::new(body),
+            location: SourceLocation::default(),
+        })
+    }
+
+    fn parse_define(&mut self) -> Result<AstNode, CompilationError> {
+        self.advance(); // Skip 'define'
+
+        let name = match self.current_token() {
+            Some(Token::Symbol(s)) => s.clone(),
+            _ => {
+                return Err(CompilationError::ParseError {
+                    message: "Expected variable name".to_string(),
+                    location: SourceLocation::default(),
+                })
+            }
+        };
+
+        self.advance();
+
+        let value = self.parse()?;
+
+        // Skip closing paren
+        if let Some(Token::CloseParen) = self.current_token() {
+            self.advance();
+        } else {
+            return Err(CompilationError::ParseError {
+                message: "Expected closing parenthesis".to_string(),
+                location: SourceLocation::default(),
+            });
+        }
+
+        Ok(AstNode::Define {
+            name,
+            value: Box::new(value),
             location: SourceLocation::default(),
         })
     }
