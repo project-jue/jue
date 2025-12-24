@@ -95,6 +95,7 @@ pub fn execute_closure_call(
         closed_over: std::collections::HashMap::new(),
         is_tail_call: false,
         frame_id: 0, // TODO: Add frame_id generation
+        code_index: code_index as usize,
     };
     vm.call_stack.push(call_frame);
 

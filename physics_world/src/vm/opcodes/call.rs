@@ -1,8 +1,9 @@
 /// Call opcode handler - implements proper function call/return system
 /// This is a critical Phase 1 feature for the Physics World VM
 use crate::types::{HeapPtr, OpCode, Value};
+use crate::vm::call_state::CallFrame;
 use crate::vm::state::VmError;
-use crate::vm::state::{CallFrame, VmState};
+use crate::vm::state::VmState;
 use bincode;
 use std::collections::HashMap;
 
@@ -87,7 +88,18 @@ fn execute_closure_call(
             let bytecode_bytes = &body_data[4..4 + bytecode_length as usize];
             match bincode::deserialize::<Vec<OpCode>>(bytecode_bytes) {
                 Ok(closure_body) => {
-                    return execute_closure_body(vm, closure_body, arg_count);
+                    // Get code_index from closure data (stored at bytes 4-8)
+                    let code_index = if closure_data.len() >= 8 {
+                        u32::from_le_bytes([
+                            closure_data[4],
+                            closure_data[5],
+                            closure_data[6],
+                            closure_data[7],
+                        ]) as usize
+                    } else {
+                        0
+                    };
+                    return execute_closure_body(vm, closure_body, arg_count, code_index);
                 }
                 Err(_) => {
                     return Err(VmError::TypeMismatch);
@@ -97,11 +109,13 @@ fn execute_closure_call(
     }
     return Err(VmError::InvalidHeapPtr);
 }
-/// Helper function to execute a closure body
+
+/// Helper function to execute a closure body with TCO support
 fn execute_closure_body(
     vm: &mut VmState,
     closure_body: Vec<OpCode>,
     arg_count: u16,
+    code_index: usize,
 ) -> Result<(), VmError> {
     // 1. Calculate stack_start BEFORE popping anything
     // stack_start should point to the first argument (NOT including the closure)
@@ -119,34 +133,60 @@ fn execute_closure_body(
         }
     }
 
-    // 4. Set up call frame for proper return handling
+    // 4. Check for tail-recursive call (same code_index as current frame)
+    let is_tail_recursive = if let Some(current_frame) = vm.call_stack.last() {
+        current_frame.code_index == code_index && current_frame.recursion_depth > 0
+    } else {
+        false
+    };
+
+    // 5. Set up call frame for proper return handling
     let recursion_depth = if vm.call_stack.is_empty() {
         1 // First call in the stack
     } else {
         vm.call_stack.last().unwrap().recursion_depth + 1
     };
 
-    // Arguments are stored in locals for GetLocal access
-    let locals = args;
+    if is_tail_recursive {
+        // Reuse the current frame for tail call optimization
+        // Clone args since we still need it for locals assignment
+        let args_clone = args.clone();
+        if let Some(current_frame) = vm.call_stack.last_mut() {
+            current_frame.is_tail_call = true;
+            current_frame.stack_start = stack_start;
+            current_frame.locals = args_clone;
+            current_frame.saved_instructions = Some(vm.instructions.clone());
+            // Don't push a new frame - reuse the current one
+        }
+    } else {
+        // Arguments are stored in locals for GetLocal access
+        let locals = args;
+        // Create new frame (normal call)
+        let call_frame = CallFrame {
+            return_ip: vm.ip + 1,
+            stack_start,
+            saved_instructions: Some(vm.instructions.clone()),
+            recursion_depth,
+            locals,
+            closed_over: HashMap::new(),
+            is_tail_call: false,
+            frame_id: vm.next_frame_id(),
+            code_index,
+        };
+        // vm.call_stack is Vec<CallFrame>, check length manually
+        if vm.call_stack.len() >= vm.max_recursion_depth as usize {
+            return Err(VmError::RecursionLimitExceeded);
+        }
+        vm.call_stack.push(call_frame);
+    }
 
-    let call_frame = CallFrame {
-        return_ip: vm.ip + 1,
-        stack_start,
-        saved_instructions: Some(vm.instructions.clone()),
-        recursion_depth,
-        locals,
-        closed_over: HashMap::new(),
-        is_tail_call: false,
-        frame_id: vm.next_frame_id(),
-    };
-    vm.call_stack.push(call_frame);
-
-    // 5. Replace instructions and reset IP
+    // 6. Replace instructions and reset IP
     vm.instructions = closure_body;
     vm.ip = 0;
 
     Ok(())
 }
+
 /// NEW: Basic tail call handler
 pub fn handle_tail_call(vm: &mut VmState, arg_count: u16) -> Result<(), VmError> {
     // 1. Validate stack has at least the closure (function)

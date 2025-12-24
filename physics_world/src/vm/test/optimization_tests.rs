@@ -53,6 +53,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: true,
             frame_id: 1,
+            code_index: 0,
         });
 
         let metrics = vm.get_optimization_metrics();
@@ -74,6 +75,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: true,
             frame_id: 1,
+            code_index: 0,
         });
 
         let mut analysis = OptimizationAnalysis::new();
@@ -102,6 +104,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: true,
             frame_id: 1,
+            code_index: 0,
         });
 
         vm.call_stack.push(crate::vm::state::CallFrame {
@@ -113,6 +116,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: false,
             frame_id: 2,
+            code_index: 1,
         });
 
         // Test tail call optimization analysis

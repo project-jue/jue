@@ -16,6 +16,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: false,
             frame_id: 1,
+            code_index: 0,
         };
 
         assert!(frame.verify_invariants().is_ok());
@@ -38,6 +39,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: false,
             frame_id: 1,
+            code_index: 0,
         };
 
         assert!(matches!(
@@ -57,6 +59,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: true,
             frame_id: 1,
+            code_index: 0,
         };
 
         assert!(matches!(
@@ -82,6 +85,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: false,
             frame_id: 1,
+            code_index: 0,
         });
 
         assert!(verify_vm_state(&vm).is_ok());
@@ -101,6 +105,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: false,
             frame_id: 2,
+            code_index: 0,
         });
 
         vm.call_stack.push(CallFrame {
@@ -112,6 +117,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: false,
             frame_id: 1, // Non-sequential
+            code_index: 1,
         });
 
         assert!(matches!(
@@ -135,6 +141,7 @@ mod tests {
             },
             is_tail_call: false,
             frame_id: 1,
+            code_index: 0,
         };
 
         let context = frame.generate_proof_context();
@@ -160,6 +167,7 @@ mod tests {
             closed_over: std::collections::HashMap::new(),
             is_tail_call: false,
             frame_id: 1,
+            code_index: 0,
         });
 
         let report = crate::vm::verification::generate_verification_report(&vm);
