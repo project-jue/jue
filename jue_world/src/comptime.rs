@@ -184,6 +184,17 @@ impl ComptimeExecutor {
                     )));
                 }
             }
+            OpCode::GetConst(idx) => {
+                // Load constant from constant pool
+                if idx < self.constants.len() {
+                    self.stack.push(self.constants[idx].clone());
+                } else {
+                    return Err(CompilationError::ComptimeError(format!(
+                        "Invalid constant index: {}",
+                        idx
+                    )));
+                }
+            }
             OpCode::StrLen => {
                 // Get string length
                 if let Some(Value::String(s)) = self.stack.pop() {

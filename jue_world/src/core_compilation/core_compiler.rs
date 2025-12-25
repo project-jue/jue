@@ -89,15 +89,29 @@ pub enum EmpiricalResult {
 }
 
 /// Compile to Core-World for Formal/Verified tiers
+///
+/// # Warning
+///
+/// This is currently a STUB implementation that falls back to Physics-World compilation.
+/// For Formal/Verified tiers, this should:
+///
+/// 1. Translate Jue AST to Core-World CoreExpr
+/// 2. Generate proof obligations for the transformation
+/// 3. Verify or generate proofs of correctness
+/// 4. Only then compile to bytecode
+///
+/// For now, it directly compiles to Physics-World, bypassing formal verification.
+///
+/// TODO: Implement proper Core-World pipeline (see docs/engineering/jue_world_code_review.md)
 fn compile_to_core_and_verify(
-    _ast: crate::ast::AstNode,
-    _tier: TrustTier,
-    _step_limit: u64,
-    _mem_limit: usize,
+    ast: crate::ast::AstNode,
+    tier: TrustTier,
+    step_limit: u64,
+    mem_limit: usize,
 ) -> Result<CompilationResult, CompilationError> {
     // Placeholder: Core-World compilation not yet implemented
     // For now, fall back to physics compilation
-    compile_to_physics_with_checks(_ast, _tier, _step_limit, _mem_limit)
+    compile_to_physics_with_checks(ast, tier, step_limit, mem_limit)
 }
 
 /// Compile to Physics-World for Empirical/Experimental tiers

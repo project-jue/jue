@@ -95,23 +95,6 @@ impl CompilationEnvironment {
         let index = self.frame_size;
         self.current_scope.bindings.insert(name.clone(), index);
         self.frame_size += 1;
-        eprintln!("DEBUG: add_variable '{}' at index {}", name, index);
         index
-    }
-
-    /// Debug: print all bindings in current scope chain
-    pub fn debug_print_scopes(&self) {
-        eprintln!("DEBUG: Scope chain:");
-        let mut current = Some(&self.current_scope);
-        let mut depth = 0;
-        while let Some(scope) = current {
-            eprintln!(
-                "  Depth {}: {:?}",
-                depth,
-                scope.bindings.keys().collect::<Vec<_>>()
-            );
-            current = scope.parent.as_ref().map(|b| b.as_ref());
-            depth += 1;
-        }
     }
 }

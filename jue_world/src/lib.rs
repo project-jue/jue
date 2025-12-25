@@ -14,9 +14,6 @@ pub mod shared;
 /// Token definitions
 pub mod token;
 
-/// FFI module
-pub mod ffi;
-
 /// Core compilation layer for Core-World integration
 pub mod core_compilation;
 

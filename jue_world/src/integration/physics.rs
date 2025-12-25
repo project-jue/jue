@@ -28,8 +28,8 @@ pub fn create_physics_integration_context(trust_tier: TrustTier) -> PhysicsInteg
 
 /// Integrate AST node with physics world
 pub fn integrate_with_physics(
-    ast: &AstNode,
-    context: &PhysicsIntegrationContext,
+    _ast: &AstNode,
+    _context: &PhysicsIntegrationContext,
 ) -> Result<Vec<u8>, CompilationError> {
     // This is a placeholder implementation
     // In a real implementation, this would:

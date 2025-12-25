@@ -1,7 +1,8 @@
 use crate::ast::AstNode;
 use crate::compiler::environment::CompilationEnvironment;
 use crate::error::{CompilationError, SourceLocation};
-use crate::ffi::{create_standard_ffi_registry, FfiCallGenerator};
+use crate::ffi_system::ffi_call_generator::FfiCallGenerator;
+use crate::ffi_system::standard_functions::create_standard_ffi_registry;
 use crate::trust_tier::TrustTier;
 use physics_world::types::{Capability, OpCode, Value};
 
@@ -41,6 +42,8 @@ pub struct PhysicsWorldCompiler {
     pub environment: CompilationEnvironment,
     /// Recursive lambda compilation flag
     pub is_compiling_recursive_lambda: bool,
+    /// Debug flag to disable TCO
+    pub disable_tco: bool,
 }
 
 impl PhysicsWorldCompiler {
@@ -57,6 +60,7 @@ impl PhysicsWorldCompiler {
             },
             environment: CompilationEnvironment::new(),
             is_compiling_recursive_lambda: false,
+            disable_tco: false, // Default: TCO enabled
         }
     }
 
@@ -80,8 +84,16 @@ impl PhysicsWorldCompiler {
         }
     }
 
-    /// Compile AST to Physics-World bytecode
-    pub fn compile_to_physics(&mut self, ast: &AstNode) -> Result<Vec<OpCode>, CompilationError> {
+    /// Compile AST to Physics-World bytecode with tail context tracking
+    ///
+    /// # Arguments
+    /// * `ast` - The AST node to compile
+    /// * `in_tail_position` - Whether this expression is in tail position (last expr that determines return value)
+    pub fn compile_to_physics_with_tail_context(
+        &mut self,
+        ast: &AstNode,
+        in_tail_position: bool,
+    ) -> Result<Vec<OpCode>, CompilationError> {
         match ast {
             AstNode::Literal(lit) => self.compile_literal(lit),
             AstNode::Variable(name) => self.compile_variable(name),
@@ -90,12 +102,16 @@ impl PhysicsWorldCompiler {
                 function,
                 arguments,
                 ..
-            } => self.compile_call(function, arguments),
+            } => self.compile_call(function, arguments, in_tail_position),
             AstNode::Lambda {
                 parameters, body, ..
             } => self.compile_lambda(parameters, body),
-            AstNode::Let { bindings, body, .. } => self.compile_let(bindings, body),
-            AstNode::TrustTier { expression, .. } => self.compile_to_physics(expression),
+            AstNode::Let { bindings, body, .. } => {
+                self.compile_let(bindings, body, in_tail_position)
+            }
+            AstNode::TrustTier { expression, .. } => {
+                self.compile_to_physics_with_tail_context(expression, in_tail_position)
+            }
             AstNode::RequireCapability { capability, .. } => {
                 self.compile_require_capability_string(capability)
             }
@@ -107,20 +123,27 @@ impl PhysicsWorldCompiler {
                 then_branch,
                 else_branch,
                 ..
-            } => self.compile_if(condition, then_branch, else_branch),
+            } => self.compile_if(condition, then_branch, else_branch, in_tail_position),
             AstNode::FfiCall {
                 function,
                 arguments,
                 location,
             } => self.compile_ffi_call(function, arguments, location),
             AstNode::Define { name, value, .. } => self.compile_define(name.clone(), value),
-            AstNode::Letrec { bindings, body, .. } => self.compile_letrec(bindings, body),
+            AstNode::Letrec { bindings, body, .. } => {
+                self.compile_letrec(bindings, body, in_tail_position)
+            }
             // Handle other AST nodes...
             _ => Err(CompilationError::InternalError(format!(
                 "Unsupported AST node for Physics-World compilation: {:?}",
                 ast
             ))),
         }
+    }
+
+    /// Compile AST to Physics-World bytecode (backward-compatible wrapper)
+    pub fn compile_to_physics(&mut self, ast: &AstNode) -> Result<Vec<OpCode>, CompilationError> {
+        self.compile_to_physics_with_tail_context(ast, false)
     }
 
     /// Compile a literal value
@@ -156,28 +179,39 @@ impl PhysicsWorldCompiler {
     }
 
     /// Compile a function call
+    ///
+    /// # Arguments
+    /// * `function` - The function to call
+    /// * `arguments` - The arguments to pass
+    /// * `in_tail_position` - Whether this call is in tail position
     pub fn compile_call(
         &mut self,
         function: &AstNode,
         arguments: &[AstNode],
+        in_tail_position: bool,
     ) -> Result<Vec<OpCode>, CompilationError> {
         let mut bytecode = Vec::new();
 
-        // Compile arguments in reverse order (stack grows upwards)
+        // Compile arguments in reverse order (NOT in tail position)
         for arg in arguments.iter().rev() {
-            bytecode.extend(self.compile_to_physics(arg)?);
+            bytecode.extend(self.compile_to_physics_with_tail_context(arg, false)?);
         }
 
-        // Compile function
-        bytecode.extend(self.compile_to_physics(function)?);
+        // Compile function (NOT in tail position)
+        bytecode.extend(self.compile_to_physics_with_tail_context(function, false)?);
 
-        // Add call instruction
-        bytecode.push(OpCode::Call(arguments.len() as u16));
+        // Emit Call or TailCall based on position
+        if in_tail_position && !self.disable_tco {
+            bytecode.push(OpCode::TailCall(arguments.len() as u16));
+        } else {
+            bytecode.push(OpCode::Call(arguments.len() as u16));
+        }
 
         Ok(bytecode)
     }
 
     /// Compile a lambda function
+    /// Lambda body is ALWAYS compiled in tail position (per Scheme semantics)
     pub fn compile_lambda(
         &mut self,
         parameters: &[String],
@@ -193,8 +227,8 @@ impl PhysicsWorldCompiler {
             self.environment.add_variable(param.clone(), i);
         }
 
-        // Compile lambda body
-        let body_bytecode = self.compile_to_physics(body)?;
+        // Compile lambda body - ALWAYS in tail position (per expert guidance)
+        let body_bytecode = self.compile_to_physics_with_tail_context(body, true)?;
 
         // Pop environment scope
         self.environment.pop_scope();
@@ -207,19 +241,25 @@ impl PhysicsWorldCompiler {
     }
 
     /// Compile a let binding
+    ///
+    /// # Arguments
+    /// * `bindings` - Variable bindings
+    /// * `body` - Body expression
+    /// * `in_tail_position` - Whether the body is in tail position
     pub fn compile_let(
         &mut self,
         bindings: &[(String, AstNode)],
         body: &AstNode,
+        in_tail_position: bool,
     ) -> Result<Vec<OpCode>, CompilationError> {
         let mut bytecode = Vec::new();
 
         // Create new environment scope
         self.environment.push_scope();
 
-        // Compile each binding
+        // Compile each binding (values NOT in tail position)
         for (name, value) in bindings {
-            let value_bytecode = self.compile_to_physics(value)?;
+            let value_bytecode = self.compile_to_physics_with_tail_context(value, false)?;
             bytecode.extend(value_bytecode);
 
             // Add variable to environment
@@ -227,8 +267,8 @@ impl PhysicsWorldCompiler {
             bytecode.push(OpCode::SetLocal(index as u16));
         }
 
-        // Compile body
-        let body_bytecode = self.compile_to_physics(body)?;
+        // Compile body - propagate tail context
+        let body_bytecode = self.compile_to_physics_with_tail_context(body, in_tail_position)?;
 
         // Pop environment scope
         self.environment.pop_scope();
@@ -238,10 +278,16 @@ impl PhysicsWorldCompiler {
     }
 
     /// Compile a letrec binding (recursive - names visible in values)
+    ///
+    /// # Arguments
+    /// * `bindings` - Variable bindings
+    /// * `body` - Body expression
+    /// * `in_tail_position` - Whether the body is in tail position
     pub fn compile_letrec(
         &mut self,
         bindings: &[(String, AstNode)],
         body: &AstNode,
+        in_tail_position: bool,
     ) -> Result<Vec<OpCode>, CompilationError> {
         let mut bytecode = Vec::new();
 
@@ -255,9 +301,10 @@ impl PhysicsWorldCompiler {
         }
 
         // Now compile each binding (they can reference each other via the environment)
+        // Binding values are NOT in tail position
         for (name, value) in bindings {
             // Compile the value expression
-            let value_bytecode = self.compile_to_physics(value)?;
+            let value_bytecode = self.compile_to_physics_with_tail_context(value, false)?;
             bytecode.extend(value_bytecode);
 
             // Store the compiled value in the variable slot
@@ -266,8 +313,8 @@ impl PhysicsWorldCompiler {
             }
         }
 
-        // Compile body
-        let body_bytecode = self.compile_to_physics(body)?;
+        // Compile body - propagate tail context
+        let body_bytecode = self.compile_to_physics_with_tail_context(body, in_tail_position)?;
 
         // Pop environment scope
         self.environment.pop_scope();
@@ -284,8 +331,8 @@ impl PhysicsWorldCompiler {
     ) -> Result<Vec<OpCode>, CompilationError> {
         let mut bytecode = Vec::new();
 
-        // Compile the value
-        let value_bytecode = self.compile_to_physics(value)?;
+        // Compile the value (NOT in tail position for defines)
+        let value_bytecode = self.compile_to_physics_with_tail_context(value, false)?;
         bytecode.extend(value_bytecode);
 
         // Add variable to environment and store
@@ -320,43 +367,50 @@ impl PhysicsWorldCompiler {
     }
 
     /// Compile an if expression
+    ///
+    /// # Arguments
+    /// * `condition` - The condition expression
+    /// * `then_branch` - The then branch
+    /// * `else_branch` - The else branch
+    /// * `in_tail_position` - Whether the if expression is in tail position
     pub fn compile_if(
         &mut self,
         condition: &AstNode,
         then_branch: &AstNode,
         else_branch: &AstNode,
+        in_tail_position: bool,
     ) -> Result<Vec<OpCode>, CompilationError> {
         let mut bytecode = Vec::new();
 
-        // Compile condition
-        bytecode.extend(self.compile_to_physics(condition)?);
+        // Compile condition (never in tail position)
+        bytecode.extend(self.compile_to_physics_with_tail_context(condition, false)?);
 
-        // Add conditional jump (placeholder for now)
-        bytecode.push(OpCode::JmpIfFalse(0)); // Will be patched later
+        // Reserve space for conditional jump
+        bytecode.push(OpCode::JmpIfFalse(0));
+        let cond_jump_idx = bytecode.len() - 1;
 
-        let jump_offset = bytecode.len() - 1;
+        // Compile then branch - propagate tail context
+        bytecode.extend(self.compile_to_physics_with_tail_context(then_branch, in_tail_position)?);
 
-        // Compile then branch
-        bytecode.extend(self.compile_to_physics(then_branch)?);
-
-        // Add unconditional jump over else branch (placeholder)
-        bytecode.push(OpCode::Jmp(0)); // Will be patched later
-
-        let else_jump_offset = bytecode.len() - 1;
+        // Reserve space for jump over else branch
+        bytecode.push(OpCode::Jmp(0));
+        let skip_else_jump_idx = bytecode.len() - 1;
 
         // Compile else branch
-        bytecode.extend(self.compile_to_physics(else_branch)?);
+        let else_start_idx = bytecode.len();
+        bytecode.extend(self.compile_to_physics_with_tail_context(else_branch, in_tail_position)?);
 
-        // Patch jump offsets
-        let else_branch_start = bytecode.len() - self.compile_to_physics(else_branch)?.len();
-        let after_else = bytecode.len();
-
-        if let OpCode::JmpIfFalse(ref mut offset) = bytecode[jump_offset] {
-            *offset = (else_branch_start - jump_offset) as i16;
+        // Patch conditional jump: jump to else_start_idx if condition is false
+        // offset = else_start_idx - cond_jump_idx - 1 (per expert guidance)
+        let else_offset = (else_start_idx as i16) - (cond_jump_idx as i16) - 1;
+        if let OpCode::JmpIfFalse(offset) = &mut bytecode[cond_jump_idx] {
+            *offset = else_offset;
         }
 
-        if let OpCode::Jmp(ref mut offset) = bytecode[else_jump_offset] {
-            *offset = (after_else - else_jump_offset) as i16;
+        // Patch skip-else jump: jump past else branch
+        let skip_else_offset = (bytecode.len() as i16) - (skip_else_jump_idx as i16) - 1;
+        if let OpCode::Jmp(offset) = &mut bytecode[skip_else_jump_idx] {
+            *offset = skip_else_offset;
         }
 
         Ok(bytecode)
@@ -367,13 +421,13 @@ impl PhysicsWorldCompiler {
         &mut self,
         function: &str,
         arguments: &[AstNode],
-        location: &SourceLocation,
+        _location: &SourceLocation,
     ) -> Result<Vec<OpCode>, CompilationError> {
         let mut bytecode = Vec::new();
 
-        // Compile arguments in reverse order
+        // Compile arguments in reverse order (NOT in tail position)
         for arg in arguments.iter().rev() {
-            bytecode.extend(self.compile_to_physics(arg)?);
+            bytecode.extend(self.compile_to_physics_with_tail_context(arg, false)?);
         }
 
         // Look up FFI function
