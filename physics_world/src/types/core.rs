@@ -58,6 +58,7 @@ pub enum OpCode {
     Send,
     // Closure Operations
     MakeClosure(usize /* code_idx */, usize /* capture_count */),
+    GetConst(usize), // NEW: Load constant from constant pool by index
     // Resource Management
     CheckStepLimit,
 
@@ -169,6 +170,7 @@ impl OpCode {
             OpCode::Gte => 1,
             OpCode::Ne => 1,
             OpCode::MakeClosure(_, _) => 9, // 4 bytes for each usize
+            OpCode::GetConst(_) => 5,       // usize (4 bytes) + opcode tag (1 byte)
             OpCode::CheckStepLimit => 1,
             // Capability instructions
             OpCode::HasCap(_) => 5, // usize (4 bytes) + opcode tag (1 byte)

@@ -1,85 +1,64 @@
 /// Ret opcode handler - implements proper function return system
 /// Handles stack frame cleanup and return value propagation
 use crate::types::Value;
-use crate::vm::state::VmError;
-use crate::vm::state::VmState;
+use crate::vm::state::{InstructionResult, VmError, VmState};
 
 /// Handles the Ret opcode with proper stack frame management
 ///
-/// # Arguments
-/// * `vm` - The VM state
-///
-/// # Returns
-/// Result indicating success or error
-///
-/// # Implementation Details
-/// 1. Checks if there's a call frame (valid return context)
-/// 2. Gets return value from stack (or uses Nil if none)
-/// 3. Restores stack to call frame state
-/// 4. Pushes return value onto restored stack
-/// 5. Restores instruction pointer and original instructions
-/// 6. Handles nested calls properly via call stack
-pub fn handle_ret(vm: &mut VmState) -> Result<(), VmError> {
-    // Debug output
+/// # Implementation Details (Unified Calling Convention)
+/// 1. Function execution leaves return value on stack
+/// 2. Get return value from stack
+/// 3. Pop current frame (caller's state is already preserved on stack)
+/// 4. Push return value for caller
+/// 5. Restore caller's instructions and IP
+pub fn handle_ret(vm: &mut VmState) -> Result<InstructionResult, VmError> {
     eprintln!(
         "handle_ret called - call_stack depth: {}",
         vm.call_stack.len()
     );
     eprintln!("Current stack: {:?}", vm.stack);
-    eprintln!("Current IP: {}", vm.ip);
 
     // 1. Check if there's a call frame
     if vm.call_stack.is_empty() {
-        eprintln!("Returning from main program - should complete execution");
-        // Return from main program - this indicates a programming error
-        // Should return StackUnderflow as expected by tests
-        return Err(VmError::StackUnderflow);
+        eprintln!("Returning from main program - completing execution");
+        let return_value = vm.stack.pop().unwrap_or(Value::Nil);
+        return Ok(InstructionResult::Finished(return_value));
     }
 
     // 2. Get the call frame
     let call_frame = vm.call_stack.pop().unwrap();
-    eprintln!("Popped call frame with return_ip: {}", call_frame.return_ip);
+    eprintln!(
+        "DEBUG RET: return_ip={}, original_stack_size={}",
+        call_frame.return_ip, call_frame.original_stack_size
+    );
 
-    // 3. Get return value from function execution
-    let return_value = if vm.stack.len() > call_frame.stack_start {
-        vm.stack.pop()
+    // 3. Get return value from stack
+    // The caller's locals are already on the stack at positions [0, original_stack_size)
+    // The return value is at position original_stack_size (or top of stack if no locals)
+    let return_value = if !vm.stack.is_empty() {
+        vm.stack.pop().unwrap()
     } else {
-        None
+        Value::Nil
     };
+    eprintln!("DEBUG RET: return_value = {:?}", return_value);
+    eprintln!("DEBUG RET: Stack after pop: {:?}", vm.stack);
 
-    // 4. For functions that completed without explicit return,
-    //    check if there's a computed value that should be returned
-    let final_return_value = if return_value.is_none() {
-        // If no explicit return value, look for the most recent computed value
-        // This handles the case where functions compute values but don't explicitly Ret
-        if vm.stack.len() > 0 {
-            vm.stack.pop()
-        } else {
-            None
-        }
-    } else {
-        return_value
-    };
+    // 4. Push return value back for caller
+    // This goes on TOP of the preserved caller state
+    vm.stack.push(return_value.clone());
 
-    // 5. Restore stack to call frame state (before function call)
-    vm.stack.truncate(call_frame.stack_start);
-
-    // 6. Push return value (or Nil if none) back onto restored stack
-    if let Some(value) = final_return_value {
-        eprintln!("Pushed return value: {:?}", value);
-        vm.stack.push(value);
-    } else {
-        eprintln!("Pushed Nil as return value");
-        vm.stack.push(Value::Nil);
+    // 5. Set instruction pointer for continuation
+    // Check if this was the last frame
+    if vm.call_stack.is_empty() {
+        eprintln!("Returning to top-level - signaling completion");
+        return Ok(InstructionResult::Finished(return_value));
     }
 
-    // 6. Restore instruction pointer and original instructions
+    // Restore caller's execution context
     vm.ip = call_frame.return_ip;
+
     if let Some(saved_instructions) = call_frame.saved_instructions {
-        eprintln!("Restoring {} instructions", saved_instructions.len());
         vm.instructions = saved_instructions;
-    } else {
-        eprintln!("No saved instructions to restore");
     }
 
     eprintln!(
@@ -89,5 +68,5 @@ pub fn handle_ret(vm: &mut VmState) -> Result<(), VmError> {
         vm.call_stack.len()
     );
 
-    Ok(())
+    Ok(InstructionResult::Continue)
 }

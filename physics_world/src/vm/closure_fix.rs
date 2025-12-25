@@ -81,6 +81,7 @@ pub fn execute_closure_call(
 
     // 8. Set up call frame
     let stack_start = vm.stack.len() - arg_count as usize;
+    let original_stack_size = stack_start;
     let recursion_depth = if vm.call_stack.is_empty() {
         1 // First call in the stack
     } else {
@@ -89,6 +90,7 @@ pub fn execute_closure_call(
     let call_frame = CallFrame {
         return_ip: vm.ip + 1,
         stack_start,
+        original_stack_size,
         saved_instructions: Some(vm.instructions.clone()),
         recursion_depth,
         locals: Vec::new(),
@@ -211,6 +213,19 @@ pub fn handle_ret_opcode(vm: &mut VmState) -> Result<(), VmError> {
     // 2. Get the call frame
     let call_frame = vm.call_stack.pop().unwrap();
 
+    eprintln!(
+        "DEBUG RET: call_frame.original_stack_size = {}",
+        call_frame.original_stack_size
+    );
+    eprintln!(
+        "DEBUG RET: call_frame.stack_start = {}",
+        call_frame.stack_start
+    );
+    eprintln!(
+        "DEBUG RET: vm.stack.len() before return = {}",
+        vm.stack.len()
+    );
+
     // 3. Get return value (if any)
     let return_value = if vm.stack.len() > call_frame.stack_start {
         Some(vm.stack.pop().unwrap())
@@ -218,8 +233,18 @@ pub fn handle_ret_opcode(vm: &mut VmState) -> Result<(), VmError> {
         None
     };
 
-    // 4. Restore stack to call frame state
-    vm.stack.truncate(call_frame.stack_start);
+    eprintln!("DEBUG RET: return_value = {:?}", return_value);
+
+    // 4. Restore stack to call frame state - use ORIGINAL_STACK_SIZE!
+    // For recursive calls, arguments are pushed AFTER the call frame is created,
+    // so we must truncate to original_stack_size, not stack_start
+    eprintln!(
+        "DEBUG RET: Truncating stack from {} to {}",
+        vm.stack.len(),
+        call_frame.original_stack_size
+    );
+    vm.stack.truncate(call_frame.original_stack_size);
+    eprintln!("DEBUG RET: Stack after truncate: {:?}", vm.stack);
 
     // 5. Push return value (or Nil if none)
     if let Some(value) = return_value {
@@ -227,6 +252,8 @@ pub fn handle_ret_opcode(vm: &mut VmState) -> Result<(), VmError> {
     } else {
         vm.stack.push(Value::Nil);
     }
+
+    eprintln!("DEBUG RET: Final stack: {:?}", vm.stack);
 
     // 6. Restore instruction pointer and original instructions
     vm.ip = call_frame.return_ip;

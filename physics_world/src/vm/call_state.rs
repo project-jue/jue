@@ -225,13 +225,14 @@ use crate::types::{HeapPtr, OpCode};
 pub struct CallFrame {
     pub return_ip: usize,
     pub stack_start: usize,
+    pub original_stack_size: usize, // Stack size BEFORE this call (for proper truncation on return)
     pub saved_instructions: Option<Vec<OpCode>>, // Store original instructions for nested calls
-    pub recursion_depth: u32,                    // Track recursion depth for this call frame
-    pub locals: Vec<Value>,                      // Lexical environment storage
-    pub closed_over: HashMap<usize, Value>,      // Closed-over variables
-    pub is_tail_call: bool,                      // TCO tracking flag
-    pub frame_id: u64,                           // For debugging/verification
-    pub code_index: usize,                       // Track which closure this frame is for (for TCO)
+    pub recursion_depth: u32,       // Track recursion depth for this call frame
+    pub locals: Vec<Value>,         // Lexical environment storage
+    pub closed_over: HashMap<usize, Value>, // Closed-over variables
+    pub is_tail_call: bool,         // TCO tracking flag
+    pub frame_id: u64,              // For debugging/verification
+    pub code_index: usize,          // Track which closure this frame is for (for TCO)
 }
 
 impl CallFrame {
@@ -240,12 +241,20 @@ impl CallFrame {
     /// # Arguments
     /// * `return_ip` - The instruction pointer to return to after the function completes
     /// * `stack_start` - The stack position before this function was called
+    /// * `original_stack_size` - The stack size before this call (for truncation on return)
     /// * `frame_id` - Unique identifier for debugging
     /// * `code_index` - The code index for TCO detection
-    pub fn new(return_ip: usize, stack_start: usize, frame_id: u64, code_index: usize) -> Self {
+    pub fn new(
+        return_ip: usize,
+        stack_start: usize,
+        original_stack_size: usize,
+        frame_id: u64,
+        code_index: usize,
+    ) -> Self {
         Self {
             return_ip,
             stack_start,
+            original_stack_size,
             saved_instructions: None,
             recursion_depth: 0,
             locals: Vec::new(),
@@ -391,16 +400,17 @@ mod tests {
 
     #[test]
     fn test_call_frame_creation() {
-        let frame = CallFrame::new(10, 5, 1, 0);
+        let frame = CallFrame::new(10, 5, 3, 1, 0);
         assert_eq!(frame.return_ip, 10);
         assert_eq!(frame.stack_start, 5);
+        assert_eq!(frame.original_stack_size, 3);
         assert_eq!(frame.frame_id, 1);
         assert!(frame.locals.is_empty());
     }
 
     #[test]
     fn test_call_frame_locals() {
-        let mut frame = CallFrame::new(0, 0, 1, 0);
+        let mut frame = CallFrame::new(0, 0, 0, 1, 0);
         frame.push_local(Value::Int(42));
         frame.push_local(Value::Int(100));
 
@@ -419,13 +429,13 @@ mod tests {
         assert!(stack.is_empty());
         assert_eq!(stack.depth(), 0);
 
-        let frame1 = CallFrame::new(10, 5, 1, 0);
+        let frame1 = CallFrame::new(10, 5, 3, 1, 0);
         stack.push(frame1).unwrap();
 
         assert!(!stack.is_empty());
         assert_eq!(stack.depth(), 1);
 
-        let frame2 = CallFrame::new(20, 10, 2, 1);
+        let frame2 = CallFrame::new(20, 10, 6, 2, 1);
         stack.push(frame2).unwrap();
 
         assert_eq!(stack.depth(), 2);
@@ -440,12 +450,12 @@ mod tests {
         let mut stack = CallStack::new(3);
 
         for i in 0..3 {
-            let frame = CallFrame::new(i * 10, i * 5, i as u64 + 1, i);
+            let frame = CallFrame::new(i * 10, i * 5, i * 3, i as u64 + 1, i);
             assert!(stack.push(frame).is_ok());
         }
 
         // This should fail
-        let frame = CallFrame::new(100, 50, 4, 4);
+        let frame = CallFrame::new(100, 50, 30, 4, 4);
         assert!(stack.push(frame).is_err());
     }
 

@@ -302,30 +302,39 @@ fn test_capability_audit_logging() {
 }
 
 // Test 11: Complex control flow with jumps
+// Tests relative jump offsets: target_ip = current_ip + 1 + offset
 #[test]
 fn test_complex_control_flow() {
-    // Test nested conditional logic
+    // Test nested conditional logic with relative jumps
+    // This test verifies that both Jmp and JmpIfFalse use relative offsets
+    //
+    // Control flow:
+    // - Int(10), Int(5), Gt: stack=[true], 10 > 5
+    // - JmpIfFalse(6): condition=true, don't jump, condition is CONSUMED from stack
+    // - Int(1): stack=[1]
+    // - Int(5): stack=[1, 5]
+    // - Jmp(3): jump to ip=7
+    // - Int(0): unreachable (false branch)
+    // - Add: 1 + 5 = 6
     let code = vec![
-        OpCode::Int(10),
-        OpCode::Int(5),
-        OpCode::Gt,             // 10 > 5 = true
-        OpCode::JmpIfFalse(10), // Skip if false
-        OpCode::Int(1),         // True branch
-        OpCode::Jmp(8),         // Skip false branch
-        OpCode::Int(0),         // False branch
-        OpCode::Int(20),
-        OpCode::Int(15),
-        OpCode::Lt,            // 20 < 15 = false
-        OpCode::JmpIfFalse(3), // Skip if false
-        OpCode::Int(1),        // True branch (never taken)
-        OpCode::Jmp(1),        // Skip false branch
-        OpCode::Int(0),        // False branch
-        OpCode::Add,           // 1 + 0 = 1
+        OpCode::Int(10),       // ip=0: stack=[10]
+        OpCode::Int(5),        // ip=1: stack=[10, 5]
+        OpCode::Gt,            // ip=2: stack=[true] (10 > 5), Gt consumes 2, pushes 1
+        OpCode::JmpIfFalse(6), // ip=3: if false, jump to 3+1+6=10, CONSUMES condition from stack
+        OpCode::Int(1),        // ip=4: stack=[1]
+        OpCode::Int(5),        // ip=5: stack=[1, 5]
+        OpCode::Jmp(3),        // ip=6: jump to 6+1+3=10
+        OpCode::Int(0),        // ip=7: false branch (unreachable)
+        OpCode::Int(100),      // ip=8: more false branch (unreachable)
+        OpCode::Add,           // ip=9: unreachable
+        OpCode::Int(3),        // ip=10: true path continues, stack=[1, 5, 3]
+        OpCode::Pop,           // ip=11: remove 3, stack=[1, 5]
+        OpCode::Add,           // ip=12: 1 + 5 = 6
     ];
 
     let mut vm = VmState::new(code, vec![], 100, 1024, 1, 100);
     let result = vm.run();
-    assert_eq!(result.unwrap(), Value::Int(1));
+    assert_eq!(result.unwrap(), Value::Int(6));
 }
 
 // Test 12: Pair operations (Cons, Car, Cdr)

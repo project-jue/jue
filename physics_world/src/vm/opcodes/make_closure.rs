@@ -23,7 +23,47 @@ pub fn handle_make_closure(
         return Err(VmError::StackUnderflow);
     }
 
-    // 2. Check if we have a proper closure body in the constant pool
+    // 2. Handle zero-capture closures by reusing from constant pool (optimization for recursion)
+    if capture_count == 0 {
+        match vm.constant_pool.get(code_idx) {
+            Some(Value::Closure(body_ptr)) => {
+                eprintln!(
+                    "DEBUG MakeClosure(0,0): code_idx={}, body_ptr={}, constant_pool_len={}",
+                    code_idx,
+                    body_ptr,
+                    vm.constant_pool.len()
+                );
+                // Create a proper closure wrapper with the body pointer from constant pool
+                // The Call handler reads bytes 0-4 to get the body pointer
+                let size = 4; // Just the body pointer, no captures
+                let closure_ptr = vm
+                    .memory
+                    .allocate(size, 2) // Tag 2 for closures
+                    .map_err(|_| VmError::MemoryLimitExceeded)?;
+
+                // Store body pointer in closure wrapper
+                let data = unsafe { vm.memory.get_data_mut(closure_ptr) };
+                let body_ptr_bytes = body_ptr.get().to_le_bytes();
+                data[0..4].copy_from_slice(&body_ptr_bytes);
+
+                return Ok(Value::Closure(closure_ptr));
+            }
+            Some(Value::String(bytecode_str)) if bytecode_str.starts_with("closure_body:") => {
+                // For string-based bytecode, parse and create the closure body
+                let bytecode_str = &bytecode_str["closure_body:".len()..];
+                if let Ok(bytecode) = parse_bytecode_from_string(bytecode_str) {
+                    let body_ptr = create_closure_body(vm, bytecode)?;
+                    return Ok(Value::Closure(body_ptr));
+                }
+                // Fall through to default creation
+            }
+            _ => {
+                // Fall through to default creation
+            }
+        }
+    }
+
+    // 3. Check if we have a proper closure body in the constant pool
     let closure_body_value = match vm.constant_pool.get(code_idx) {
         Some(Value::Closure(body_ptr)) => *body_ptr,
         Some(Value::String(bytecode_str)) => {
@@ -52,14 +92,14 @@ pub fn handle_make_closure(
         }
     };
 
-    // 3. Calculate closure size (4 bytes body ptr + 4 bytes per captured value)
+    // 4. Calculate closure size (4 bytes body ptr + 4 bytes per captured value)
     let size = 4 + (capture_count as u32 * 4);
     let closure_ptr = vm
         .memory
         .allocate(size, 2) // Tag 2 for closures
         .map_err(|_| VmError::MemoryLimitExceeded)?;
 
-    // 4. Store closure body pointer and captured values
+    // 5. Store closure body pointer and captured values
     let data = unsafe { vm.memory.get_data_mut(closure_ptr) };
 
     // Store closure body pointer (first 4 bytes)
@@ -86,7 +126,7 @@ pub fn handle_make_closure(
         data[start..start + 4].copy_from_slice(&value_bytes);
     }
 
-    // 5. Remove captured values from stack
+    // 6. Remove captured values from stack
     for _ in 0..capture_count {
         vm.stack.pop();
     }
@@ -180,6 +220,8 @@ fn parse_bytecode_from_string(bytecode_str: &str) -> Result<Vec<OpCode>, VmError
             "LoadString(0)" => OpCode::LoadString(0),
             "Call(1)" => OpCode::Call(1),
             "Call(2)" => OpCode::Call(2),
+            "TailCall(1)" => OpCode::TailCall(1),
+            "TailCall(2)" => OpCode::TailCall(2),
             "JmpIfFalse(0)" => OpCode::JmpIfFalse(0),
             "JmpIfFalse(2)" => OpCode::JmpIfFalse(2),
             "Jmp(0)" => OpCode::Jmp(0),
@@ -239,6 +281,19 @@ fn parse_bytecode_from_string(bytecode_str: &str) -> Result<Vec<OpCode>, VmError
                         }
                     } else {
                         eprintln!("DEBUG: Failed to parse Call format");
+                        return Err(VmError::TypeMismatch);
+                    }
+                } else if op_str.starts_with("TailCall(") && op_str.ends_with(')') {
+                    if let Some(num_str) = op_str.get("TailCall(".len()..op_str.len() - 1) {
+                        if let Ok(num) = num_str.parse::<u16>() {
+                            eprintln!("DEBUG: Successfully parsed TailCall({})", num);
+                            OpCode::TailCall(num)
+                        } else {
+                            eprintln!("DEBUG: Failed to parse TailCall number: {}", num_str);
+                            return Err(VmError::TypeMismatch);
+                        }
+                    } else {
+                        eprintln!("DEBUG: Failed to parse TailCall format");
                         return Err(VmError::TypeMismatch);
                     }
                 } else if op_str.starts_with("JmpIfFalse(") && op_str.ends_with(')') {

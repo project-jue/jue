@@ -142,6 +142,15 @@ impl ExecutionEngine {
                 string_ops::handle_load_string(state, *string_idx)?;
                 state.ip += 1;
             }
+            OpCode::GetConst(const_idx) => {
+                // Load a constant from the constant pool by index
+                let value = match state.constant_pool.get(*const_idx) {
+                    Some(val) => val.clone(),
+                    None => Value::Nil,
+                };
+                state.stack.push(value);
+                state.ip += 1;
+            }
             OpCode::StrLen => {
                 string_ops::handle_str_len(state)?;
                 state.ip += 1;
@@ -198,8 +207,16 @@ impl ExecutionEngine {
                 // Note: TailCall handler sets ip to 0 for closure execution
             }
             OpCode::Ret => {
-                ret::handle_ret(state)?;
-                // Note: Ret handler sets ip to return address
+                let result = ret::handle_ret(state)?;
+                // Note: Ret handler sets ip to return address, or returns Finished if at top level
+                match result {
+                    InstructionResult::Finished(value) => {
+                        return Ok(InstructionResult::Finished(value))
+                    }
+                    InstructionResult::Continue => { /* Continue with normal flow, ip already set */
+                    }
+                    _ => return Ok(result),
+                }
             }
             OpCode::Jmp(offset) => {
                 jump::handle_jmp(state, *offset)?;

@@ -1,19 +1,23 @@
 /// Jump opcode handlers - Jmp and JmpIfFalse
+///
+/// Both jump instructions use RELATIVE offsets (like JVM, WebAssembly):
+/// - target_ip = current_ip + 1 + offset
+/// - offset can be negative for backward jumps (loops)
+/// - offset can be positive for forward jumps (branches)
 use crate::types::Value;
 use crate::vm::state::VmError;
 use crate::vm::state::VmState;
 
 /// Handles the Jmp opcode - unconditional jump
+/// Jump offset is RELATIVE to the next instruction: new_ip = current_ip + 1 + offset
 pub fn handle_jmp(vm: &mut VmState, offset: i16) -> Result<(), VmError> {
+    // Calculate new IP: current_ip + 1 (skip this instruction) + offset
+    let new_ip = (vm.ip as i32 + 1 + offset as i32) as usize;
+
     eprintln!(
         "DEBUG: JMP instruction - current_ip={}, offset={}, new_ip={}",
-        vm.ip,
-        offset,
-        (vm.ip as i32 + offset as i32) as usize
+        vm.ip, offset, new_ip
     );
-
-    // Calculate new instruction pointer
-    let new_ip = (vm.ip as i32 + offset as i32) as usize;
 
     // Validate the new IP is within bounds
     if new_ip >= vm.instructions.len() {
@@ -31,6 +35,7 @@ pub fn handle_jmp(vm: &mut VmState, offset: i16) -> Result<(), VmError> {
 }
 
 /// Handles the JmpIfFalse opcode - conditional jump
+/// Jump offset is RELATIVE to the next instruction: new_ip = current_ip + 1 + offset
 pub fn handle_jmp_if_false(vm: &mut VmState, offset: i16) -> Result<(), VmError> {
     // Get the condition value from stack
     if vm.stack.is_empty() {
@@ -52,8 +57,9 @@ pub fn handle_jmp_if_false(vm: &mut VmState, offset: i16) -> Result<(), VmError>
     );
 
     if should_jump {
-        // Calculate new instruction pointer
-        let new_ip = (vm.ip as i32 + offset as i32) as usize;
+        // Jump offset is relative to the next instruction: next_ip + offset
+        let next_ip = vm.ip + 1;
+        let new_ip = (next_ip as i32 + offset as i32) as usize;
 
         // Validate the new IP is within bounds
         if new_ip >= vm.instructions.len() {
@@ -66,8 +72,8 @@ pub fn handle_jmp_if_false(vm: &mut VmState, offset: i16) -> Result<(), VmError>
         }
 
         eprintln!(
-            "DEBUG: Setting IP from {} to {} (conditional jump)",
-            vm.ip, new_ip
+            "DEBUG: Setting IP from {} to {} (conditional jump, offset={})",
+            vm.ip, new_ip, offset
         );
         vm.ip = new_ip;
     } else {
