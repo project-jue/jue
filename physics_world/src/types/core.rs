@@ -206,6 +206,7 @@ pub enum Value {
     ActorId(u32),
     Capability(crate::types::capability::Capability),
     GcPtr(crate::vm::gc::GcPtr), // GC-managed pointer
+    Error(String),               // Error value for host function errors
 }
 
 impl fmt::Display for Value {
@@ -222,6 +223,7 @@ impl fmt::Display for Value {
             Value::ActorId(id) => write!(f, "Actor({})", id),
             Value::Capability(cap) => write!(f, "Capability({:?})", cap),
             Value::GcPtr(ptr) => write!(f, "GcPtr({})", ptr.0),
+            Value::Error(msg) => write!(f, "Error({})", msg),
         }
     }
 }
@@ -240,6 +242,7 @@ impl Value {
             Value::ActorId(_) => true,
             Value::Capability(_) => true,
             Value::GcPtr(_) => true,
+            Value::Error(_) => false, // Errors are falsy
         }
     }
 }

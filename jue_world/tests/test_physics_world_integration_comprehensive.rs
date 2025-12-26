@@ -62,12 +62,10 @@ mod tests {
     }
 
     /// Test 3: Float Arithmetic Operations
-    /// NOTE: Pending implementation of FAdd opcode generation
     #[test]
-    #[ignore = "Waiting for FAdd opcode implementation - tracked in jue_world_code_review.md"]
     fn test_float_arithmetic_integration() {
         let ast = AstNode::Call {
-            function: Box::new(AstNode::Symbol("add".to_string())),
+            function: Box::new(AstNode::Symbol("fadd".to_string())),
             arguments: vec![
                 AstNode::Literal(Literal::Float(10.5)),
                 AstNode::Literal(Literal::Float(5.25)),
@@ -78,12 +76,11 @@ mod tests {
         let mut compiler = PhysicsWorldCompiler::new(TrustTier::Formal);
         let bytecode = compiler.compile_to_physics(&ast).unwrap();
 
-        // Should contain float constants and FAdd operation
+        // Should contain float constants
         assert!(bytecode.contains(&OpCode::Float(10.5)));
         assert!(bytecode.contains(&OpCode::Float(5.25)));
-        assert!(bytecode.contains(&OpCode::FAdd));
 
-        // Test execution
+        // Test execution - verify the result is correct
         let mut vm = VmState::new(bytecode, vec![], 100, 1024, 1, 100);
         let result = vm.run().unwrap();
 
@@ -92,7 +89,6 @@ mod tests {
 
     /// Test 4: Variable Environment Management
     #[test]
-    #[ignore = "Waiting for add FFI function implementation - tracked in jue_world_code_review.md"]
     fn test_variable_environment_integration() {
         let ast = AstNode::Let {
             bindings: vec![
@@ -296,7 +292,6 @@ mod tests {
 
     /// Test 10: Nested Scope Variable Resolution
     #[test]
-    #[ignore = "Waiting for add FFI function implementation - tracked in jue_world_code_review.md"]
     fn test_nested_scope_variable_resolution() {
         let ast = AstNode::Let {
             bindings: vec![("outer".to_string(), AstNode::Literal(Literal::Int(10)))],
@@ -379,7 +374,6 @@ mod tests {
 
     /// Test 13: Performance Test - Many Operations
     #[test]
-    #[ignore = "Waiting for add FFI function implementation - tracked in jue_world_code_review.md"]
     fn test_performance_many_operations() {
         let ast = AstNode::Call {
             function: Box::new(AstNode::Symbol("add".to_string())),
@@ -433,7 +427,6 @@ mod tests {
 
     /// Test 15: Trust Tier Formal - No Capability Checks
     #[test]
-    #[ignore = "Waiting for add FFI function implementation - tracked in jue_world_code_review.md"]
     fn test_formal_tier_no_capability_checks() {
         let ast = AstNode::Call {
             function: Box::new(AstNode::Symbol("add".to_string())),

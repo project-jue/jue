@@ -32,16 +32,23 @@ impl FfiCallGenerator {
             CompilationError::FfiError(format!("FFI function {} not found", name))
         })?;
 
-        // Get dynamic capability index
-        let cap_idx = self
-            .registry
-            .get_capability_index(&func.required_capability)
-            .ok_or_else(|| {
-                CompilationError::FfiError(format!(
-                    "No capability index found for capability {:?}",
-                    func.required_capability
-                ))
-            })?;
+        // Get dynamic capability index (None means no capability required)
+        let cap_idx = match &func.required_capability {
+            Some(capability) => {
+                self.registry
+                    .get_capability_index(capability)
+                    .ok_or_else(|| {
+                        CompilationError::FfiError(format!(
+                            "No capability index found for capability {:?}",
+                            capability
+                        ))
+                    })?
+            }
+            None => {
+                // No capability required - use a placeholder (will be ignored)
+                0
+            }
+        };
 
         // Generate the HostCall opcode with dynamic capability index
         let opcode = OpCode::HostCall {
@@ -69,16 +76,23 @@ impl FfiCallGenerator {
             CompilationError::FfiError(format!("FFI function {} not found", name))
         })?;
 
-        // Get dynamic capability index
-        let cap_idx = self
-            .registry
-            .get_capability_index(&func.required_capability)
-            .ok_or_else(|| {
-                CompilationError::FfiError(format!(
-                    "No capability index found for capability {:?}",
-                    func.required_capability
-                ))
-            })?;
+        // Get dynamic capability index (None means no capability required)
+        let cap_idx = match &func.required_capability {
+            Some(capability) => {
+                self.registry
+                    .get_capability_index(capability)
+                    .ok_or_else(|| {
+                        CompilationError::FfiError(format!(
+                            "No capability index found for capability {:?}",
+                            capability
+                        ))
+                    })?
+            }
+            None => {
+                // No capability required - return empty bytecode (no HasCap needed)
+                return Ok(Vec::new());
+            }
+        };
 
         // Generate HasCap opcode with dynamic capability index
         let opcode = OpCode::HasCap(cap_idx);
@@ -128,6 +142,10 @@ impl FfiCallGenerator {
                 // Convert GC pointer to bytecode representation
                 let ptr_value = ptr.0 as u32;
                 bytecode.push(OpCode::Int(ptr_value as i64));
+            }
+            Value::Error(_msg) => {
+                // Error values - push nil as placeholder
+                bytecode.push(OpCode::Nil);
             }
         }
 

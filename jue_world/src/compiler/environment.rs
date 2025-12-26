@@ -43,12 +43,14 @@ impl CompilationEnvironment {
         self.saved_frame_sizes.push(saved_frame_size);
 
         // Create new scope with current scope as parent
+        // IMPORTANT: Do NOT reset frame_size to 0 - continue from parent's frame_size
+        // This ensures nested scopes allocate unique slots (not overwriting outer variables)
         let new_scope = VariableScope {
             bindings: HashMap::new(),
             parent: Some(Box::new(self.current_scope.clone())),
         };
         self.current_scope = new_scope;
-        self.frame_size = 0;
+        // frame_size stays at parent's value - continue allocating from there
     }
 
     /// Pop the current scope

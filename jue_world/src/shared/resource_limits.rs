@@ -99,6 +99,7 @@ impl ResourceLimitEnforcer {
                 Value::ActorId(_) => 4,
                 Value::Capability(_) => 8,
                 &Value::GcPtr(_) => 4,
+                &Value::Error(_) => 8, // Error values stored as strings
             };
         }
 

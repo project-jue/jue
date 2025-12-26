@@ -260,3 +260,519 @@ fn test_host_call_with_no_arguments() {
     // Should succeed and return the mock timestamp
     assert!(matches!(result, Ok(Value::Int(1234567890))));
 }
+
+// ============ Arithmetic Host Function Tests ============
+
+#[test]
+fn test_host_call_arithmetic_no_capability() {
+    // Test that arithmetic host functions don't require capabilities (func_id 9-25)
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(10),
+            OpCode::Int(20),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 9, // IntAdd
+                args: 2,
+            },
+        ],
+        vec![], // No capability needed
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(30))));
+}
+
+#[test]
+fn test_host_call_int_add() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(10),
+            OpCode::Int(20),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 9, // IntAdd
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(30))));
+}
+
+#[test]
+fn test_host_call_int_sub() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(50),
+            OpCode::Int(20),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 10, // IntSub
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(30))));
+}
+
+#[test]
+fn test_host_call_int_mul() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(6),
+            OpCode::Int(7),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 11, // IntMul
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(42))));
+}
+
+#[test]
+fn test_host_call_int_div() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(42),
+            OpCode::Int(6),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 12, // IntDiv
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(7))));
+}
+
+#[test]
+fn test_host_call_int_div_by_zero() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(42),
+            OpCode::Int(0),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 12, // IntDiv
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    // Should push error value and continue
+    assert!(matches!(result, Ok(Value::Error(_))));
+}
+
+#[test]
+fn test_host_call_int_mod() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(17),
+            OpCode::Int(5),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 13, // IntMod
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(2))));
+}
+
+#[test]
+fn test_host_call_float_add() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Float(10.5),
+            OpCode::Float(20.5),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 14, // FloatAdd
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Float(v)) if (v - 31.0).abs() < 0.001));
+}
+
+#[test]
+fn test_host_call_float_sub() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Float(50.0),
+            OpCode::Float(20.0),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 15, // FloatSub
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Float(v)) if (v - 30.0).abs() < 0.001));
+}
+
+#[test]
+fn test_host_call_float_mul() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Float(6.0),
+            OpCode::Float(7.0),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 16, // FloatMul
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Float(v)) if (v - 42.0).abs() < 0.001));
+}
+
+#[test]
+fn test_host_call_float_div() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Float(42.0),
+            OpCode::Float(6.0),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 17, // FloatDiv
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Float(v)) if (v - 7.0).abs() < 0.001));
+}
+
+#[test]
+fn test_host_call_int_to_float() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(42),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 18, // IntToFloat
+                args: 1,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Float(v)) if (v - 42.0).abs() < 0.001));
+}
+
+#[test]
+fn test_host_call_float_to_int() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Float(42.7),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 19, // FloatToInt
+                args: 1,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    // Should truncate toward zero and push error for precision loss
+    assert!(matches!(result, Ok(Value::Int(42))));
+}
+
+#[test]
+fn test_host_call_int_eq() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(42),
+            OpCode::Int(42),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 20, // IntEq
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(1)))); // true
+}
+
+#[test]
+fn test_host_call_int_eq_false() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(42),
+            OpCode::Int(99),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 20, // IntEq
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(0)))); // false
+}
+
+#[test]
+fn test_host_call_int_lt() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(10),
+            OpCode::Int(20),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 21, // IntLt
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(1)))); // true
+}
+
+#[test]
+fn test_host_call_int_gt() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(20),
+            OpCode::Int(10),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 22, // IntGt
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(1)))); // true
+}
+
+#[test]
+fn test_host_call_float_eq() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Float(3.14),
+            OpCode::Float(3.14),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 23, // FloatEq
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(1)))); // true
+}
+
+#[test]
+fn test_host_call_float_lt() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Float(1.5),
+            OpCode::Float(2.5),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 24, // FloatLt
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(1)))); // true
+}
+
+#[test]
+fn test_host_call_float_gt() {
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Float(2.5),
+            OpCode::Float(1.5),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 25, // FloatGt
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    assert!(matches!(result, Ok(Value::Int(1)))); // true
+}
+
+#[test]
+fn test_host_call_type_mismatch_int_args() {
+    // Test that passing floats to int operations produces an error
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Float(10.0),
+            OpCode::Float(20.0),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 9, // IntAdd
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    // Should push error value and continue
+    assert!(matches!(result, Ok(Value::Error(_))));
+}
+
+#[test]
+fn test_host_call_arithmetic_overflow() {
+    // Test integer overflow detection
+    let mut vm = VmState::new(
+        vec![
+            OpCode::Int(i64::MAX),
+            OpCode::Int(1),
+            OpCode::HostCall {
+                cap_idx: 0,
+                func_id: 9, // IntAdd
+                args: 2,
+            },
+        ],
+        vec![],
+        100,
+        1024,
+        1,
+    );
+
+    let result = vm.run();
+    // Should push error for overflow
+    assert!(matches!(result, Ok(Value::Error(_))));
+}
+
+#[test]
+fn test_host_call_capability_mapping_for_arithmetic() {
+    // Test that arithmetic functions don't require capabilities
+    use crate::vm::opcodes::capability::get_required_capability_for_host_function;
+
+    // Arithmetic operations should return None (no capability required)
+    assert_eq!(get_required_capability_for_host_function(9), None);  // IntAdd
+    assert_eq!(get_required_capability_for_host_function(10), None); // IntSub
+    assert_eq!(get_required_capability_for_host_function(11), None); // IntMul
+    assert_eq!(get_required_capability_for_host_function(12), None); // IntDiv
+    assert_eq!(get_required_capability_for_host_function(13), None); // IntMod
+    assert_eq!(get_required_capability_for_host_function(14), None); // FloatAdd
+    assert_eq!(get_required_capability_for_host_function(15), None); // FloatSub
+    assert_eq!(get_required_capability_for_host_function(16), None); // FloatMul
+    assert_eq!(get_required_capability_for_host_function(17), None); // FloatDiv
+    assert_eq!(get_required_capability_for_host_function(18), None); // IntToFloat
+    assert_eq!(get_required_capability_for_host_function(19), None); // FloatToInt
+    assert_eq!(get_required_capability_for_host_function(20), None); // IntEq
+    assert_eq!(get_required_capability_for_host_function(21), None); // IntLt
+    assert_eq!(get_required_capability_for_host_function(22), None); // IntGt
+    assert_eq!(get_required_capability_for_host_function(23), None); // FloatEq
+    assert_eq!(get_required_capability_for_host_function(24), None); // FloatLt
+    assert_eq!(get_required_capability_for_host_function(25), None); // FloatGt
+}

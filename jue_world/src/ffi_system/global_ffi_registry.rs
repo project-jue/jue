@@ -23,8 +23,8 @@ pub struct FfiFunction {
     /// Corresponding host function
     pub host_function: HostFunction,
 
-    /// Required capability for this function
-    pub required_capability: Capability,
+    /// Required capability for this function (None means no capability required)
+    pub required_capability: Option<Capability>,
 
     /// Parameter types
     pub parameter_types: Vec<String>,
@@ -59,14 +59,12 @@ impl FfiRegistry {
     pub fn register_function(&mut self, func: FfiFunction) {
         self.functions.insert(func.name.clone(), func.clone());
 
-        // Add capability mapping if not already present
-        if !self
-            .capability_indices
-            .contains_key(&func.required_capability)
-        {
-            let index = self.capability_indices.len();
-            self.capability_indices
-                .insert(func.required_capability.clone(), index);
+        // Add capability mapping if not already present (skip if None)
+        if let Some(ref capability) = func.required_capability {
+            if !self.capability_indices.contains_key(capability) {
+                let index = self.capability_indices.len();
+                self.capability_indices.insert(capability.clone(), index);
+            }
         }
     }
 

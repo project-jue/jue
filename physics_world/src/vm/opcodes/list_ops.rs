@@ -81,8 +81,8 @@ pub fn handle_cdr(vm: &mut VmState) -> Result<(), VmError> {
 /// Convert a Value to a u32 representation (simplified for basic types)
 fn value_to_u32(value: &Value) -> u32 {
     match value {
-        Value::Int(n) => (*n as u32),
-        Value::Float(f) => (*f as u32), // Convert float to u32 for storage
+        Value::Int(n) => *n as u32,
+        Value::Float(f) => *f as u32, // Convert float to u32 for storage
         Value::Bool(b) => {
             if *b {
                 1
@@ -98,6 +98,7 @@ fn value_to_u32(value: &Value) -> u32 {
         Value::Closure(ptr) => ptr.get(),
         Value::Capability(_) => 0, // Placeholder
         Value::GcPtr(ptr) => ptr.0 as u32,
+        Value::Error(_) => 0, // Errors stored as 0
     }
 }
 

@@ -121,6 +121,7 @@ pub fn handle_make_closure(
             Value::ActorId(id) => (*id as u32).to_le_bytes(),
             Value::Capability(_) => 0u32.to_le_bytes(), // Placeholder
             Value::GcPtr(p) => (p.0 as u32).to_le_bytes(),
+            Value::Error(_) => 0u32.to_le_bytes(), // Errors stored as 0
         };
         let start = 4 + (i * 4);
         data[start..start + 4].copy_from_slice(&value_bytes);

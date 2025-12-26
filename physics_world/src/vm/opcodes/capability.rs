@@ -3,6 +3,67 @@ use crate::vm::state::VmError;
 /// Capability-related opcode handlers for the Physics World VM
 use crate::vm::state::{InstructionResult, VmState};
 
+/// Helper function to push an error value onto the stack
+fn push_error(vm: &mut VmState, message: &str) {
+    vm.stack.push(Value::Error(message.to_string()));
+}
+
+/// Helper function to pop two integer arguments, checking for type mismatches
+fn pop_int_args(vm: &mut VmState, args: u8) -> Result<(i64, i64), VmError> {
+    if args != 2 {
+        return Err(VmError::TypeMismatch);
+    }
+    let b = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    let a = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    match (a, b) {
+        (Value::Int(x), Value::Int(y)) => Ok((x, y)),
+        _ => {
+            push_error(vm, "expected integers");
+            Err(VmError::TypeMismatch)
+        }
+    }
+}
+
+/// Helper function to pop two float arguments, checking for type mismatches
+fn pop_float_args(vm: &mut VmState, args: u8) -> Result<(f64, f64), VmError> {
+    if args != 2 {
+        return Err(VmError::TypeMismatch);
+    }
+    let b = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    let a = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    match (a, b) {
+        (Value::Float(x), Value::Float(y)) => Ok((x, y)),
+        _ => {
+            push_error(vm, "expected floats");
+            Err(VmError::TypeMismatch)
+        }
+    }
+}
+
+/// Helper function to pop a single integer argument
+fn pop_int_arg(vm: &mut VmState) -> Result<i64, VmError> {
+    let a = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    match a {
+        Value::Int(x) => Ok(x),
+        _ => {
+            push_error(vm, "expected integer");
+            Err(VmError::TypeMismatch)
+        }
+    }
+}
+
+/// Helper function to pop a single float argument
+fn pop_float_arg(vm: &mut VmState) -> Result<f64, VmError> {
+    let a = vm.stack.pop().ok_or(VmError::StackUnderflow)?;
+    match a {
+        Value::Float(x) => Ok(x),
+        _ => {
+            push_error(vm, "expected float");
+            Err(VmError::TypeMismatch)
+        }
+    }
+}
+
 /// Handles the HasCap opcode - checks if the actor has a specific capability
 pub fn handle_has_cap(vm: &mut VmState, cap_idx: usize) -> Result<InstructionResult, VmError> {
     // Get the capability from the constant pool
@@ -114,6 +175,7 @@ pub fn handle_revoke_cap(
 }
 
 /// Get the capability required for a specific host function
+/// Arithmetic operations (func_id 9-25) don't require special capabilities
 fn get_required_capability_for_host_function(func_id: u16) -> Option<Capability> {
     match func_id {
         0 => Some(Capability::IoReadSensor),      // ReadSensor
@@ -125,6 +187,8 @@ fn get_required_capability_for_host_function(func_id: u16) -> Option<Capability>
         6 => Some(Capability::IoNetwork),         // NetworkReceive
         7 => Some(Capability::IoPersist),         // PersistWrite
         8 => Some(Capability::IoPersist),         // PersistRead
+        // Arithmetic operations (9-25) don't require special capabilities
+        9..=25 => None,                            // IntAdd through FloatGt
         _ => None,
     }
 }
@@ -136,42 +200,44 @@ pub fn handle_host_call(
     func_id: u16,
     args: u8,
 ) -> Result<(), VmError> {
-    // Get the required capability from the constant pool
-    let capability_value = match vm.constant_pool.get(cap_idx) {
-        Some(val) => val,
-        None => return Err(VmError::InvalidHeapPtr),
-    };
+    // For arithmetic operations, we don't require a capability check
+    // Arithmetic operations use func_id 9-25
+    let requires_capability = matches!(func_id, 0..=8);
 
-    let required_capability = match capability_value {
-        Value::Capability(cap) => cap,
-        _ => return Err(VmError::TypeMismatch),
-    };
+    if requires_capability {
+        // Get the required capability from the constant pool
+        let capability_value = match vm.constant_pool.get(cap_idx) {
+            Some(val) => val,
+            None => return Err(VmError::InvalidHeapPtr),
+        };
 
-    // Get the arguments from the stack
-    if vm.stack.len() < args as usize {
-        return Err(VmError::StackUnderflow);
-    }
+        let required_capability = match capability_value {
+            Value::Capability(cap) => cap,
+            _ => return Err(VmError::TypeMismatch),
+        };
 
-    let call_args: Vec<Value> = vm.stack.drain((vm.stack.len() - args as usize)..).collect();
+        // Get the required capability for this host function
+        let expected_capability = get_required_capability_for_host_function(func_id);
 
-    // Check if the actor has the required capability using the capability enforcement system
-    // Get the required capability for this host function
-    let expected_capability = get_required_capability_for_host_function(func_id);
-
-    // Verify that the provided capability matches the expected capability
-    if let Some(expected_cap) = expected_capability {
-        if expected_cap != *required_capability {
-            return Err(VmError::CapabilityDenied);
+        // Verify that the provided capability matches the expected capability
+        if let Some(expected_cap) = expected_capability {
+            if expected_cap != *required_capability {
+                return Err(VmError::CapabilityDenied);
+            }
         }
+
+        // Get the arguments from the stack for system operations
+        if vm.stack.len() < args as usize {
+            return Err(VmError::StackUnderflow);
+        }
+
+        let _call_args: Vec<Value> = vm.stack.drain((vm.stack.len() - args as usize)..).collect();
     }
 
-    // In a real implementation, this would:
-    // 1. Check if the actor has the required capability (via scheduler)
-    // 2. Execute the host function with the provided arguments
-    // 3. Push the result onto the stack
-
-    // For now, we'll simulate the host function execution based on the function ID
+    // Execute the host function based on function ID
+    // Arithmetic operations (func_id 9-25) use helper functions that pop their own arguments
     let result = match func_id {
+        // System operations (require capability)
         0 => Value::Int(42),         // ReadSensor - return mock sensor value
         1 => Value::Nil,             // WriteActuator - return nil
         2 => Value::Int(1234567890), // GetWallClockNs - return mock timestamp
@@ -181,6 +247,160 @@ pub fn handle_host_call(
         6 => Value::Nil,             // NetworkReceive - return nil
         7 => Value::Nil,             // PersistWrite - return nil
         8 => Value::Nil,             // PersistRead - return nil
+        
+        // Integer arithmetic operations
+        9 => {  // IntAdd
+            match pop_int_args(vm, args) {
+                Ok((x, y)) => {
+                    match x.checked_add(y) {
+                        Some(result) => Value::Int(result),
+                        None => { push_error(vm, "integer overflow"); Value::Int(0) }
+                    }
+                }
+                Err(_) => Value::Int(0), // Error already pushed
+            }
+        }
+        10 => { // IntSub
+            match pop_int_args(vm, args) {
+                Ok((x, y)) => {
+                    match x.checked_sub(y) {
+                        Some(result) => Value::Int(result),
+                        None => { push_error(vm, "integer overflow"); Value::Int(0) }
+                    }
+                }
+                Err(_) => Value::Int(0),
+            }
+        }
+        11 => { // IntMul
+            match pop_int_args(vm, args) {
+                Ok((x, y)) => {
+                    match x.checked_mul(y) {
+                        Some(result) => Value::Int(result),
+                        None => { push_error(vm, "integer overflow"); Value::Int(0) }
+                    }
+                }
+                Err(_) => Value::Int(0),
+            }
+        }
+        12 => { // IntDiv
+            match pop_int_args(vm, args) {
+                Ok((x, y)) => {
+                    if y == 0 {
+                        push_error(vm, "division by zero");
+                        Value::Int(0)
+                    } else {
+                        match x.checked_div(y) {
+                            Some(result) => Value::Int(result),
+                            None => { push_error(vm, "integer overflow"); Value::Int(0) }
+                        }
+                    }
+                }
+                Err(_) => Value::Int(0),
+            }
+        }
+        13 => { // IntMod
+            match pop_int_args(vm, args) {
+                Ok((x, y)) => {
+                    if y == 0 {
+                        push_error(vm, "division by zero");
+                        Value::Int(0)
+                    } else {
+                        match x.checked_rem(y) {
+                            Some(result) => Value::Int(result),
+                            None => { push_error(vm, "integer overflow"); Value::Int(0) }
+                        }
+                    }
+                }
+                Err(_) => Value::Int(0),
+            }
+        }
+        
+        // Float arithmetic operations
+        14 => { // FloatAdd
+            match pop_float_args(vm, args) {
+                Ok((x, y)) => Value::Float(x + y),
+                Err(_) => Value::Float(0.0),
+            }
+        }
+        15 => { // FloatSub
+            match pop_float_args(vm, args) {
+                Ok((x, y)) => Value::Float(x - y),
+                Err(_) => Value::Float(0.0),
+            }
+        }
+        16 => { // FloatMul
+            match pop_float_args(vm, args) {
+                Ok((x, y)) => Value::Float(x * y),
+                Err(_) => Value::Float(0.0),
+            }
+        }
+        17 => { // FloatDiv
+            match pop_float_args(vm, args) {
+                Ok((x, y)) => Value::Float(x / y), // IEEE 754: returns Inf for div by zero
+                Err(_) => Value::Float(0.0),
+            }
+        }
+        
+        // Type conversions
+        18 => { // IntToFloat
+            match pop_int_arg(vm) {
+                Ok(x) => Value::Float(x as f64),
+                Err(_) => Value::Float(0.0),
+            }
+        }
+        19 => { // FloatToInt
+            match pop_float_arg(vm) {
+                Ok(x) => {
+                    // Check for potential precision loss
+                    if x.fract() != 0.0 {
+                        push_error(vm, "potential precision loss in float to int conversion");
+                    }
+                    Value::Int(x as i64)
+                }
+                Err(_) => Value::Int(0),
+            }
+        }
+        
+        // Integer comparison operations
+        20 => { // IntEq
+            match pop_int_args(vm, args) {
+                Ok((x, y)) => Value::Int(if x == y { 1 } else { 0 }),
+                Err(_) => Value::Int(0),
+            }
+        }
+        21 => { // IntLt
+            match pop_int_args(vm, args) {
+                Ok((x, y)) => Value::Int(if x < y { 1 } else { 0 }),
+                Err(_) => Value::Int(0),
+            }
+        }
+        22 => { // IntGt
+            match pop_int_args(vm, args) {
+                Ok((x, y)) => Value::Int(if x > y { 1 } else { 0 }),
+                Err(_) => Value::Int(0),
+            }
+        }
+        
+        // Float comparison operations
+        23 => { // FloatEq
+            match pop_float_args(vm, args) {
+                Ok((x, y)) => Value::Int(if x == y { 1 } else { 0 }),
+                Err(_) => Value::Int(0),
+            }
+        }
+        24 => { // FloatLt
+            match pop_float_args(vm, args) {
+                Ok((x, y)) => Value::Int(if x < y { 1 } else { 0 }),
+                Err(_) => Value::Int(0),
+            }
+        }
+        25 => { // FloatGt
+            match pop_float_args(vm, args) {
+                Ok((x, y)) => Value::Int(if x > y { 1 } else { 0 }),
+                Err(_) => Value::Int(0),
+            }
+        }
+        
         _ => return Err(VmError::UnknownOpCode),
     };
 

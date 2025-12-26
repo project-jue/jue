@@ -180,6 +180,9 @@ impl PhysicsWorldCompiler {
 
     /// Compile a function call
     ///
+    /// Auto-detects FFI function calls when the function is a Symbol
+    /// that matches a registered FFI function.
+    ///
     /// # Arguments
     /// * `function` - The function to call
     /// * `arguments` - The arguments to pass
@@ -190,6 +193,19 @@ impl PhysicsWorldCompiler {
         arguments: &[AstNode],
         in_tail_position: bool,
     ) -> Result<Vec<OpCode>, CompilationError> {
+        // Check if this is a symbol-based call that might be an FFI function
+        if let AstNode::Symbol(name) = function {
+            // Check FFI registry first - FFI functions take priority
+            // We need to avoid borrow conflict, so we check existence first
+            let is_ffi_function = self.ffi_registry.registry.find_function(name).is_some();
+            if is_ffi_function {
+                // Clone location to avoid borrow conflict with mutable self
+                let location = self.location.clone();
+                return self.compile_ffi_call(name, arguments, &location);
+            }
+        }
+
+        // Regular function call - compile as closure call
         let mut bytecode = Vec::new();
 
         // Compile arguments in reverse order (NOT in tail position)
@@ -423,6 +439,90 @@ impl PhysicsWorldCompiler {
         arguments: &[AstNode],
         _location: &SourceLocation,
     ) -> Result<Vec<OpCode>, CompilationError> {
+        // Check if this is an associative operation that can be folded
+        let is_associative = matches!(function, "add" | "fadd" | "mul" | "fmul");
+
+        if is_associative && arguments.len() > 2 {
+            // Use n-ary associative folding
+            self.compile_nary_associative(function, arguments)
+        } else if arguments.len() > 2 {
+            // Non-associative with too many arguments - use binary folding as fallback
+            self.compile_nary_associative(function, arguments)
+        } else {
+            // Binary or unary - compile normally
+            self.compile_binary_ffi_call(function, arguments)
+        }
+    }
+
+    /// Compile n-ary associative operations using left-fold
+    /// (add a b c d) -> (add (add (add a b) c) d)
+    fn compile_nary_associative(
+        &mut self,
+        function: &str,
+        arguments: &[AstNode],
+    ) -> Result<Vec<OpCode>, CompilationError> {
+        if arguments.is_empty() {
+            // Identity element for associative operations
+            match function {
+                "add" | "fadd" => return Ok(vec![OpCode::Int(0)]),
+                "mul" | "fmul" => return Ok(vec![OpCode::Int(1)]),
+                "sub" | "fsub" | "div" | "fdiv" => {
+                    // For non-associative, empty is undefined - return nil
+                    return Ok(vec![OpCode::Nil]);
+                }
+                _ => return Ok(vec![OpCode::Nil]),
+            }
+        }
+
+        // Left-fold: compile first argument, then for each subsequent argument,
+        // compile it and emit a binary HostCall
+        let mut bytecode = Vec::new();
+
+        // Look up FFI function FIRST (before any mutable borrows)
+        let func = self
+            .ffi_registry
+            .registry
+            .find_function(function)
+            .ok_or_else(|| CompilationError::FfiFunctionNotFound(function.to_string()))?;
+
+        // Get capability index (None means no capability required)
+        let cap_idx = match &func.required_capability {
+            Some(capability) => self
+                .ffi_registry
+                .registry
+                .get_capability_index(capability)
+                .unwrap_or(0),
+            None => 0,
+        };
+
+        // Store host_function for later use (avoid borrow in loop)
+        let host_function = func.host_function as u16;
+
+        // Compile first argument
+        bytecode.extend(self.compile_to_physics_with_tail_context(&arguments[0], false)?);
+
+        // For each subsequent argument: compile arg, then binary HostCall
+        for arg in &arguments[1..] {
+            // Compile the next argument
+            bytecode.extend(self.compile_to_physics_with_tail_context(arg, false)?);
+
+            // Emit binary HostCall (2 arguments)
+            bytecode.push(OpCode::HostCall {
+                cap_idx,
+                func_id: host_function,
+                args: 2, // Always binary for folding
+            });
+        }
+
+        Ok(bytecode)
+    }
+
+    /// Compile a binary FFI call (original behavior for 1-2 arguments)
+    fn compile_binary_ffi_call(
+        &mut self,
+        function: &str,
+        arguments: &[AstNode],
+    ) -> Result<Vec<OpCode>, CompilationError> {
         let mut bytecode = Vec::new();
 
         // Compile arguments in reverse order (NOT in tail position)
@@ -437,12 +537,18 @@ impl PhysicsWorldCompiler {
             .find_function(function)
             .ok_or_else(|| CompilationError::FfiFunctionNotFound(function.to_string()))?;
 
-        // Get capability index for this function
-        let cap_idx = self
-            .ffi_registry
-            .registry
-            .get_capability_index(&func.required_capability)
-            .unwrap_or(0);
+        // Get capability index for this function (None means no capability required)
+        let cap_idx = match &func.required_capability {
+            Some(capability) => self
+                .ffi_registry
+                .registry
+                .get_capability_index(capability)
+                .unwrap_or(0),
+            None => {
+                // No capability required - use a placeholder that will be ignored
+                0
+            }
+        };
 
         // Add FFI call instruction (HostCall with capability info)
         bytecode.push(OpCode::HostCall {

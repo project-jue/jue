@@ -39,6 +39,10 @@ pub fn core_expr_from_value(value: &Value) -> CoreExpr {
             // In a full implementation, this would need proper string handling
             CoreExpr::Nat(46) // Placeholder for string representation
         }
+        Value::Error(_) => {
+            // For error values, we'll create a placeholder representation
+            CoreExpr::Nat(47) // Placeholder for error representation
+        }
     }
 }
 
