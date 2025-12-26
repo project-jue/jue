@@ -25,9 +25,11 @@ fn test_basic_closure_no_capture() {
 #[test]
 fn test_closure_capture_analysis() {
     // Test that we can properly analyze captured variables
+    // First, store a value in a local slot, then reference it for capture
     let program = vec![
-        OpCode::Int(42),           // Push variable to capture
-        OpCode::GetLocal(0),       // Reference captured variable
+        OpCode::Int(42),           // Push value to store
+        OpCode::SetLocal(0),       // Store in local slot 0 (creates top-level local)
+        OpCode::GetLocal(0),       // Reference the local variable for capture
         OpCode::MakeClosure(1, 1), // Create closure with 1 capture
     ];
     let constants = vec![Value::Int(0), Value::Int(0)];

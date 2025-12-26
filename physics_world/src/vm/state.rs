@@ -423,6 +423,10 @@ pub struct VmState {
     pub performance_monitor: PerformanceMonitor, // Performance monitoring
     pub gc_enabled: bool,                        // GC enable/disable flag
     pub gc_threshold: usize,                     // GC allocation threshold
+    // Top-level locals for when no call frame exists
+    // Used by SetLocal/GetLocal when running standalone bytecode without function calls
+    #[serde(default)]
+    pub top_level_locals: Vec<Value>,
 }
 
 impl VmState {
@@ -466,6 +470,7 @@ impl VmState {
             performance_monitor,
             gc_enabled: true,
             gc_threshold: mem_limit / 2,
+            top_level_locals: Vec::new(),
         }
     }
 
